@@ -2,7 +2,7 @@
 
 export default function Home() {
   return (
-    <main className="flex min-h-screen flex-col">
+    <main className="flex flex-col h-full">
       {/* Script tag removed as WebIFC is now imported as a module in ifc-viewer.tsx */}
       {/* <script type="module" src="/wasm/web-ifc/web-ifc-api.js" async></script> */}
 

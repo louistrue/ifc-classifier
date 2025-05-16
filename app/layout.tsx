@@ -1,6 +1,7 @@
 import type React from "react";
 import "@/app/globals.css";
-import { ThemeProvider } from "@/components/theme-provider";
+import { ThemeProvider } from "@/app/theme-provider";
+import Menubar from "@/components/layout/Menubar";
 
 export default function RootLayout({
   children,
@@ -8,7 +9,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning className="h-full overflow-hidden">
       <head>
         <title>IFC Viewer with Classification System</title>
         <meta
@@ -16,14 +17,17 @@ export default function RootLayout({
           content="Web-based IFC viewer with rule-based classification system"
         />
       </head>
-      <body>
+      <body className="h-full flex flex-col overflow-hidden">
         <ThemeProvider
           attribute="class"
           defaultTheme="light"
-          enableSystem
+          enableSystem={false}
           disableTransitionOnChange
         >
-          {children}
+          <div className="flex flex-col h-full">
+            <Menubar />
+            <main className="flex-1 overflow-auto">{children}</main>
+          </div>
         </ThemeProvider>
       </body>
     </html>

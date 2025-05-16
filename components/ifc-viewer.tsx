@@ -715,7 +715,7 @@ function ViewerContent() {
   }
 
   return (
-    <div className="flex h-screen w-full relative overflow-hidden">
+    <div className="flex h-full w-full relative overflow-hidden">
       {/* Canvas moved here, absolutely positioned, z-index 0 */}
       <div
         style={{
