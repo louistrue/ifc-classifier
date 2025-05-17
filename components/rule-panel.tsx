@@ -34,17 +34,6 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Plus, Trash2, Edit, Play, Settings2, PlayCircle, CheckCircle2, XCircle, Tag } from "lucide-react";
 
-// Define a more specific type for what a rule property could be.
-// This might come from your IFC model's available properties/categories.
-const availableRuleProperties = [
-  { value: "ifcType", label: "IFC Type (e.g., IFCWALL)" },
-  { value: "name", label: "Name" },
-  { value: "Pset_WallCommon.IsExternal", label: "IsExternal (Wall)" },
-  { value: "Pset_WallCommon.IsLoadBearing", label: "IsLoadBearing (Wall)" },
-  { value: "Pset_BuildingStorey.Name", label: "Building Storey Name" },
-  // Add more relevant properties here
-];
-
 const availableOperators = [
   { value: "equals", label: "Equals" },
   { value: "notEquals", label: "Not Equals" },
@@ -54,11 +43,16 @@ const availableOperators = [
 ];
 
 export function RulePanel() {
-  const { rules, addRule, removeRule, updateRule, classifications, previewRuleHighlight, previewingRuleId } =
+  const { rules, addRule, removeRule, updateRule, classifications, previewRuleHighlight, previewingRuleId, availableProperties } =
     useIFCContext();
   const [isRuleDialogOpen, setIsRuleDialogOpen] = useState(false);
   const [currentRule, setCurrentRule] = useState<Rule | null>(null);
   const [editingRule, setEditingRule] = useState<Partial<Rule> | null>(null);
+
+  const propertyOptions =
+    availableProperties && availableProperties.length > 0
+      ? availableProperties.map((p) => ({ value: p, label: p }))
+      : [{ value: "ifcType", label: "ifcType" }];
 
   const openNewRuleDialog = () => {
     setEditingRule({
@@ -67,7 +61,7 @@ export function RulePanel() {
       description: "",
       conditions: [
         {
-          property: availableRuleProperties[0].value,
+          property: propertyOptions[0].value,
           operator: "equals",
           value: "",
         },
@@ -119,7 +113,7 @@ export function RulePanel() {
         conditions: [
           ...editingRule.conditions,
           {
-            property: availableRuleProperties[0].value,
+            property: propertyOptions[0].value,
             operator: "equals",
             value: "",
           },
@@ -238,7 +232,7 @@ export function RulePanel() {
                             className="flex flex-nowrap items-baseline gap-x-2 p-1 bg-muted/30 rounded text-xs"
                           >
                             <span className="font-medium text-foreground/90 whitespace-nowrap">
-                              {availableRuleProperties.find(
+                            {propertyOptions.find(
                                 (p) => p.value === condition.property
                               )?.label || condition.property}
                             </span>
@@ -325,7 +319,7 @@ export function RulePanel() {
                             <SelectValue placeholder="Select property" />
                           </SelectTrigger>
                           <SelectContent>
-                            {availableRuleProperties.map((prop) => (
+                            {propertyOptions.map((prop) => (
                               <SelectItem key={prop.value} value={prop.value}>
                                 {prop.label}
                               </SelectItem>

@@ -182,6 +182,7 @@ export function IFCModel({ modelData, outlineLayer }: IFCModelProps) {
     highlightedClassificationCode,
     setModelIDForLoadedModel,
     setAvailableCategoriesForModel,
+    setAvailableProperties,
     classifications,
     showAllClassificationColors,
     userHiddenElements,
@@ -734,7 +735,10 @@ export function IFCModel({ modelData, outlineLayer }: IFCModelProps) {
         internalApiIdForEffects === null ||
         selectedElement.modelID !== internalApiIdForEffects
       ) {
-        if (!selectedElement) setElementProperties(null);
+        if (!selectedElement) {
+          setElementProperties(null);
+        }
+        setAvailableProperties([]);
         console.log(
           `IFCModel (${modelData.id}) - Property Fetch (Full Approach): Aborting due to missing selection, API, or modelID mismatch.`,
           {
@@ -1378,6 +1382,19 @@ export function IFCModel({ modelData, outlineLayer }: IFCModelProps) {
           propertySets: psetsData,
         };
 
+        const collectedProps = new Set<string>();
+        collectedProps.add("ifcType");
+        for (const groupName of Object.keys(psetsData)) {
+          const group = psetsData[groupName];
+          for (const key in group) {
+            if (Object.prototype.hasOwnProperty.call(group, key)) {
+              const full = groupName === "Element Attributes" ? key : `${groupName}.${key}`;
+              collectedProps.add(full);
+            }
+          }
+        }
+        setAvailableProperties(Array.from(collectedProps).sort());
+
         setElementProperties(allProperties);
         console.log(
           `IFCModel (${modelData.id}): Properties set (Full Approach) for ${currentSelectedExpressID}`,
@@ -1389,6 +1406,7 @@ export function IFCModel({ modelData, outlineLayer }: IFCModelProps) {
           error
         );
         setElementProperties(null);
+        setAvailableProperties([]);
       }
       console.timeEnd(
         `fetchProps-full-${currentSelectedExpressID}-m${currentModelID}`

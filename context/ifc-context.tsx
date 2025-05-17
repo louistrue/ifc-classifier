@@ -70,6 +70,8 @@ interface IFCContextType {
   showAllClassificationColors: boolean; // Added for global classification colors visibility
   previewingRuleId: string | null; // Added to track active rule preview
   userHiddenElements: SelectedElementInfo[]; // New state for user-hidden elements
+  availableProperties: string[]; // Collected property names for rule building
+  setAvailableProperties: (props: string[]) => void;
 
   replaceIFCModel: (
     url: string,
@@ -130,6 +132,7 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
   const [showAllClassificationColors, setShowAllClassificationColors] = useState<boolean>(false);
   const [previewingRuleId, setPreviewingRuleId] = useState<string | null>(null); // Added state
   const [userHiddenElements, setUserHiddenElements] = useState<SelectedElementInfo[]>([]); // New state
+  const [availableProperties, setAvailablePropertiesInternal] = useState<string[]>([]);
 
   // Initialize classifications with a default entry
   const [classifications, setClassifications] = useState<Record<string, any>>({
@@ -479,6 +482,10 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
     setElementPropertiesInternal(properties);
   }, [setElementPropertiesInternal]);
 
+  const setAvailableProperties = useCallback((props: string[]) => {
+    setAvailablePropertiesInternal(props);
+  }, [setAvailablePropertiesInternal]);
+
   const setAvailableCategoriesForModel = useCallback((modelID: number, cats: string[]) => {
     setAvailableCategoriesInternal((prev) => ({ ...prev, [modelID]: cats }));
   }, [setAvailableCategoriesInternal]);
@@ -584,6 +591,7 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
         showAllClassificationColors,
         previewingRuleId,
         userHiddenElements,
+        availableProperties,
         replaceIFCModel,
         addIFCModel,
         removeIFCModel,
@@ -594,6 +602,7 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
         toggleClassificationHighlight,
         setElementProperties,
         setAvailableCategoriesForModel,
+        setAvailableProperties,
         setIfcApi,
         toggleShowAllClassificationColors,
         addClassification,
