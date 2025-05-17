@@ -46,6 +46,7 @@ export interface LoadedModelData {
   url: string; // Blob URL
   modelID: number | null; // Model ID from ifcAPI.OpenModel()
   spatialTree: SpatialStructureNode | null;
+  rawBuffer: ArrayBuffer | null; // Raw IFC file buffer
   // Potentially add other per-model states here if needed, like categories, classifications etc.
   // For now, classifications and rules will be global.
 }
@@ -86,6 +87,7 @@ interface IFCContextType {
     modelID: number,
     tree: SpatialStructureNode | null
   ) => void;
+  setRawBufferForModel: (id: string, buffer: ArrayBuffer) => void; // Keep this one
 
   selectElement: (selection: SelectedElementInfo | null) => void;
   toggleClassificationHighlight: (classificationCode: string) => void;
@@ -393,7 +395,7 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
     setSelectedElement(null);
     setElementPropertiesInternal(null);
     setHighlightedElements([]);
-    return { id, name, url, modelID: null, spatialTree: null };
+    return { id, name, url, modelID: null, spatialTree: null, rawBuffer: null };
   }, [generateFileId, setSelectedElement, setElementPropertiesInternal, setHighlightedElements]);
 
   const addIFCModel = useCallback(async (url: string, name: string, fileId?: string): Promise<number | null> => {
@@ -429,6 +431,12 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
   const setSpatialTreeForModel = useCallback((modelID: number, tree: SpatialStructureNode | null) => {
     setLoadedModels((prevModels) => prevModels.map((m) => (m.modelID === modelID ? { ...m, spatialTree: tree } : m)));
   }, [setLoadedModels]);
+
+  const setRawBufferForModel = useCallback((id: string, buffer: ArrayBuffer) => {
+    setLoadedModels((prevModels) =>
+      prevModels.map((m) => (m.id === id ? { ...m, rawBuffer: buffer } : m))
+    );
+  }, []);
 
   const selectElement = useCallback((selection: SelectedElementInfo | null) => {
     setSelectedElement(selection);
@@ -581,6 +589,7 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
         removeIFCModel,
         setModelIDForLoadedModel,
         setSpatialTreeForModel,
+        setRawBufferForModel,
         selectElement,
         toggleClassificationHighlight,
         setElementProperties,

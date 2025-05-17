@@ -185,6 +185,7 @@ export function IFCModel({ modelData, outlineLayer }: IFCModelProps) {
     classifications,
     showAllClassificationColors,
     userHiddenElements,
+    setRawBufferForModel,
   } = useIFCContext();
 
   const [isLoading, setIsLoading] = useState(true);
@@ -377,6 +378,10 @@ export function IFCModel({ modelData, outlineLayer }: IFCModelProps) {
         if (!response.ok)
           throw new Error(`Failed to fetch: ${response.statusText}`);
         const data = await response.arrayBuffer();
+        // Store the raw buffer in the context
+        if (modelData.id && data) {
+          setRawBufferForModel(modelData.id, data.slice(0)); // Use slice(0) to store a copy
+        }
 
         if (meshesRef.current) {
           console.log(
@@ -470,6 +475,7 @@ export function IFCModel({ modelData, outlineLayer }: IFCModelProps) {
     setSpatialTreeForModel,
     setAvailableCategoriesForModel,
     setInternalApiIdForEffects, // Added setInternalApiIdForEffects
+    setRawBufferForModel,
   ]);
 
   // New useEffect for initial camera positioning

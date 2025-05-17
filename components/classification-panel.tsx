@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useMemo } from "react"
 import { FixedSizeList as List } from "react-window"; // Import react-window
-import { useIFCContext } from "@/context/ifc-context"
+import { useIFCContext, type SelectedElementInfo } from "@/context/ifc-context"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -16,7 +16,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Plus, Trash2, Edit, Eye, Palette, Eraser, CircleOff, ChevronDown, MoreHorizontal, ChevronUp, X } from "lucide-react"
+import { Plus, Trash2, Edit, Eye, Palette, Eraser, CircleOff, ChevronDown, MoreHorizontal, ChevronUp, X, Download } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import {
   Tooltip,
@@ -24,6 +24,11 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
+import {
+  exportIfcWithClassificationsService,
+  downloadFile,
+  type ExportClassificationData
+} from "@/services/ifc-export-service"
 
 // Define an interface for our classification structure
 interface ClassificationItem {
@@ -57,7 +62,8 @@ export function ClassificationPanel() {
     toggleClassificationHighlight,
     highlightedClassificationCode,
     showAllClassificationColors,
-    toggleShowAllClassificationColors
+    toggleShowAllClassificationColors,
+    loadedModels,
   } = useIFCContext()
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
   const [newClassification, setNewClassification] = useState({
@@ -84,6 +90,11 @@ export function ClassificationPanel() {
   const listWrapperRef = useRef<HTMLDivElement>(null);
   const [listHeight, setListHeight] = useState(0);
   const [listWidth, setListWidth] = useState(0);
+
+  const [newClassificationName, setNewClassificationName] = useState("");
+  const [newClassificationCode, setNewClassificationCode] = useState("");
+  const [newClassificationColor, setNewClassificationColor] = useState("#rrggbb");
+  const [isExporting, setIsExporting] = useState(false);
 
   useEffect(() => {
     const fetchUniclassData = async () => {
@@ -333,6 +344,66 @@ export function ClassificationPanel() {
       return <ChevronUp className="w-3 h-3 ml-1 text-primary" />;
     }
     return <ChevronDown className="w-3 h-3 ml-1 text-primary" />;
+  };
+
+  const handleExportIFC = async () => {
+    if (isExporting) return;
+
+    const modelToExport = loadedModels.find(model => model.rawBuffer && model.modelID !== null);
+
+    if (!modelToExport || !modelToExport.rawBuffer) {
+      alert("No model with a loaded buffer is available for export. Please load an IFC file first.");
+      console.warn("Export IFC: No model with a raw buffer found.");
+      return;
+    }
+
+    if (Object.keys(classifications).length === 0) {
+      alert("There are no classifications to export. Please define some classifications first.");
+      console.warn("Export IFC: No classifications defined.");
+      return;
+    }
+
+    setIsExporting(true);
+    console.log("Exporting IFC with classifications...");
+
+    try {
+      const exportData: ExportClassificationData = {};
+      for (const code in classifications) {
+        const currentClass = classifications[code];
+        if (currentClass && currentClass.elements) {
+          exportData[code] = {
+            name: currentClass.name || code,
+            code: currentClass.code || code,
+            color: currentClass.color,
+            elements: currentClass.elements.map((el: SelectedElementInfo) => ({
+              modelID: el.modelID,
+              expressID: el.expressID,
+            })),
+          };
+        }
+      }
+
+      const modifiedIfcData = await exportIfcWithClassificationsService(
+        modelToExport.rawBuffer,
+        exportData
+      );
+
+      if (modifiedIfcData) {
+        const originalFileName = modelToExport.name || "classified_model.ifc";
+        const newFileName = originalFileName.replace(/\.ifc$/i, "_classified.ifc");
+        downloadFile(modifiedIfcData, newFileName, "application/octet-stream");
+        console.log("IFC export successful, download initiated.");
+        alert("IFC model exported successfully!");
+      } else {
+        console.error("IFC export failed. The service returned no data.");
+        alert("IFC export failed. Please check the console for more details.");
+      }
+    } catch (error) {
+      console.error("An error occurred during the IFC export process:", error);
+      alert("An error occurred during export. Please check the console for details.");
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   return (
@@ -674,6 +745,13 @@ export function ClassificationPanel() {
           </div>
         </div>
       )}
+
+      <div className="mt-auto pt-4 border-t">
+        <Button onClick={handleExportIFC} disabled={isExporting} className="w-full">
+          <Download className="mr-2 h-4 w-4" />
+          {isExporting ? "Exporting..." : "Export Classified IFC"}
+        </Button>
+      </div>
     </div>
   )
 }
