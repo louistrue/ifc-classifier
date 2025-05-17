@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useMemo } from "react";
 import { useThree } from "@react-three/fiber";
 import {
   useIFCContext,
@@ -195,22 +195,26 @@ export function IFCModel({ modelData, outlineLayer }: IFCModelProps) {
   ] = useState(false);
 
   // Updated highlightMaterial color
-  const highlightMaterial = new THREE.MeshBasicMaterial({
-    transparent: true,
-    opacity: 0.5, // Slightly more subtle opacity
-    color: 0x00bcd4, // A nice cyan/teal
-    depthTest: false,
-  });
+  const highlightMaterial = useMemo(() => {
+    return new THREE.MeshBasicMaterial({
+      transparent: true,
+      opacity: 0.5, // Slightly more subtle opacity
+      color: 0x00bcd4, // A nice cyan/teal
+      depthTest: false,
+    });
+  }, []);
 
   // New material for selected elements (simple color change)
-  const selectionMaterial = new THREE.MeshStandardMaterial({
-    color: 0xffaa00, // Bright orange for selection
-    emissive: 0x332200, // Slight emissive quality
-    transparent: true,
-    opacity: 0.85, // Slightly more opaque than general highlight
-    side: THREE.DoubleSide, // Ensure it's visible from all angles
-    depthTest: true, // Standard depth testing
-  });
+  const selectionMaterial = useMemo(() => {
+    return new THREE.MeshStandardMaterial({
+      color: 0xffaa00, // Bright orange for selection
+      emissive: 0x332200, // Slight emissive quality
+      transparent: true,
+      opacity: 0.85, // Slightly more opaque than general highlight
+      side: THREE.DoubleSide, // Ensure it's visible from all angles
+      depthTest: true, // Standard depth testing
+    });
+  }, []);
 
   // This will be for the outline effect, selection material itself might not be directly applied for color change
   // const selectionMaterial = new THREE.MeshBasicMaterial({ transparent: true, opacity: 0.8, color: 0xffD700, depthTest: false });
@@ -247,6 +251,8 @@ export function IFCModel({ modelData, outlineLayer }: IFCModelProps) {
         });
         meshesRef.current = null;
       }
+      highlightMaterial.dispose();
+      selectionMaterial.dispose();
     };
   }, [scene, ifcApi, modelData.id]);
 
@@ -823,14 +829,13 @@ export function IFCModel({ modelData, outlineLayer }: IFCModelProps) {
                     else
                       propValue = propToProcess.type
                         ? `(Type is ${typeOfPropType}: ${String(
-                            propToProcess.type
-                          )})`
+                          propToProcess.type
+                        )})`
                         : `(Unknown Type)`;
                   }
                   targetPSetData[propToProcess.Name.value] = propValue;
                   console.log(
-                    `      [${psetNameForLogging}] Successfully processed Property '${
-                      propToProcess.Name.value
+                    `      [${psetNameForLogging}] Successfully processed Property '${propToProcess.Name.value
                     }': ${JSON.stringify(propValue)}`
                   );
                 } else {
@@ -898,8 +903,7 @@ export function IFCModel({ modelData, outlineLayer }: IFCModelProps) {
             true
           );
           console.log(
-            `  Found ${
-              psetsFromApi?.length || 0
+            `  Found ${psetsFromApi?.length || 0
             } PSet definitions via getPropertySets()`
           );
           if (psetsFromApi && psetsFromApi.length > 0) {
@@ -1047,8 +1051,7 @@ export function IFCModel({ modelData, outlineLayer }: IFCModelProps) {
             true
           );
           console.log(
-            `  Found ${
-              typeObjects?.length || 0
+            `  Found ${typeObjects?.length || 0
             } Type definitions via getTypeProperties()`
           );
           if (typeObjects && typeObjects.length > 0) {
@@ -1209,8 +1212,7 @@ export function IFCModel({ modelData, outlineLayer }: IFCModelProps) {
             true
           );
           console.log(
-            `  Found ${
-              materials?.length || 0
+            `  Found ${materials?.length || 0
             } Material definitions via getMaterialsProperties()`
           );
           if (materials && materials.length > 0) {
