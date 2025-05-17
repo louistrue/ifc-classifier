@@ -177,12 +177,13 @@ export function IFCModel({ modelData, outlineLayer }: IFCModelProps) {
     ifcApi,
     setSpatialTreeForModel,
     setElementProperties,
-    // selectElement, // No longer called directly from here for 3D pick
     selectedElement,
     highlightedElements,
+    highlightedClassificationCode,
     setModelIDForLoadedModel,
     setAvailableCategoriesForModel,
     classifications,
+    showAllClassificationColors,
   } = useIFCContext();
 
   const [isLoading, setIsLoading] = useState(true);
@@ -574,73 +575,109 @@ export function IFCModel({ modelData, outlineLayer }: IFCModelProps) {
       ) {
         const mesh = child as THREE.Mesh;
         const expressID = mesh.userData.expressID;
-        let newMaterialApplied = false;
 
-        // Reset layers first (though outlineLayer is not used by this highlighting method)
-        // mesh.layers.set(0); // This can be removed if outlineLayer is no longer used at all
+        if (!originalMaterials.current.has(expressID)) {
+          originalMaterials.current.set(expressID, mesh.material);
+        }
+        const trueOriginalMaterial = originalMaterials.current.get(expressID)!;
+        let targetMaterial: THREE.Material | THREE.Material[] = trueOriginalMaterial;
 
-        // Store original material if not already stored and we are about to change it
-        const ensureOriginalMaterialStored = () => {
-          if (!originalMaterials.current.has(expressID)) {
-            originalMaterials.current.set(expressID, mesh.material);
-          }
-        };
+        let materialAppliedByShowAll = false;
 
-        // Restore original material if no other effect applies
-        const restoreOriginalMaterialIfNeeded = () => {
-          if (!newMaterialApplied && originalMaterials.current.has(expressID)) {
-            mesh.material = originalMaterials.current.get(expressID)!;
-            originalMaterials.current.delete(expressID);
-          }
-        };
-
-        // 1. Selection Material (Highest Priority)
-        if (selectedExpressIDInThisModel === expressID) {
-          // Use the corrected variable
-          ensureOriginalMaterialStored();
-          mesh.material = selectionMaterial;
-          newMaterialApplied = true;
-        } else {
-          // 2. General Highlight Material (if not selected)
-          let generalHighlightApplied = false;
-          if (highlightedExpressIDsInThisModel.includes(expressID)) {
-            ensureOriginalMaterialStored();
-            mesh.material = highlightMaterial;
-            newMaterialApplied = true;
-            generalHighlightApplied = true;
+        // 0. "Show All Classification Colors" mode (lowest priority visual override after original)
+        if (showAllClassificationColors) {
+          let elementClassificationColor: string | null = null;
+          for (const classification of Object.values(
+            classifications as Record<string, any>
+          )) {
+            const isInClassification = classification.elements?.some(
+              (el: SelectedElementInfo) =>
+                el && el.modelID === currentModelID && el.expressID === expressID
+            );
+            if (isInClassification) {
+              elementClassificationColor = classification.color || "#808080"; // Default grey
+              break; // First found classification wins for "Show All"
+            }
           }
 
-          // 3. Classification Material (if not selected or generally highlighted)
-          if (!generalHighlightApplied) {
-            let classificationMaterialToApply: THREE.Material | null = null;
-            for (const classification of Object.values(
-              classifications as any[]
-            )) {
-              if (classification.elements?.includes(expressID)) {
-                classificationMaterialToApply = new THREE.MeshStandardMaterial({
-                  color: new THREE.Color(classification.color || "#ff0000"),
-                  transparent: true,
-                  opacity: 0.9,
-                  side: THREE.DoubleSide,
-                });
-                break;
+          if (elementClassificationColor) {
+            // Check if current material is already the correct classification material
+            let isCorrectMaterial = false;
+            if (mesh.material instanceof THREE.MeshStandardMaterial) {
+              const currentColor = `#${mesh.material.color.getHexString()}`;
+              const currentOpacity = mesh.material.opacity; // Assuming opacity 0.9 for this mode
+              if (currentColor.toLowerCase() === elementClassificationColor.toLowerCase() && currentOpacity === 0.9) {
+                isCorrectMaterial = true;
+                targetMaterial = mesh.material;
               }
             }
-            if (classificationMaterialToApply) {
-              ensureOriginalMaterialStored();
-              mesh.material = classificationMaterialToApply;
-              newMaterialApplied = true;
+            if (!isCorrectMaterial) {
+              targetMaterial = new THREE.MeshStandardMaterial({
+                color: new THREE.Color(elementClassificationColor),
+                transparent: true,
+                opacity: 0.9, // Opacity for "Show All" mode
+                side: THREE.DoubleSide,
+              });
             }
+            materialAppliedByShowAll = true; // Mark that ShowAll logic applied a color
           }
         }
 
-        restoreOriginalMaterialIfNeeded();
+        // 1. Check if this element is part of the currently active (single) highlighted classification
+        // This overrides "Show All" if a single classification is eye-icon highlighted.
+        if (highlightedClassificationCode) {
+          const isActiveClassificationElement = highlightedElements.some(
+            (el) => el.modelID === currentModelID && el.expressID === expressID
+          );
+
+          if (isActiveClassificationElement) {
+            const activeClassification = classifications[highlightedClassificationCode];
+            if (activeClassification && activeClassification.color) {
+              let isCorrectMaterial = false;
+              if (mesh.material instanceof THREE.MeshStandardMaterial) {
+                const currentColor = `#${mesh.material.color.getHexString()}`;
+                const currentOpacity = mesh.material.opacity; // Using opacity 0.7 for single eye-icon highlight
+                if (currentColor.toLowerCase() === activeClassification.color.toLowerCase() && currentOpacity === 0.7) {
+                  isCorrectMaterial = true;
+                  targetMaterial = mesh.material;
+                }
+              }
+              if (!isCorrectMaterial) {
+                targetMaterial = new THREE.MeshStandardMaterial({
+                  color: new THREE.Color(activeClassification.color),
+                  transparent: true,
+                  opacity: 0.7, // Specific opacity for active "Eye" highlight
+                  side: THREE.DoubleSide,
+                });
+              }
+              // If single highlight applies, it overrides showAll, so reset flag
+              materialAppliedByShowAll = false;
+            }
+          }
+        } else if (materialAppliedByShowAll) {
+          // No single highlight is active, but ShowAll was, so targetMaterial is already set by ShowAll.
+          // Nothing to do here, proceed to selection check.
+        } else {
+          // No single highlight, and ShowAll didn't apply or is off, so ensure it's original.
+          targetMaterial = trueOriginalMaterial;
+        }
+
+        // 2. Check for Selection (overrides all other visual states)
+        if (selectedExpressIDInThisModel === expressID) {
+          targetMaterial = selectionMaterial;
+        }
+
+        if (mesh.material !== targetMaterial) {
+          mesh.material = targetMaterial;
+        }
       }
     });
   }, [
     selectedElement,
     highlightedElements,
+    highlightedClassificationCode,
     classifications,
+    showAllClassificationColors,
     internalApiIdForEffects,
     ifcApi,
     highlightMaterial,
