@@ -417,7 +417,7 @@ export function SpatialTreePanel() {
   if (loadedModels.length === 0) {
     return (
       <div className="p-4 text-sm text-muted-foreground h-full flex items-center justify-center">
-        No models loaded. Use the 'Load IFC File' or 'Add Model' button.
+        No models loaded. Use the &apos;Load IFC File&apos; or &apos;Add Model&apos; button.
       </div>
     );
   }
@@ -492,11 +492,11 @@ export function SpatialTreePanel() {
               </div>
             </DialogHeader>
             <DialogDescription className="mt-2 text-sm text-muted-foreground">
-              Are you sure you want to remove the model "
+              Are you sure you want to remove the model &quot;
               <span className="font-semibold text-foreground">
                 {modelToRemove.name}
               </span>
-              " from the scene? This action cannot be undone.
+              &quot; from the scene? This action cannot be undone.
             </DialogDescription>
             <DialogFooter className="mt-6 sm:justify-end gap-2">
               <Button
