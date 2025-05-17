@@ -32,7 +32,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Trash2, Edit, Play, Settings2 } from "lucide-react";
+import { Plus, Trash2, Edit, Play, Settings2, PlayCircle } from "lucide-react";
 
 // Define a more specific type for what a rule property could be.
 // This might come from your IFC model's available properties/categories.
@@ -54,7 +54,7 @@ const availableOperators = [
 ];
 
 export function RulePanel() {
-  const { rules, addRule, removeRule, updateRule, applyRule, classifications } =
+  const { rules, addRule, removeRule, updateRule, classifications, previewRuleHighlight, previewingRuleId } =
     useIFCContext();
   const [isRuleDialogOpen, setIsRuleDialogOpen] = useState(false);
   const [currentRule, setCurrentRule] = useState<Rule | null>(null);
@@ -178,10 +178,14 @@ export function RulePanel() {
                   <Button
                     variant="ghost"
                     size="icon"
-                    onClick={() => applyRule(rule.id)}
-                    title="Apply Rule"
+                    onClick={() => previewRuleHighlight(rule.id)}
+                    title={previewingRuleId === rule.id ? "Clear Preview" : "Preview Rule Impact"}
                   >
-                    <Play className="text-green-500" />
+                    {previewingRuleId === rule.id ? (
+                      <PlayCircle className="text-orange-500" />
+                    ) : (
+                      <Play className="text-blue-500" />
+                    )}
                   </Button>
                   <Button
                     variant="ghost"
