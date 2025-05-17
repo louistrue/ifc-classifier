@@ -68,6 +68,7 @@ interface IFCContextType {
   highlightedClassificationCode: string | null;
   showAllClassificationColors: boolean; // Added for global classification colors visibility
   previewingRuleId: string | null; // Added to track active rule preview
+  userHiddenElements: SelectedElementInfo[]; // New state for user-hidden elements
 
   replaceIFCModel: (
     url: string,
@@ -104,6 +105,10 @@ interface IFCContextType {
   removeRule: (id: string) => void;
   updateRule: (rule: Rule) => void;
   previewRuleHighlight: (ruleId: string) => Promise<void>;
+
+  toggleUserHideElement: (element: SelectedElementInfo) => void; // New function
+  unhideLastElement: () => void; // New function
+  unhideAllElements: () => void; // New function
 }
 
 const IFCContext = createContext<IFCContextType | undefined>(undefined);
@@ -122,6 +127,7 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
   const [highlightedClassificationCode, setHighlightedClassificationCode] = useState<string | null>(null);
   const [showAllClassificationColors, setShowAllClassificationColors] = useState<boolean>(false);
   const [previewingRuleId, setPreviewingRuleId] = useState<string | null>(null); // Added state
+  const [userHiddenElements, setUserHiddenElements] = useState<SelectedElementInfo[]>([]); // New state
 
   // Initialize classifications with a default entry
   const [classifications, setClassifications] = useState<Record<string, any>>({
@@ -430,7 +436,15 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
     setHighlightedClassificationCode(null);
     setShowAllClassificationColors(false);
     setPreviewingRuleId(null); // Clear active rule preview
-    if (!selection) setElementPropertiesInternal(null);
+    if (!selection) {
+      setElementPropertiesInternal(null);
+    } else {
+      // Properties will be fetched by IFCModel's useEffect based on selectedElement change
+      // So, we don't necessarily need to set them to null here if a new selection is made.
+      // However, if the old selectedElement was different, its props should be cleared.
+      // For simplicity, if we are selecting something new (or null), clear old props.
+      setElementPropertiesInternal(null); // Clear old props before new ones are fetched
+    }
   }, [setSelectedElement, setHighlightedElements, setHighlightedClassificationCode, setShowAllClassificationColors, setElementPropertiesInternal, setPreviewingRuleId]);
 
   const toggleClassificationHighlight = useCallback((classificationCode: string) => {
@@ -502,6 +516,51 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
     setRules((prev) => prev.map((r) => (r.id === updatedRuleItem.id ? updatedRuleItem : r)));
   }, [setRules]);
 
+  const toggleUserHideElement = useCallback((elementToToggle: SelectedElementInfo) => {
+    console.log("IFCContext: toggleUserHideElement called for", elementToToggle);
+    setUserHiddenElements((prevHidden) => {
+      const isAlreadyHidden = prevHidden.some(
+        (el) => el.modelID === elementToToggle.modelID && el.expressID === elementToToggle.expressID
+      );
+      if (isAlreadyHidden) {
+        console.log("IFCContext: Element was hidden, now showing:", elementToToggle);
+        return prevHidden.filter(
+          (el) => !(el.modelID === elementToToggle.modelID && el.expressID === elementToToggle.expressID)
+        );
+      } else {
+        console.log("IFCContext: Element was visible, now hiding:", elementToToggle);
+        // Check if the element being hidden is the currently selected element
+        if (selectedElement &&
+          selectedElement.modelID === elementToToggle.modelID &&
+          selectedElement.expressID === elementToToggle.expressID) {
+          console.log("IFCContext: Deselecting element because it is now hidden.");
+          setSelectedElement(null); // Deselect
+          setElementPropertiesInternal(null); // Clear its properties
+        }
+        return [...prevHidden, elementToToggle];
+      }
+    });
+  }, [selectedElement, setSelectedElement, setElementPropertiesInternal]);
+
+  const unhideLastElement = useCallback(() => {
+    console.log("IFCContext: unhideLastElement called.");
+    setUserHiddenElements((prevHidden) => {
+      if (prevHidden.length === 0) {
+        console.log("IFCContext: No elements to unhide.");
+        return prevHidden;
+      }
+      const newHidden = prevHidden.slice(0, -1); // Remove the last element
+      console.log("IFCContext: Unhid last element. Remaining hidden:", newHidden.length);
+      return newHidden;
+    });
+  }, []);
+
+  const unhideAllElements = useCallback(() => {
+    console.log("IFCContext: unhideAllElements called.");
+    setUserHiddenElements([]);
+    console.log("IFCContext: All elements unhidden.");
+  }, []);
+
   return (
     <IFCContext.Provider
       value={{
@@ -516,6 +575,7 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
         highlightedClassificationCode,
         showAllClassificationColors,
         previewingRuleId,
+        userHiddenElements,
         replaceIFCModel,
         addIFCModel,
         removeIFCModel,
@@ -534,6 +594,9 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
         removeRule,
         updateRule,
         previewRuleHighlight,
+        toggleUserHideElement,
+        unhideLastElement,
+        unhideAllElements,
       }}
     >
       {children}

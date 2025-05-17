@@ -184,6 +184,7 @@ export function IFCModel({ modelData, outlineLayer }: IFCModelProps) {
     setAvailableCategoriesForModel,
     classifications,
     showAllClassificationColors,
+    userHiddenElements,
   } = useIFCContext();
 
   const [isLoading, setIsLoading] = useState(true);
@@ -581,63 +582,56 @@ export function IFCModel({ modelData, outlineLayer }: IFCModelProps) {
         }
         const trueOriginalMaterial = originalMaterials.current.get(expressID)!;
         let targetMaterial: THREE.Material | THREE.Material[] = trueOriginalMaterial;
+        let isCurrentlyVisible = true;
 
-        let materialAppliedByShowAll = false;
-
-        // 0. "Show All Classification Colors" mode (lowest priority visual override after original)
+        // Step 1: Apply "Show All Classification Colors" if active
         if (showAllClassificationColors) {
           let elementClassificationColor: string | null = null;
-          for (const classification of Object.values(
-            classifications as Record<string, any>
-          )) {
+          for (const classification of Object.values(classifications as Record<string, any>)) {
             const isInClassification = classification.elements?.some(
-              (el: SelectedElementInfo) =>
-                el && el.modelID === currentModelID && el.expressID === expressID
+              (el: SelectedElementInfo) => el && el.modelID === currentModelID && el.expressID === expressID
             );
             if (isInClassification) {
-              elementClassificationColor = classification.color || "#808080"; // Default grey
-              break; // First found classification wins for "Show All"
+              elementClassificationColor = classification.color || "#808080";
+              break;
             }
           }
-
           if (elementClassificationColor) {
-            // Check if current material is already the correct classification material
             let isCorrectMaterial = false;
             if (mesh.material instanceof THREE.MeshStandardMaterial) {
-              const currentColor = `#${mesh.material.color.getHexString()}`;
-              const currentOpacity = mesh.material.opacity; // Assuming opacity 0.9 for this mode
-              if (currentColor.toLowerCase() === elementClassificationColor.toLowerCase() && currentOpacity === 0.9) {
+              if (mesh.material.color.getHexString().toLowerCase() === elementClassificationColor.substring(1).toLowerCase() &&
+                mesh.material.opacity === 0.9 && mesh.material.transparent) {
                 isCorrectMaterial = true;
-                targetMaterial = mesh.material;
+                targetMaterial = mesh.material; // Use existing material instance
               }
             }
             if (!isCorrectMaterial) {
               targetMaterial = new THREE.MeshStandardMaterial({
                 color: new THREE.Color(elementClassificationColor),
                 transparent: true,
-                opacity: 0.9, // Opacity for "Show All" mode
+                opacity: 0.9,
                 side: THREE.DoubleSide,
               });
             }
-            materialAppliedByShowAll = true; // Mark that ShowAll logic applied a color
+          } else {
+            targetMaterial = trueOriginalMaterial;
           }
         }
 
-        // 1. Check if this element is part of the currently active (single) highlighted classification
-        // This overrides "Show All" if a single classification is eye-icon highlighted.
+        // Step 2: Apply single highlighted classification effects
         if (highlightedClassificationCode) {
-          const isActiveClassificationElement = highlightedElements.some(
-            (el) => el.modelID === currentModelID && el.expressID === expressID
+          const activeClassification = classifications[highlightedClassificationCode];
+          const isElementInActiveClassification = activeClassification?.elements?.some(
+            (el: SelectedElementInfo) => el && el.modelID === currentModelID && el.expressID === expressID
           );
 
-          if (isActiveClassificationElement) {
-            const activeClassification = classifications[highlightedClassificationCode];
+          if (isElementInActiveClassification) {
+            isCurrentlyVisible = true;
             if (activeClassification && activeClassification.color) {
               let isCorrectMaterial = false;
               if (mesh.material instanceof THREE.MeshStandardMaterial) {
-                const currentColor = `#${mesh.material.color.getHexString()}`;
-                const currentOpacity = mesh.material.opacity; // Using opacity 0.7 for single eye-icon highlight
-                if (currentColor.toLowerCase() === activeClassification.color.toLowerCase() && currentOpacity === 0.7) {
+                if (mesh.material.color.getHexString().toLowerCase() === activeClassification.color.substring(1).toLowerCase() &&
+                  mesh.material.opacity === 0.7 && mesh.material.transparent) {
                   isCorrectMaterial = true;
                   targetMaterial = mesh.material;
                 }
@@ -645,30 +639,52 @@ export function IFCModel({ modelData, outlineLayer }: IFCModelProps) {
               if (!isCorrectMaterial) {
                 targetMaterial = new THREE.MeshStandardMaterial({
                   color: new THREE.Color(activeClassification.color),
-                  transparent: true,
-                  opacity: 0.7, // Specific opacity for active "Eye" highlight
-                  side: THREE.DoubleSide,
+                  transparent: true, opacity: 0.7, side: THREE.DoubleSide,
                 });
               }
-              // If single highlight applies, it overrides showAll, so reset flag
-              materialAppliedByShowAll = false;
+            }
+          } else {
+            if (activeClassification && activeClassification.elements && activeClassification.elements.length > 0) {
+              isCurrentlyVisible = false;
+              targetMaterial = trueOriginalMaterial;
+            } else {
+              isCurrentlyVisible = true;
             }
           }
-        } else if (materialAppliedByShowAll) {
-          // No single highlight is active, but ShowAll was, so targetMaterial is already set by ShowAll.
-          // Nothing to do here, proceed to selection check.
-        } else {
-          // No single highlight, and ShowAll didn't apply or is off, so ensure it's original.
-          targetMaterial = trueOriginalMaterial;
         }
 
-        // 2. Check for Selection (overrides all other visual states)
-        if (selectedExpressIDInThisModel === expressID) {
+        // Step 3: Apply User Hidden State (high precedence, but selected can override)
+        const isUserExplicitlyHidden = userHiddenElements.some(
+          (hiddenEl) => hiddenEl.modelID === currentModelID && hiddenEl.expressID === expressID
+        );
+
+        if (isUserExplicitlyHidden) {
+          isCurrentlyVisible = false;
+        }
+
+        // Step 4: Selected Element (highest priority for visibility and material)
+        if (selectedElement && selectedElement.modelID === currentModelID && selectedElement.expressID === expressID) {
           targetMaterial = selectionMaterial;
+          isCurrentlyVisible = true;
         }
 
-        if (mesh.material !== targetMaterial) {
+        mesh.visible = isCurrentlyVisible;
+
+        // Apply the determined targetMaterial, with disposal check
+        if (mesh.material !== targetMaterial && isCurrentlyVisible) {
+          const oldMaterial = mesh.material as THREE.Material;
+          if (oldMaterial !== trueOriginalMaterial && !(Array.isArray(trueOriginalMaterial) && trueOriginalMaterial.includes(oldMaterial)) && !Array.isArray(oldMaterial)) {
+            if (typeof oldMaterial.dispose === 'function') oldMaterial.dispose();
+          }
           mesh.material = targetMaterial;
+        } else if (!isCurrentlyVisible && mesh.material !== trueOriginalMaterial) {
+          if (mesh.material !== trueOriginalMaterial) {
+            const oldMaterial = mesh.material as THREE.Material;
+            if (oldMaterial !== trueOriginalMaterial && !(Array.isArray(trueOriginalMaterial) && trueOriginalMaterial.includes(oldMaterial)) && !Array.isArray(oldMaterial)) {
+              if (typeof oldMaterial.dispose === 'function') oldMaterial.dispose();
+            }
+            mesh.material = trueOriginalMaterial;
+          }
         }
       }
     });
@@ -682,6 +698,7 @@ export function IFCModel({ modelData, outlineLayer }: IFCModelProps) {
     ifcApi,
     highlightMaterial,
     selectionMaterial,
+    userHiddenElements,
   ]);
 
   // Renamed to avoid conflict if a global findMeshByExpressID is ever introduced

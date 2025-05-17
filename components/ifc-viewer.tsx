@@ -29,6 +29,10 @@ import {
   GripHorizontal,
   ChevronsLeft,
   ChevronsRight,
+  EyeOff,
+  Construction,
+  Undo2,
+  Layers as LayersIcon,
 } from "lucide-react";
 import { ModelInfo } from "@/components/model-info";
 import {
@@ -73,7 +77,7 @@ function SpinningBox() {
 // GlobalInteractionHandler - re-enable
 function GlobalInteractionHandler() {
   const { scene, camera, gl, raycaster } = useThree();
-  const { selectElement, selectedElement, loadedModels } = useIFCContext();
+  const { selectElement, selectedElement, loadedModels, userHiddenElements } = useIFCContext();
 
   const mouseDownPos = useRef<{ x: number; y: number } | null>(null);
   const DRAG_THRESHOLD = 5; // Pixels
@@ -141,13 +145,17 @@ function GlobalInteractionHandler() {
           `GlobalInteractionHandler: Found ${modelMeshGroups.length} model groups for raycasting.`
         );
 
-        const intersects = raycaster.intersectObjects(modelMeshGroups, true);
+        const allIntersects = raycaster.intersectObjects(modelMeshGroups, true);
+
+        // Filter out intersections with non-visible meshes
+        const visibleIntersects = allIntersects.filter(intersect => intersect.object.visible);
+
         console.log(
-          `GlobalInteractionHandler: Raycast intersected ${intersects.length} objects.`
+          `GlobalInteractionHandler: Raycast allIntersects: ${allIntersects.length}, visibleIntersects: ${visibleIntersects.length}`
         );
 
-        if (intersects.length > 0) {
-          const firstIntersect = intersects[0].object;
+        if (visibleIntersects.length > 0) {
+          const firstIntersect = visibleIntersects[0].object;
           if (
             firstIntersect.userData &&
             firstIntersect.userData.expressID !== undefined &&
@@ -163,6 +171,18 @@ function GlobalInteractionHandler() {
               "GlobalInteractionHandler: Clicked on element:",
               selectionInfo
             );
+
+            // Check if this element is user-hidden. If so, do not select it.
+            // (Though it shouldn't be in visibleIntersects if mesh.visible was set correctly by IFCModel)
+            // This is more of a double-check or alternative if direct mesh.visible check fails for some reason.
+            // const isClickedElementUserHidden = userHiddenElements.some(
+            //   (hiddenEl) => hiddenEl.modelID === clickedModelID && hiddenEl.expressID === clickedExpressID
+            // );
+            // if (isClickedElementUserHidden) {
+            //   console.log("GlobalInteractionHandler: Clicked on a user-hidden element. Deselecting.");
+            //   selectElement(null);
+            //   return;
+            // }
 
             if (
               selectedElement &&
@@ -217,7 +237,8 @@ function GlobalInteractionHandler() {
     selectElement,
     selectedElement,
     scene,
-    loadedModels, // Add loadedModels here as it affects the objects to intersect
+    loadedModels,
+    userHiddenElements,
     DRAG_THRESHOLD,
   ]);
 
@@ -236,6 +257,20 @@ function ViewToolbar({
   onZoomSelected,
   isElementSelected,
 }: ViewToolbarProps) {
+  const {
+    selectedElement,
+    toggleUserHideElement,
+    userHiddenElements,
+    unhideLastElement,
+    unhideAllElements
+  } = useIFCContext();
+
+  const handleHideSelected = () => {
+    if (selectedElement) {
+      toggleUserHideElement(selectedElement);
+    }
+  };
+
   return (
     <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-20 pointer-events-auto">
       <div className="flex items-center gap-2 p-2 bg-background/80 backdrop-blur-sm border border-border rounded-lg shadow-lg">
@@ -243,7 +278,7 @@ function ViewToolbar({
           variant="ghost"
           size="icon"
           onClick={onZoomExtents}
-          title="Zoom to Extents"
+          title="Zoom to Extents (E)"
         >
           <Maximize className="w-5 h-5" />
         </Button>
@@ -252,9 +287,36 @@ function ViewToolbar({
           size="icon"
           onClick={onZoomSelected}
           disabled={!isElementSelected}
-          title="Zoom to Selected"
+          title="Zoom to Selected (F)"
         >
           <Focus className="w-5 h-5" />
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={handleHideSelected}
+          disabled={!selectedElement}
+          title={selectedElement ? "Toggle Visibility of Selected (Spacebar)" : "Select an element to toggle visibility"}
+        >
+          <EyeOff className="w-5 h-5" />
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={unhideLastElement}
+          disabled={userHiddenElements.length === 0}
+          title="Unhide Last (Cmd/Ctrl+Z)"
+        >
+          <Undo2 className="w-5 h-5" />
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={unhideAllElements}
+          disabled={userHiddenElements.length === 0}
+          title="Unhide All Elements (Shift+A)"
+        >
+          <LayersIcon className="w-5 h-5" />
         </Button>
       </div>
     </div>
@@ -531,7 +593,7 @@ const ResizeHandleVertical = ({ className }: { className?: string }) => (
 );
 
 function ViewerContent() {
-  const { loadedModels, setIfcApi, ifcApi, selectedElement, selectElement } =
+  const { loadedModels, setIfcApi, ifcApi, selectedElement, selectElement, toggleUserHideElement, unhideLastElement, unhideAllElements, userHiddenElements } =
     useIFCContext();
   const [ifcEngineReady, setIfcEngineReady] = useState(false);
   const [webGLContextLost, setWebGLContextLost] = useState(false);
@@ -684,6 +746,62 @@ function ViewerContent() {
       console.log("ViewerContent: No element selected / selection cleared.");
     }
   }, [selectedElement]);
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement;
+      const isTyping = target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable;
+
+      if (isTyping) return; // Universal check for typing focus
+
+      switch (event.code) {
+        case 'Space':
+          if (selectedElement) {
+            event.preventDefault();
+            toggleUserHideElement(selectedElement);
+          }
+          break;
+        case 'KeyZ':
+          if (event.ctrlKey || event.metaKey) {
+            event.preventDefault();
+            if (userHiddenElements.length > 0) unhideLastElement(); // Check if there's something to unhide
+          }
+          break;
+        case 'KeyE': // E for Zoom to Extents
+          event.preventDefault();
+          handleZoomExtents();
+          break;
+        case 'KeyF': // F for Zoom to Selected (Focus)
+          if (selectedElement) {
+            event.preventDefault();
+            handleZoomSelected();
+          }
+          break;
+        case 'KeyA': // A for Unhide All (with Shift)
+          if (event.shiftKey) {
+            event.preventDefault();
+            if (userHiddenElements.length > 0) unhideAllElements(); // Check if there's something to unhide
+          }
+          break;
+        default:
+          break;
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [
+    selectedElement,
+    toggleUserHideElement,
+    unhideLastElement,
+    unhideAllElements,
+    userHiddenElements, // Dependency for checks
+    handleZoomExtents, // Add if it's memoized (useCallback)
+    handleZoomSelected // Add if it's memoized (useCallback)
+  ]);
 
   if (!ifcEngineReady && !SKIP_IFC_INITIALIZATION_FOR_TEST) {
     return (
