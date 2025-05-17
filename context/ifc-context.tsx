@@ -108,6 +108,10 @@ interface IFCContextType {
   updateRule: (rule: Rule) => void;
   previewRuleHighlight: (ruleId: string) => Promise<void>;
 
+  classifyElementsFromProperties: (
+    options: { codeProperty?: string; nameProperty?: string }
+  ) => Promise<void>;
+
   toggleUserHideElement: (element: SelectedElementInfo) => void; // New function
   unhideLastElement: () => void; // New function
   unhideAllElements: () => void; // New function
@@ -210,6 +214,170 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
     }
     return true;
   }, []);
+
+  const getPropertyValueByName = useCallback(
+    async (
+      elementNode: SpatialStructureNode,
+      property: string,
+      modelID: number,
+      api: IfcAPI
+    ): Promise<any> => {
+      if (property === "ifcType") {
+        return elementNode.type;
+      } else if (property === "name") {
+        let val = elementNode.Name?.value || elementNode.Name;
+        if (val === undefined && elementNode.expressID && api) {
+          try {
+            const props = await api.GetLine(modelID, elementNode.expressID);
+            val = props.Name?.value;
+          } catch {
+            return undefined;
+          }
+        }
+        return val;
+      } else if (property.startsWith("Pset_") && api && api.properties) {
+        const [psetName, propName] = property.split(".");
+        if (!psetName || !propName) return undefined;
+        try {
+          const psets = await api.properties.getPropertySets(
+            modelID,
+            elementNode.expressID,
+            true
+          );
+          const targetPset = psets.find((pset: any) => pset.Name?.value === psetName);
+          if (targetPset) {
+            const targetProp = targetPset.HasProperties?.find(
+              (prop: any) => prop.Name?.value === propName
+            );
+            if (targetProp) {
+              return targetProp.NominalValue?.value !== undefined
+                ? targetProp.NominalValue.value
+                : targetProp.NominalValue;
+            }
+          }
+        } catch {
+          return undefined;
+        }
+      }
+      return undefined;
+    },
+    []
+  );
+
+  const classifyElementsFromProperties = useCallback(
+    async (opts: { codeProperty?: string; nameProperty?: string }) => {
+      if (!ifcApiInternal) return;
+      if (!opts.codeProperty && !opts.nameProperty) return;
+
+      if (ifcApiInternal && !ifcApiInternal.properties) {
+        try {
+          ifcApiInternal.properties = new Properties(ifcApiInternal);
+        } catch {
+          return;
+        }
+      }
+
+      const newElements: Record<string, SelectedElementInfo[]> = {};
+      for (const code of Object.keys(classifications)) {
+        newElements[code] = [];
+      }
+
+      const levenshtein = (a: string, b: string): number => {
+        const matrix: number[][] = [];
+        const al = a.length;
+        const bl = b.length;
+        for (let i = 0; i <= bl; i++) matrix[i] = [i];
+        for (let j = 0; j <= al; j++) matrix[0][j] = j;
+        for (let i = 1; i <= bl; i++) {
+          for (let j = 1; j <= al; j++) {
+            if (b.charAt(i - 1) === a.charAt(j - 1)) matrix[i][j] = matrix[i - 1][j - 1];
+            else {
+              matrix[i][j] = Math.min(
+                matrix[i - 1][j - 1] + 1,
+                matrix[i][j - 1] + 1,
+                matrix[i - 1][j] + 1
+              );
+            }
+          }
+        }
+        return matrix[bl][al];
+      };
+
+      const isMatch = (val: string, target: string) => {
+        const dist = levenshtein(val.toLowerCase(), target.toLowerCase());
+        const norm = dist / Math.max(val.length, target.length);
+        return norm <= 0.4;
+      };
+
+      for (const model of loadedModels) {
+        if (model.modelID == null || !model.spatialTree) continue;
+        const elements = getAllElementsFromSpatialTreeNodesRecursive([
+          model.spatialTree,
+        ]);
+        for (const element of elements) {
+          const codeVal = opts.codeProperty
+            ? await getPropertyValueByName(
+                element,
+                opts.codeProperty,
+                model.modelID,
+                ifcApiInternal
+              )
+            : undefined;
+          const nameVal = opts.nameProperty
+            ? await getPropertyValueByName(
+                element,
+                opts.nameProperty,
+                model.modelID,
+                ifcApiInternal
+              )
+            : undefined;
+          if (codeVal === undefined && nameVal === undefined) continue;
+
+          let bestCode: string | null = null;
+          let bestScore = Infinity;
+
+          for (const classCode of Object.keys(classifications)) {
+            const cls = classifications[classCode];
+            let score = 0;
+            if (opts.codeProperty && codeVal !== undefined) {
+              const d = levenshtein(String(codeVal), classCode);
+              score += d / Math.max(String(codeVal).length, classCode.length);
+            }
+            if (opts.nameProperty && nameVal !== undefined) {
+              const d2 = levenshtein(String(nameVal), cls.name);
+              score += d2 / Math.max(String(nameVal).length, cls.name.length);
+            }
+            if (score < bestScore) {
+              bestScore = score;
+              bestCode = classCode;
+            }
+          }
+
+          if (bestCode && bestScore <= 0.4) {
+            newElements[bestCode].push({
+              modelID: model.modelID,
+              expressID: element.expressID,
+            });
+          }
+        }
+      }
+
+      setClassifications((prev) => {
+        const updated = { ...prev };
+        for (const code of Object.keys(updated)) {
+          updated[code] = { ...updated[code], elements: newElements[code] };
+        }
+        return updated;
+      });
+    },
+    [
+      ifcApiInternal,
+      loadedModels,
+      classifications,
+      getAllElementsFromSpatialTreeNodesRecursive,
+      getPropertyValueByName,
+    ]
+  );
 
   const applyAllActiveRules = useCallback(async () => {
     if (!ifcApiInternal) {
@@ -603,6 +771,7 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
         removeRule,
         updateRule,
         previewRuleHighlight,
+        classifyElementsFromProperties,
         toggleUserHideElement,
         unhideLastElement,
         unhideAllElements,

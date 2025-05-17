@@ -61,6 +61,7 @@ export function ClassificationPanel() {
     removeClassification,
     updateClassification,
     toggleClassificationHighlight,
+    classifyElementsFromProperties,
     highlightedClassificationCode,
     showAllClassificationColors,
     toggleShowAllClassificationColors,
@@ -85,6 +86,9 @@ export function ClassificationPanel() {
 
   const [sortConfig, setSortConfig] = useState<{ key: SortableKey; direction: 'ascending' | 'descending' }>({ key: 'code', direction: 'ascending' })
   const [isSpeedDialOpen, setIsSpeedDialOpen] = useState(false)
+  const [isMatchDialogOpen, setIsMatchDialogOpen] = useState(false)
+  const [codeSource, setCodeSource] = useState("")
+  const [nameSource, setNameSource] = useState("")
 
   const classificationEntries = Object.entries(classifications) // Get entries once
 
@@ -570,8 +574,60 @@ export function ClassificationPanel() {
               {!isLoadingEBKPH && !errorLoadingEBKPH && defaultEBKPH.length === 0 && (
                 <DropdownMenuItem disabled>No eBKP-H items found.</DropdownMenuItem>
               )}
-            </DropdownMenuContent>
+          </DropdownMenuContent>
           </DropdownMenu>
+
+          <Dialog open={isMatchDialogOpen} onOpenChange={setIsMatchDialogOpen}>
+            <DialogTrigger asChild>
+              <Button size="sm" variant="outline" className="whitespace-nowrap">
+                Match From Model
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Match Classifications</DialogTitle>
+              </DialogHeader>
+              <div className="grid gap-4 py-4">
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="code-source" className="text-right">Code Property</Label>
+                  <Input
+                    id="code-source"
+                    value={codeSource}
+                    onChange={(e) => setCodeSource(e.target.value)}
+                    placeholder="e.g. Pset_Custom.ClassCode"
+                    className="col-span-3"
+                  />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="name-source" className="text-right">Description Property</Label>
+                  <Input
+                    id="name-source"
+                    value={nameSource}
+                    onChange={(e) => setNameSource(e.target.value)}
+                    placeholder="e.g. Pset_Custom.Description"
+                    className="col-span-3"
+                  />
+                </div>
+                <p className="text-xs col-span-4 text-muted-foreground">Provide at least one property path. If both are provided they must match.</p>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setIsMatchDialogOpen(false)}>Cancel</Button>
+                <Button
+                  onClick={async () => {
+                    await classifyElementsFromProperties({
+                      codeProperty: codeSource || undefined,
+                      nameProperty: nameSource || undefined,
+                    })
+                    setIsMatchDialogOpen(false)
+                    setCodeSource("")
+                    setNameSource("")
+                  }}
+                >
+                  Apply
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </div>
       </div>
 
