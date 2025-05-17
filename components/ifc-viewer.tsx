@@ -807,7 +807,13 @@ function ViewerContent() {
       <PanelGroup
         direction="horizontal"
         autoSaveId="ifc-viewer-layout"
-        style={{ zIndex: 1, position: "relative", pointerEvents: "none" }}
+        style={{
+          zIndex: 1,
+          position: "relative",
+          pointerEvents: "none",
+          height: "calc(100% - 4rem)",
+          marginTop: "4rem"
+        }}
       >
         {/* Left sidebar */}
         <Panel
@@ -898,24 +904,23 @@ function ViewerContent() {
           minSize={15}
           maxSize={40}
           collapsible
-          className="bg-transparent pointer-events-auto" // MODIFIED: Panel itself is transparent
+          className="bg-transparent pointer-events-auto"
         >
-          {/* Inner Tabs component has the gradient */}
           <Tabs
             defaultValue="classifications"
-            className="flex flex-col h-full shadow-lg bg-gradient-to-l from-[hsl(var(--card))]"
+            className="flex flex-col h-full shadow-lg bg-gradient-to-l from-[hsl(var(--card))] to-transparent"
           >
-            <TabsList className="w-full shrink-0">
-              <TabsTrigger value="classifications" className="flex-1">
-                <Layers className="w-4 h-4 mr-2" />
+            <TabsList className="w-full shrink-0 border-b border-border/50 p-1 bg-[hsl(var(--background))/85] backdrop-blur-sm">
+              <TabsTrigger value="classifications" className="flex-1 text-sm py-1.5 px-2 data-[state=active]:bg-accent data-[state=active]:text-accent-foreground rounded-sm">
+                <Layers className="w-4 h-4 mr-1.5" />
                 Classifications
               </TabsTrigger>
-              <TabsTrigger value="rules" className="flex-1">
-                <Filter className="w-4 h-4 mr-2" />
+              <TabsTrigger value="rules" className="flex-1 text-sm py-1.5 px-2 data-[state=active]:bg-accent data-[state=active]:text-accent-foreground rounded-sm">
+                <Filter className="w-4 h-4 mr-1.5" />
                 Rules
               </TabsTrigger>
-              <TabsTrigger value="settings" className="flex-1">
-                <Settings className="w-4 h-4 mr-2" />
+              <TabsTrigger value="settings" className="flex-1 text-sm py-1.5 px-2 data-[state=active]:bg-accent data-[state=active]:text-accent-foreground rounded-sm">
+                <Settings className="w-4 h-4 mr-1.5" />
                 Settings
               </TabsTrigger>
             </TabsList>

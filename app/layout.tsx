@@ -26,7 +26,7 @@ export default function RootLayout({
         >
           <div className="flex flex-col h-full">
             <Menubar />
-            <main className="flex-1 overflow-auto">{children}</main>
+            <main className="flex-1 overflow-hidden">{children}</main>
           </div>
         </ThemeProvider>
       </body>

@@ -2,12 +2,12 @@
 
 export default function Home() {
   return (
-    <main className="flex flex-col h-full">
+    <main className="flex flex-col h-full overflow-hidden">
       {/* Script tag removed as WebIFC is now imported as a module in ifc-viewer.tsx */}
       {/* <script type="module" src="/wasm/web-ifc/web-ifc-api.js" async></script> */}
 
       {/* Import the IFC Viewer component dynamically to ensure WebIFC is loaded first */}
-      <div className="flex-1">
+      <div className="flex-1 overflow-hidden">
         {/* @ts-ignore */}
         <IFCViewerWithScript />
       </div>

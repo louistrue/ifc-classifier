@@ -126,12 +126,12 @@ export function ClassificationPanel() {
       </div>
 
       {Object.keys(classifications).length === 0 ? (
-        <div className="text-center py-8 text-muted-foreground">
+        <div className="text-center py-8 text-muted-foreground bg-card shadow-md rounded-lg p-4">
           <p>No classifications added yet.</p>
           <p className="text-sm mt-2">Add a classification to start organizing your IFC elements.</p>
         </div>
       ) : (
-        <Table>
+        <Table className="bg-card shadow-md rounded-lg">
           <TableHeader>
             <TableRow>
               <TableHead>Code</TableHead>
