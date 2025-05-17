@@ -1,0 +1,98 @@
+{
+  "name": "web-ifc",
+  "version": "0.0.46",
+  "description": "ifc loading on the web",
+  "module": "./web-ifc-api.js",
+  "main": "./web-ifc-api-node.js",
+  "exports": {
+    ".": {
+      "require": "./web-ifc-api-node.js",
+      "node": "./web-ifc-api-node.js",
+      "import": "./web-ifc-api.js",
+      "browser": "./web-ifc-api.js"
+    }
+  },
+  "watch": {
+    "build-viewer": {
+      "patterns": [
+        "./examples/viewer"
+      ],
+      "extensions": "ts"
+    },
+    "build-api": {
+      "patterns": [
+        "./src"
+      ],
+      "extensions": "ts"
+    }
+  },
+  "pckg-gui": {},
+  "scripts": {
+    "gen-schema": "cd src/schema-generator && ts-node gen_functional_types.ts",
+    "setup-env": "emsdk_env",
+    "setup-mingw": "mingw-get instal msys-make gettext",
+    "build-release": "npm run build-wasm-release && npm run build-api && npm run build-cleanup",
+    "build-cleanup": "rimraf dist/helpers/properties.ts && rimraf dist/web-ifc-api.ts && rimraf dist/ifc-schema.ts",
+    "build-debug": "npm run build-wasm-debug && npm run build-api",
+    "publish-repo": "npm run set-version && cd dist && npm publish",
+    "build-publish-repo": "npm run build-release && cpy ./npmrc ./dist/  --rename=.npmrc && cd dist && npm publish",
+    "copy-to-dist": "make-dir dist && cpy \"src/wasm/build/*.js\" dist &&  cpy \"src/wasm/build/*.wasm\" dist ",
+    "copy-debug-to-dist": "make-dir dist && cpy \"src/wasm/build_debug/*.js\" dist &&  cpy \"src/wasm/build_debug/*.wasm\" dist ",
+    "build-wasm-debug": "make-dir src/wasm/build_debug && cd src/wasm/build_debug && emcmake cmake .. -DEMSCRIPTEN=true -DCMAKE_BUILD_TYPE=Debug && emmake make && npm run copy-debug-to-dist",
+    "build-wasm-release": "make-dir src/wasm/build && cd src/wasm/build && emcmake cmake .. -DEMSCRIPTEN=true -DCMAKE_BUILD_TYPE=Release && emmake make && npm run copy-to-dist",
+    "build-api": "make-dir dist/helpers && npm run build-ts-api && npm run build-web-ifc-api-browser && npm run build-web-ifc-api-node && npm run build-web-ifc-api-umd &&cpy README.md dist && cpy package.json dist",
+    "build-ts-api": "make-dir dist/helpers && cpy \"src/*.ts\" dist && cpy \"src/helpers/*\" dist/helpers --flat && tsc  --incremental --emitDeclarationOnly && cpy dist/web-ifc-api.d.ts . --rename=web-ifc-api-node.d.ts",
+    "build-web-ifc-api-node": "make-dir dist && esbuild dist/web-ifc-api.ts --define:__WASM_PATH__=\\\"./web-ifc-node\\\" --bundle --platform=node --outfile=./dist/web-ifc-api-node.js",
+    "build-web-ifc-api-browser": "make-dir dist && esbuild dist/web-ifc-api.ts --bundle --format=esm --define:__WASM_PATH__=\\\"./web-ifc\\\" --outfile=./dist/web-ifc-api.js",
+    "build-web-ifc-api-umd": "make-dir dist && esbuild dist/web-ifc-api.ts --bundle --format=iife --define:__WASM_PATH__=\\\"./web-ifc\\\" --global-name=WebIFC --outfile=./dist/web-ifc-api-umd.js",
+    "build-viewer": "cd examples/viewer/ && npm run build",
+    "serve-viewer": "npm run build-viewer && cd examples/viewer/ && npm run start",
+    "dev": "npm run build-viewer && cd examples/viewer && npm run start",
+    "docker-build": "docker build -t web-ifc .",
+    "docker-run": "npm run docker-run-container && npm run docker-get-compiled-files ",
+    "docker-run-container": "docker run --rm -d -p 3000:5000 --name web-ifc-container web-ifc",
+    "docker-get-compiled-files": "docker cp web-ifc-container:/web-ifc-app/dist .",
+    "postversion": "node src/setversion.js",
+    "benchmark": "ts-node ./tests/benchmark/benchmark.ts",
+    "regression": "node --max-old-space-size=4096 ./tests/regression/regression.mjs",
+    "regression-update": "node --max-old-space-size=4096 ./tests/regression/regression.mjs update",
+    "test": "jest  --runInBand ",
+    "test:unit": "jest  --runInBand --testMatch['**/tests/unit/**/*.spec.ts']",
+    "test:functional": "jest  --runInBand --testMatch['**/tests/functional/**/*.spec.ts']",
+    "gen-docs": "typedoc --out dist/docs && cpy ./banner.png ./dist/docs"
+  },
+  "author": "web-ifc",
+  "files": [
+    "web-ifc.wasm",
+    "web-ifc-mt.wasm",
+    "web-ifc-node.wasm",
+    "web-ifc-api-node.js",
+    "web-ifc-api-node.d.ts",
+    "web-ifc-api.js",
+    "web-ifc-api.d.ts",
+    "ifc-schema.d.ts",
+    "helpers/properties.d.ts",
+    "helpers/log.d.ts",
+    "web-ifc-mt.worker.js"
+  ],
+  "devDependencies": {
+    "@types/three": "^0.156.0",
+    "adm-zip": "^0.5.10",
+    "cpy-cli": "^4.2.0",
+    "esbuild": "^0.12.15",
+    "jest": "^27.4.2",
+    "make-dir-cli": "^3.0.0",
+    "rimraf": "^5.0.0",
+    "three": "^0.157.0",
+    "ts-jest": "^27.0.7",
+    "ts-node": "^10.9.1",
+    "typedoc": "^0.23.25",
+    "typescript": "^4.7.0",
+    "vblob": "^1.1.0"
+  },
+  "browser": {
+    "crypto": false,
+    "path": false,
+    "fs": false
+  }
+}
