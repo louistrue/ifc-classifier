@@ -539,42 +539,60 @@ const ResizeHandleHorizontal = ({
 }) => (
   <PanelResizeHandle
     className={cn(
-      "w-2 flex items-center justify-center group transition-colors hover:bg-muted/80 active:bg-muted rounded",
-      onToggle ? "cursor-col-resize" : "",
+      "w-2 flex items-center justify-center group transition-colors hover:bg-muted/80 active:bg-muted rounded cursor-col-resize",
       className
     )}
   >
-    <div className="relative">
+    <div className="relative h-full w-full flex items-center justify-center">
       {/* Resize handle line */}
       <div className="w-0.5 h-8 bg-border group-hover:bg-muted-foreground/60 group-active:bg-muted-foreground/80 rounded-full transition-colors" />
 
       {/* Toggle button for collapsing/expanding (if provided) */}
       {onToggle && (
-        <button
+        <div
+          onPointerDown={(e) => {
+            e.stopPropagation();
+          }}
           onClick={(e) => {
             e.preventDefault();
             e.stopPropagation();
             onToggle();
           }}
           className={cn(
-            "absolute -left-3 top-1/2 -translate-y-1/2 rounded-full w-6 h-6 flex items-center justify-center",
-            "bg-background border border-border shadow-sm hover:bg-muted transition-all",
-            "focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1"
+            "absolute top-1/2 -translate-y-1/2 flex items-center justify-center",
+            "w-8 h-10 rounded-md cursor-pointer group/button",
+            "hover:bg-muted/50 active:bg-muted/70",
+            // Switch button side based on collapsed state to ensure visibility
+            isLeftSide
+              ? collapsed
+                ? "left-full" // If left panel is collapsed, button is to the RIGHT of handle
+                : "right-full" // If left panel is expanded, button is to the LEFT of handle
+              : collapsed
+                ? "right-full" // If right panel is collapsed, button is to the LEFT of handle
+                : "left-full" // If right panel is expanded, button is to the RIGHT of handle
           )}
           title={collapsed ? "Expand panel" : "Collapse panel"}
         >
-          {isLeftSide ? (
-            collapsed ? (
-              <ChevronsRight className="w-3 h-3" />
-            ) : (
+          <button
+            className={cn(
+              "rounded-full w-6 h-6 flex items-center justify-center",
+              "bg-background border border-border shadow-sm group-hover/button:bg-muted group-hover/button:ring-2 group-hover/button:ring-ring transition-all",
+              "focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1"
+            )}
+          >
+            {isLeftSide ? (
+              collapsed ? (
+                <ChevronsRight className="w-3 h-3" />
+              ) : (
+                <ChevronsLeft className="w-3 h-3" />
+              )
+            ) : collapsed ? (
               <ChevronsLeft className="w-3 h-3" />
-            )
-          ) : collapsed ? (
-            <ChevronsLeft className="w-3 h-3" />
-          ) : (
-            <ChevronsRight className="w-3 h-3" />
-          )}
-        </button>
+            ) : (
+              <ChevronsRight className="w-3 h-3" />
+            )}
+          </button>
+        </div>
       )}
     </div>
   </PanelResizeHandle>
@@ -1044,7 +1062,7 @@ function ViewerContent() {
             </TabsList>
             <TabsContent
               value="classifications"
-              className="p-4 flex-grow overflow-y-auto"
+              className="p-2 flex-grow overflow-y-auto"
             >
               <ClassificationPanel />
             </TabsContent>

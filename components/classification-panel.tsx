@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useRef, useMemo } from "react"
 import { FixedSizeList as List } from "react-window"; // Import react-window
 import { useIFCContext } from "@/context/ifc-context"
 import { Button } from "@/components/ui/button"
@@ -16,7 +16,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Plus, Trash2, Edit, Eye, Palette, Eraser, CircleOff, ChevronDown, MoreHorizontal } from "lucide-react"
+import { Plus, Trash2, Edit, Eye, Palette, Eraser, CircleOff, ChevronDown, MoreHorizontal, ChevronUp, X } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import {
   Tooltip,
@@ -45,6 +45,9 @@ function areElementArraysEqual(arr1: any[], arr2: any[]): boolean {
   return true;
 }
 
+// Define sortable keys
+type SortableKey = 'code' | 'name' | 'elementsCount';
+
 export function ClassificationPanel() {
   const {
     classifications,
@@ -72,6 +75,9 @@ export function ClassificationPanel() {
   const [defaultEBKPH, setDefaultEBKPH] = useState<ClassificationItem[]>([]);
   const [isLoadingEBKPH, setIsLoadingEBKPH] = useState(true);
   const [errorLoadingEBKPH, setErrorLoadingEBKPH] = useState<string | null>(null);
+
+  const [sortConfig, setSortConfig] = useState<{ key: SortableKey; direction: 'ascending' | 'descending' }>({ key: 'code', direction: 'ascending' });
+  const [isSpeedDialOpen, setIsSpeedDialOpen] = useState(false);
 
   const classificationEntries = Object.entries(classifications); // Get entries once
 
@@ -116,6 +122,57 @@ export function ClassificationPanel() {
     fetcheBKPHData();
   }, []);
 
+  const sortedClassificationEntries = useMemo(() => {
+    const currentEntries = Object.entries(classifications);
+
+    if (!sortConfig) {
+      return currentEntries;
+    }
+
+    return [...currentEntries].sort((entryA, entryB) => {
+      const itemA = entryA[1] as ClassificationItem;
+      const itemB = entryB[1] as ClassificationItem;
+
+      let valA: string | number, valB: string | number;
+
+      switch (sortConfig.key) {
+        case 'code':
+          valA = itemA.code;
+          valB = itemB.code;
+          break;
+        case 'name':
+          valA = itemA.name;
+          valB = itemB.name;
+          break;
+        case 'elementsCount':
+          valA = itemA.elements?.length || 0;
+          valB = itemB.elements?.length || 0;
+          break;
+        default:
+          return 0;
+      }
+
+      let comparison = 0;
+      if (typeof valA === 'number' && typeof valB === 'number') {
+        comparison = valA - valB;
+      } else if (typeof valA === 'string' && typeof valB === 'string') {
+        comparison = valA.localeCompare(valB);
+      } else {
+        if (valA < valB) comparison = -1;
+        else if (valA > valB) comparison = 1;
+      }
+      return sortConfig.direction === 'ascending' ? comparison : -comparison;
+    });
+  }, [classifications, sortConfig]);
+
+  const requestSort = (key: SortableKey) => {
+    let direction: 'ascending' | 'descending' = 'ascending';
+    if (sortConfig && sortConfig.key === key && sortConfig.direction === 'ascending') {
+      direction = 'descending';
+    }
+    setSortConfig({ key, direction });
+  };
+
   useEffect(() => {
     // Handles resizing of the list container
     if (listWrapperRef.current) {
@@ -131,7 +188,7 @@ export function ClassificationPanel() {
       setListWidth(listWrapperRef.current.offsetWidth);
       return () => resizeObserver.disconnect();
     }
-  }, [classificationEntries.length]); // Re-observe if the list appears/disappears
+  }, [sortedClassificationEntries.length]); // Re-observe if the list appears/disappears
 
   const handleAddAllUniclassPr = () => {
     if (!defaultUniclassPr || defaultUniclassPr.length === 0) return;
@@ -214,13 +271,12 @@ export function ClassificationPanel() {
 
   // Component to render each row in the virtualized list
   const ClassificationRow = ({ index, style }: { index: number; style: React.CSSProperties }) => {
-    const [code, classification] = classificationEntries[index];
+    const [code, classification] = sortedClassificationEntries[index];
     const item = classification as ClassificationItem;
 
-    const codeColWidth = "30%";
-    const nameColWidth = "35%";
-    const elementsColWidth = "20%";
-    const actionsColWidth = "15%";
+    const codeColWidth = "33%";
+    const nameColWidth = "38%";
+    const elementsColWidth = "29%";
 
     const isHighlighted = item.code === highlightedClassificationCode;
 
@@ -260,44 +316,23 @@ export function ClassificationPanel() {
           <span title={item.name}>{item.name}</span>
         </div>
         {/* Elements cell */}
-        <div style={{ width: elementsColWidth }} className={`flex items-center p-2 text-xs ${isHighlighted ? 'text-accent-foreground/80' : 'text-muted-foreground'}`}>
+        <div style={{ width: elementsColWidth }} className={`flex items-center justify-center p-2 text-sm ${isHighlighted ? 'text-accent-foreground/80' : 'text-muted-foreground'}`}>
           <span>{item.elements?.length || 0}</span>
-        </div>
-        {/* Actions cell - ensure button styling is okay with new row highlight */}
-        <div style={{ width: actionsColWidth }} className="flex items-center justify-end p-2">
-          <div className="flex justify-end items-center gap-1">
-            <DropdownMenu>
-              <TooltipProvider delayDuration={200}>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className={`w-7 h-7 rounded-md ${isHighlighted ? 'hover:bg-accent-foreground/10 text-accent-foreground' : 'hover:bg-muted text-muted-foreground'}`}
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <MoreHorizontal className="w-4 h-4" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent><p>More actions</p></TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleOpenEditDialog(item); }}>
-                  <Edit className="w-4 h-4 mr-2" />
-                  Edit
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={(e) => { e.stopPropagation(); removeClassification(item.code); }} className="text-destructive focus:bg-destructive/10 focus:text-destructive">
-                  <Trash2 className="w-4 h-4 mr-2" />
-                  Remove
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
         </div>
       </div>
     );
+  };
+
+  const SortIndicator = ({ columnKey, currentSortConfig }: { columnKey: SortableKey, currentSortConfig: { key: SortableKey; direction: 'ascending' | 'descending' } | null }) => {
+    if (!currentSortConfig || currentSortConfig.key !== columnKey) {
+      // Return a subtle, less prominent icon or even an empty span if no default indicator is desired for non-active columns.
+      // Using ChevronDown with opacity to suggest clickability without implying active sort.
+      return <ChevronDown className="w-3 h-3 ml-1 text-muted-foreground/30" />;
+    }
+    if (currentSortConfig.direction === 'ascending') {
+      return <ChevronUp className="w-3 h-3 ml-1 text-primary" />;
+    }
+    return <ChevronDown className="w-3 h-3 ml-1 text-primary" />;
   };
 
   return (
@@ -518,7 +553,7 @@ export function ClassificationPanel() {
         </Dialog>
       )}
 
-      {classificationEntries.length === 0 ? (
+      {sortedClassificationEntries.length === 0 ? (
         // Styling for empty state, ensure it also looks good, maybe similar card look but simpler
         <div className="text-center py-8 text-muted-foreground bg-card shadow-sm rounded-lg p-4 flex-grow border border-border">
           <p>No classifications added yet.</p>
@@ -528,15 +563,41 @@ export function ClassificationPanel() {
         // Main container for the list, matches ModelInfo styling
         <div className="flex-grow overflow-hidden bg-card shadow-sm rounded-lg flex flex-col min-h-0 border border-border">
           {/* Static Header Part - styled like ModelInfo header section */}
-          <div className="shrink-0 border-b border-border p-3"> {/* Added p-3 for consistency */}
+          <div className="shrink-0 border-b border-border p-2"> {/* Reduced padding from p-3 to p-2 */}
             <Table className="w-full">
               <TableHeader>
                 <TableRow className="flex">
                   {/* Removed border-r from TableHead for cleaner look, relying on padding and structure */}
-                  <TableHead style={{ width: "30%" }} className="p-2 text-xs font-medium text-muted-foreground uppercase tracking-wider">Code</TableHead>
-                  <TableHead style={{ width: "35%" }} className="p-2 text-xs font-medium text-muted-foreground uppercase tracking-wider">Name</TableHead>
-                  <TableHead style={{ width: "20%" }} className="p-2 text-xs font-medium text-muted-foreground uppercase tracking-wider">Elements</TableHead>
-                  <TableHead style={{ width: "15%" }} className="text-right p-2 text-xs font-medium text-muted-foreground uppercase tracking-wider">Actions</TableHead>
+                  <TableHead
+                    style={{ width: "33%" }}
+                    className="py-1.5 px-2 text-xs font-medium text-muted-foreground cursor-pointer hover:bg-muted/50 transition-colors"
+                    onClick={() => requestSort('code')}
+                  >
+                    <div className="flex items-center">
+                      Code
+                      <SortIndicator columnKey="code" currentSortConfig={sortConfig} />
+                    </div>
+                  </TableHead>
+                  <TableHead
+                    style={{ width: "38%" }}
+                    className="py-1.5 px-2 text-xs font-medium text-muted-foreground cursor-pointer hover:bg-muted/50 transition-colors"
+                    onClick={() => requestSort('name')}
+                  >
+                    <div className="flex items-center">
+                      Name
+                      <SortIndicator columnKey="name" currentSortConfig={sortConfig} />
+                    </div>
+                  </TableHead>
+                  <TableHead
+                    style={{ width: "29%" }}
+                    className="py-1.5 px-2 text-xs font-medium text-muted-foreground cursor-pointer hover:bg-muted/50 transition-colors text-center"
+                    onClick={() => requestSort('elementsCount')}
+                  >
+                    <div className="flex items-center justify-center">
+                      Elements
+                      <SortIndicator columnKey="elementsCount" currentSortConfig={sortConfig} />
+                    </div>
+                  </TableHead>
                 </TableRow>
               </TableHeader>
             </Table>
@@ -548,12 +609,67 @@ export function ClassificationPanel() {
               <List
                 height={listHeight}
                 width={listWidth}
-                itemCount={classificationEntries.length}
+                itemCount={sortedClassificationEntries.length}
                 itemSize={48}
                 className="w-full"
               >
                 {ClassificationRow}
               </List>
+            )}
+            {/* Floating Action Button / Speed Dial */}
+            {highlightedClassificationCode && classifications[highlightedClassificationCode] && (
+              <div className="absolute bottom-4 right-4 flex flex-col items-end gap-2 z-10">
+                {isSpeedDialOpen && (
+                  <>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            className="rounded-full w-10 h-10 shadow-lg bg-background hover:bg-muted"
+                            onClick={() => {
+                              const item = classifications[highlightedClassificationCode!];
+                              if (item) handleOpenEditDialog(item);
+                              setIsSpeedDialOpen(false);
+                            }}
+                          >
+                            <Edit className="w-4 h-4" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent side="left"><p>Edit Classification</p></TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            className="rounded-full w-10 h-10 shadow-lg text-destructive border-destructive hover:bg-destructive/10 hover:text-destructive bg-background"
+                            onClick={() => {
+                              removeClassification(highlightedClassificationCode!);
+                              setIsSpeedDialOpen(false);
+                              // Optionally deselect after removal: toggleClassificationHighlight(null);
+                            }}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent side="left"><p>Remove Classification</p></TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </>
+                )}
+                <Button
+                  variant="default"
+                  size="icon"
+                  className="rounded-full w-12 h-12 shadow-xl"
+                  onClick={() => setIsSpeedDialOpen(!isSpeedDialOpen)}
+                >
+                  {isSpeedDialOpen ? <X className="w-5 h-5" /> : <MoreHorizontal className="w-5 h-5" />}
+                </Button>
+              </div>
             )}
           </div>
         </div>

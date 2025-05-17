@@ -131,14 +131,14 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
 
   // Initialize classifications with a default entry
   const [classifications, setClassifications] = useState<Record<string, any>>({
-    DEFAULT_CLASS: {
-      id: "DEFAULT_CLASS", // Using code as id for consistency, or generate uuid
-      code: "DEFAULT_CLASS",
-      name: "Default Classification",
-      description: "This is a default classification provided by the system.",
-      color: "#4caf50", // A pleasant green color
-      elements: [], // Initially no elements assigned
-    },
+    // DEFAULT_CLASS: {
+    //   id: "DEFAULT_CLASS", // Using code as id for consistency, or generate uuid
+    //   code: "DEFAULT_CLASS",
+    //   name: "Default Classification",
+    //   description: "This is a default classification provided by the system.",
+    //   color: "#4caf50", // A pleasant green color
+    //   elements: [], // Initially no elements assigned
+    // },
   });
   const [rules, setRules] = useState<Rule[]>([]);
   const [ifcApiInternal, setIfcApiInternal] = useState<IfcAPI | null>(null);
