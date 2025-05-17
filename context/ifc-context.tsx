@@ -206,50 +206,79 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
   const applyAllActiveRules = useCallback(async () => {
     if (!ifcApiInternal) {
       console.log("IFC API not available, skipping rule application that might need it.");
+      // Only clear elements if there are no models. Definitions should persist.
       if (loadedModels.length === 0) {
-        const clearedClassifications = { ...classifications };
-        for (const code in clearedClassifications) {
-          clearedClassifications[code] = { ...clearedClassifications[code], elements: [] };
-        }
-        setClassifications(clearedClassifications);
+        setClassifications(prevClassifications => {
+          const newCleared = { ...prevClassifications };
+          let actuallyClearedSomething = false;
+          for (const code in newCleared) {
+            if (newCleared[code] && newCleared[code].elements && newCleared[code].elements.length > 0) {
+              newCleared[code] = { ...newCleared[code], elements: [] };
+              actuallyClearedSomething = true;
+            }
+          }
+          if (actuallyClearedSomething) {
+            console.log("IFCContext: IFC API not available & no models: Ensured all classification elements are empty.");
+          }
+          return newCleared;
+        });
       }
       return;
     }
+
+    // Ensure properties are initialized if API is available
     if (ifcApiInternal && !ifcApiInternal.properties) {
       try {
         ifcApiInternal.properties = new Properties(ifcApiInternal);
       } catch (e) {
         console.error("IFCContext: Failed to initialize ifcApi.properties in applyAllActiveRules", e);
-        return;
+        return; // Cannot proceed without properties
       }
     }
-    console.log("Applying all active rules...");
+
+    console.log("IFCContext: Applying all active rules...");
+
+    // If no models are fully ready (have modelID and spatialTree), 
+    // just ensure all classification elements are empty and then return.
+    if (loadedModels.filter(m => m.modelID != null && m.spatialTree != null).length === 0) {
+      setClassifications(prevClassifications => {
+        const newCleared = { ...prevClassifications };
+        let actuallyClearedSomething = false;
+        for (const code in newCleared) {
+          if (newCleared[code] && newCleared[code].elements && newCleared[code].elements.length > 0) {
+            newCleared[code] = { ...newCleared[code], elements: [] };
+            actuallyClearedSomething = true;
+          }
+        }
+        if (actuallyClearedSomething) {
+          console.log("IFCContext: No models ready, ensured rule-based elements from classifications are empty.");
+        }
+        // else {
+        //      console.log("IFCContext: No models ready, classifications elements were already empty or no classifications.");
+        // }
+        return newCleared;
+      });
+      return;
+    }
+
+    // Proceed with rule application if models are ready
+    const currentClassificationsForProcessing = classifications;
+    const currentClassificationCodes = Object.keys(currentClassificationsForProcessing);
     const newElementsPerClassification: Record<string, SelectedElementInfo[]> = {};
-    const currentClassifications = classifications;
-    const currentClassificationCodes = Object.keys(currentClassifications);
 
     for (const classCode of currentClassificationCodes) {
       newElementsPerClassification[classCode] = [];
     }
 
-    const activeRules = rules.filter(rule => rule.active && currentClassifications[rule.classificationCode]);
-
-    if (loadedModels.filter(m => m.modelID != null && m.spatialTree != null).length === 0) {
-      const clearedClassifications = { ...currentClassifications };
-      for (const code of currentClassificationCodes) {
-        clearedClassifications[code] = { ...clearedClassifications[code], elements: [] };
-      }
-      setClassifications(clearedClassifications);
-      console.log("No models ready, cleared rule-based elements from classifications.");
-      return;
-    }
+    const activeRules = rules.filter(rule => rule.active && currentClassificationsForProcessing[rule.classificationCode]);
 
     for (const model of loadedModels) {
       if (model.modelID == null || !model.spatialTree) continue;
       const allModelElements = getAllElementsFromSpatialTreeNodesRecursive(model.spatialTree ? [model.spatialTree] : []);
       for (const rule of activeRules) {
         if (!newElementsPerClassification[rule.classificationCode]) {
-          continue;
+          // This should not happen if initialized above, but as a safeguard
+          newElementsPerClassification[rule.classificationCode] = [];
         }
         for (const elementNode of allModelElements) {
           if (elementNode.expressID === undefined) continue;
@@ -257,30 +286,44 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
             const matches = await matchesAllConditionsCallback(elementNode, rule.conditions, model.modelID, ifcApiInternal);
             if (matches) {
               const elementInfo: SelectedElementInfo = { modelID: model.modelID, expressID: elementNode.expressID };
+              // Ensure no duplicates
               if (!newElementsPerClassification[rule.classificationCode].some(el => el.modelID === elementInfo.modelID && el.expressID === elementInfo.expressID)) {
                 newElementsPerClassification[rule.classificationCode].push(elementInfo);
               }
             }
-          } catch (error) { console.error('Error processing element ' + elementNode.expressID + ' for rule ' + rule.name + ':', error); }
+          } catch (error) {
+            console.error('IFCContext: Error processing element ' + elementNode.expressID + ' for rule ' + rule.name + ':', error);
+          }
         }
       }
     }
-    const updatedClassifications = { ...currentClassifications };
-    let changed = false;
-    for (const code of currentClassificationCodes) {
-      const newElements = newElementsPerClassification[code] || [];
-      if (JSON.stringify(updatedClassifications[code].elements) !== JSON.stringify(newElements)) {
-        updatedClassifications[code] = { ...updatedClassifications[code], elements: newElements };
-        changed = true;
+
+    // Update classifications state with new elements, only if changed
+    setClassifications(prevClassifications => {
+      const updatedClassifications = { ...prevClassifications };
+      let changed = false;
+      for (const code of Object.keys(updatedClassifications)) {
+        const newElements = newElementsPerClassification[code] || [];
+        if (JSON.stringify(updatedClassifications[code].elements || []) !== JSON.stringify(newElements)) {
+          updatedClassifications[code] = { ...updatedClassifications[code], elements: newElements };
+          changed = true;
+        }
       }
-    }
-    if (changed) {
-      setClassifications(updatedClassifications);
-      console.log("Finished applying all active rules. Classifications updated.");
-    } else {
-      console.log("Finished applying all active rules. No changes to classifications elements.");
-    }
-  }, [ifcApiInternal, loadedModels, rules, getAllElementsFromSpatialTreeNodesRecursive, matchesAllConditionsCallback]);
+      if (changed) {
+        console.log("IFCContext: Finished applying all active rules. Classifications updated.");
+      } else {
+        console.log("IFCContext: Finished applying all active rules. No changes to classifications elements.");
+      }
+      return updatedClassifications;
+    });
+
+  }, [
+    ifcApiInternal,
+    loadedModels,
+    rules,
+    getAllElementsFromSpatialTreeNodesRecursive,
+    matchesAllConditionsCallback
+  ]);
 
   const classificationCodesKey = useMemo(() => Object.keys(classifications).sort().join(','), [classifications]);
   const rulesKey = useMemo(() => JSON.stringify(rules.map(r => ({ id: r.id, active: r.active, conditions: r.conditions, classificationCode: r.classificationCode }))), [rules]);
@@ -336,7 +379,7 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
     setHighlightedElements(matchingElements);
     setShowAllClassificationColors(false);
     console.log('Previewing rule "' + rule.name + '". Found ' + matchingElements.length + ' elements.');
-  }, [ifcApiInternal, loadedModels, rules, classifications, getAllElementsFromSpatialTreeNodesRecursive, matchesAllConditionsCallback, previewingRuleId, setHighlightedClassificationCode, setHighlightedElements, setShowAllClassificationColors]); // Added previewingRuleId to deps
+  }, [ifcApiInternal, loadedModels, rules, getAllElementsFromSpatialTreeNodesRecursive, matchesAllConditionsCallback, previewingRuleId, setHighlightedClassificationCode, setHighlightedElements, setShowAllClassificationColors]); // Added previewingRuleId to deps
 
   const generateFileId = useCallback(() => `model-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`, []);
   const commonLoadLogic = useCallback((url: string, name: string, fileIdToUse?: string): LoadedModelData => {

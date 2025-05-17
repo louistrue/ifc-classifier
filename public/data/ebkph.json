@@ -1,0 +1,1754 @@
+[
+  {
+    "code": "A01.01",
+    "name": "Grundstückserwerb",
+    "color": "#014a14",
+    "elements": []
+  },
+  {
+    "code": "A01.02",
+    "name": "Baurechtserwerb",
+    "color": "#dc2c6e",
+    "elements": []
+  },
+  {
+    "code": "A01.03",
+    "name": "Bauwerkserwerb",
+    "color": "#e73bab",
+    "elements": []
+  },
+  {
+    "code": "A01.04",
+    "name": "Perimeterbeitrag",
+    "color": "#5d0627",
+    "elements": []
+  },
+  {
+    "code": "A02.01",
+    "name": "Handänderungssteuer, Gewinnsteuer",
+    "color": "#8720a2",
+    "elements": []
+  },
+  {
+    "code": "A02.02",
+    "name": "Notariatskosten",
+    "color": "#f73793",
+    "elements": []
+  },
+  {
+    "code": "A02.03",
+    "name": "Grundbuchgebühr",
+    "color": "#b6ccbf",
+    "elements": []
+  },
+  {
+    "code": "A02.04",
+    "name": "Anwaltskosten, Gerichtskosten",
+    "color": "#871ffe",
+    "elements": []
+  },
+  {
+    "code": "A02.05",
+    "name": "Vermittlungsprovision",
+    "color": "#8e747c",
+    "elements": []
+  },
+  {
+    "code": "A02.06",
+    "name": "Abfindung, Servitut",
+    "color": "#6ea9ea",
+    "elements": []
+  },
+  {
+    "code": "A02.07",
+    "name": "Vermessung, Vermarkung",
+    "color": "#571b06",
+    "elements": []
+  },
+  {
+    "code": "B01.01",
+    "name": "Baugrunduntersuchung",
+    "color": "#6f03c4",
+    "elements": []
+  },
+  {
+    "code": "B01.02",
+    "name": "Bestandsaufnahme",
+    "color": "#a45e25",
+    "elements": []
+  },
+  {
+    "code": "B01.03",
+    "name": "Umweltmessung",
+    "color": "#552bf9",
+    "elements": []
+  },
+  {
+    "code": "B01.04",
+    "name": "Überwachung",
+    "color": "#185f76",
+    "elements": []
+  },
+  {
+    "code": "B02.01",
+    "name": "Baustellenerschliessung",
+    "color": "#928ec0",
+    "elements": []
+  },
+  {
+    "code": "B02.02",
+    "name": "Versorgung, Entsorgung",
+    "color": "#c81be0",
+    "elements": []
+  },
+  {
+    "code": "B02.03",
+    "name": "Arbeitsraum, Aufenthaltsraum",
+    "color": "#843e37",
+    "elements": []
+  },
+  {
+    "code": "B02.04",
+    "name": "Hebe-,  Verlade-,  Transport-,  Lagereinrichtung",
+    "color": "#d35dda",
+    "elements": []
+  },
+  {
+    "code": "B02.05",
+    "name": "Einrichtung für Materialaufbereitung",
+    "color": "#cf7c6f",
+    "elements": []
+  },
+  {
+    "code": "B02.06",
+    "name": "Witterungsbedingte Baumassnahme",
+    "color": "#54f132",
+    "elements": []
+  },
+  {
+    "code": "B02.07",
+    "name": "Baustellenorganisation, Sicherheit",
+    "color": "#b20de9",
+    "elements": []
+  },
+  {
+    "code": "B02.08",
+    "name": "Schutzmassnahme für Umgebung",
+    "color": "#ade249",
+    "elements": []
+  },
+  {
+    "code": "B03.01",
+    "name": "Provisorisches Rückhaltesystem",
+    "color": "#c96169",
+    "elements": []
+  },
+  {
+    "code": "B03.02",
+    "name": "Provisorische Werkleitung",
+    "color": "#7d85e5",
+    "elements": []
+  },
+  {
+    "code": "B03.03",
+    "name": "Provisorisches Gebäude",
+    "color": "#b15557",
+    "elements": []
+  },
+  {
+    "code": "B03.04",
+    "name": "Provisorische Verkehrsanlage",
+    "color": "#d9eb02",
+    "elements": []
+  },
+  {
+    "code": "B03.05",
+    "name": "Provisorische Ausstattung",
+    "color": "#91d96b",
+    "elements": []
+  },
+  {
+    "code": "B04.01",
+    "name": "Starkstromleitung",
+    "color": "#768e05",
+    "elements": []
+  },
+  {
+    "code": "B04.02",
+    "name": "Schwachstromleitung",
+    "color": "#c1624d",
+    "elements": []
+  },
+  {
+    "code": "B04.03",
+    "name": "Fernwärmeleitung",
+    "color": "#0b8b59",
+    "elements": []
+  },
+  {
+    "code": "B04.04",
+    "name": "Fernkälteleitung",
+    "color": "#c41607",
+    "elements": []
+  },
+  {
+    "code": "B04.05",
+    "name": "Wasserleitung",
+    "color": "#567ab9",
+    "elements": []
+  },
+  {
+    "code": "B04.06",
+    "name": "Schmutzwasserleitung",
+    "color": "#0c1a85",
+    "elements": []
+  },
+  {
+    "code": "B04.07",
+    "name": "Regenwasserleitung",
+    "color": "#45b9d5",
+    "elements": []
+  },
+  {
+    "code": "B04.08",
+    "name": "Gasleitung",
+    "color": "#29ca4b",
+    "elements": []
+  },
+  {
+    "code": "B05.01",
+    "name": "Fällung, Rodung, Umpflanzung",
+    "color": "#908f4a",
+    "elements": []
+  },
+  {
+    "code": "B05.02",
+    "name": "Nicht kontaminierter Rückbau",
+    "color": "#7cd9a6",
+    "elements": []
+  },
+  {
+    "code": "B05.03",
+    "name": "Kontaminierter Rückbau",
+    "color": "#c32757",
+    "elements": []
+  },
+  {
+    "code": "B06.01",
+    "name": "Nicht kontaminierter Aushub",
+    "color": "#b1a0db",
+    "elements": []
+  },
+  {
+    "code": "B06.02",
+    "name": "Kontaminierter Aushub",
+    "color": "#1d12e4",
+    "elements": []
+  },
+  {
+    "code": "B06.03",
+    "name": "Böschungssicherung",
+    "color": "#862391",
+    "elements": []
+  },
+  {
+    "code": "B06.04",
+    "name": "Baugrubenabschluss",
+    "color": "#caee0e",
+    "elements": []
+  },
+  {
+    "code": "B06.05",
+    "name": "Materialeinbau",
+    "color": "#22c800",
+    "elements": []
+  },
+  {
+    "code": "B06.06",
+    "name": "Wasserhaltung",
+    "color": "#99dff3",
+    "elements": []
+  },
+  {
+    "code": "B07.01",
+    "name": "Verbesserung Baugrund",
+    "color": "#98970d",
+    "elements": []
+  },
+  {
+    "code": "B07.02",
+    "name": "Pfählung",
+    "color": "#1234c0",
+    "elements": []
+  },
+  {
+    "code": "B07.03",
+    "name": "Unterfangung Bauwerk",
+    "color": "#722ed2",
+    "elements": []
+  },
+  {
+    "code": "B07.04",
+    "name": "Sicherung Bauwerk",
+    "color": "#3ddab0",
+    "elements": []
+  },
+  {
+    "code": "B08.01",
+    "name": "Fassadengerüst",
+    "color": "#e3ea4b",
+    "elements": []
+  },
+  {
+    "code": "B08.02",
+    "name": "Arbeitsgerüst",
+    "color": "#99ba46",
+    "elements": []
+  },
+  {
+    "code": "B08.03",
+    "name": "Notdach",
+    "color": "#f4a74f",
+    "elements": []
+  },
+  {
+    "code": "B08.04",
+    "name": "Schutzgerüst",
+    "color": "#6ad3f0",
+    "elements": []
+  },
+  {
+    "code": "B09.01",
+    "name": "Bauliche Anpassungen angrenzendes Bauwerk",
+    "color": "#860ac1",
+    "elements": []
+  },
+  {
+    "code": "B09.02",
+    "name": "Unterfangung, Sicherung angrenzendes Bauwerk",
+    "color": "#32efd1",
+    "elements": []
+  },
+  {
+    "code": "B09.03",
+    "name": "Verkehrsanlage ausserhalb Grundstück",
+    "color": "#93ee4d",
+    "elements": []
+  },
+  {
+    "code": "C01.01",
+    "name": "Unterbau Fundament und Bodenplatte",
+    "color": "#258c30",
+    "elements": []
+  },
+  {
+    "code": "C01.02",
+    "name": "Fundament",
+    "color": "#5c9ce6",
+    "elements": []
+  },
+  {
+    "code": "C01.03",
+    "name": "Bodenplatte",
+    "color": "#ba7c26",
+    "elements": []
+  },
+  {
+    "code": "C01.04",
+    "name": "Erdverbundene Treppe, Rampe",
+    "color": "#360499",
+    "elements": []
+  },
+  {
+    "code": "C01.05",
+    "name": "Erdverbundenes Podest",
+    "color": "#8ba74a",
+    "elements": []
+  },
+  {
+    "code": "C02.01",
+    "name": "Aussenwandkonstruktion",
+    "color": "#b8c3e2",
+    "elements": []
+  },
+  {
+    "code": "C02.02",
+    "name": "Innenwandkonstruktion",
+    "color": "#ca3d0e",
+    "elements": []
+  },
+  {
+    "code": "C03.01",
+    "name": "Aussenstütze",
+    "color": "#d34833",
+    "elements": []
+  },
+  {
+    "code": "C03.02",
+    "name": "Innenstütze",
+    "color": "#f37a44",
+    "elements": []
+  },
+  {
+    "code": "C04.01",
+    "name": "Geschossdecke",
+    "color": "#d42a05",
+    "elements": []
+  },
+  {
+    "code": "C04.02",
+    "name": "Innen liegende Treppe, Rampe",
+    "color": "#97615e",
+    "elements": []
+  },
+  {
+    "code": "C04.03",
+    "name": "Innen liegende Podeste",
+    "color": "#e46d0f",
+    "elements": []
+  },
+  {
+    "code": "C04.04",
+    "name": "Konstruktion Flachdach",
+    "color": "#f17e49",
+    "elements": []
+  },
+  {
+    "code": "C04.05",
+    "name": "Konstruktion geneigtes Dach",
+    "color": "#3902f6",
+    "elements": []
+  },
+  {
+    "code": "C04.06",
+    "name": "Aussen liegende Treppe, Rampe",
+    "color": "#ec5152",
+    "elements": []
+  },
+  {
+    "code": "C04.07",
+    "name": "Aussen liegende Podeste",
+    "color": "#541ebe",
+    "elements": []
+  },
+  {
+    "code": "C04.08",
+    "name": "Aussen liegende Konstruktion, Vordach",
+    "color": "#8c6c02",
+    "elements": []
+  },
+  {
+    "code": "C05.01",
+    "name": "Durchbruch, Schlitz zu Konstruktion",
+    "color": "#e4afbb",
+    "elements": []
+  },
+  {
+    "code": "C05.02",
+    "name": "Maschinensockel, Einlage",
+    "color": "#a2337f",
+    "elements": []
+  },
+  {
+    "code": "D01.01",
+    "name": "Anlage, Erzeugung Starkstrom",
+    "color": "#021c97",
+    "elements": []
+  },
+  {
+    "code": "D01.02",
+    "name": "Transformierung Starkstrom",
+    "color": "#fbdddd",
+    "elements": []
+  },
+  {
+    "code": "D01.03",
+    "name": "Speicherung Starkstrom",
+    "color": "#652e4d",
+    "elements": []
+  },
+  {
+    "code": "D01.04",
+    "name": "Installation Starkstrom",
+    "color": "#9124bb",
+    "elements": []
+  },
+  {
+    "code": "D01.05",
+    "name": "Verbraucher Starkstrom: Leuchten",
+    "color": "#5a249b",
+    "elements": []
+  },
+  {
+    "code": "D01.06",
+    "name": "Verbraucher Starkstrom: Elektrogeräte",
+    "color": "#62b153",
+    "elements": []
+  },
+  {
+    "code": "D01.07",
+    "name": "Anlage, Erzeugung Schwachstrom",
+    "color": "#b7e377",
+    "elements": []
+  },
+  {
+    "code": "D01.08",
+    "name": "Transformierung Schwachstrom",
+    "color": "#ad58bb",
+    "elements": []
+  },
+  {
+    "code": "D01.09",
+    "name": "Speicherung Schwachstrom",
+    "color": "#b7cc62",
+    "elements": []
+  },
+  {
+    "code": "D01.10",
+    "name": "Installation Schwachstrom",
+    "color": "#b79bdd",
+    "elements": []
+  },
+  {
+    "code": "D01.11",
+    "name": "Verbraucher Schwachstrom",
+    "color": "#4842a3",
+    "elements": []
+  },
+  {
+    "code": "D02.01",
+    "name": "Managementebene",
+    "color": "#5dba3d",
+    "elements": []
+  },
+  {
+    "code": "D02.02",
+    "name": "Automationsebene",
+    "color": "#7f0368",
+    "elements": []
+  },
+  {
+    "code": "D02.03",
+    "name": "Feldebene",
+    "color": "#ccd9b1",
+    "elements": []
+  },
+  {
+    "code": "D02.04",
+    "name": "Raumautomation",
+    "color": "#4f26ea",
+    "elements": []
+  },
+  {
+    "code": "D02.05",
+    "name": "Automationsnetzwerk",
+    "color": "#a4264e",
+    "elements": []
+  },
+  {
+    "code": "D02.06",
+    "name": "Schaltgerätekombination",
+    "color": "#0bad97",
+    "elements": []
+  },
+  {
+    "code": "D02.07",
+    "name": "Systemintegration",
+    "color": "#1adf1a",
+    "elements": []
+  },
+  {
+    "code": "D03.01",
+    "name": "Einbruchmeldeanlage, Überfallmeldeanlage",
+    "color": "#761605",
+    "elements": []
+  },
+  {
+    "code": "D03.02",
+    "name": "Zutrittskontrollanlage",
+    "color": "#8d6dec",
+    "elements": []
+  },
+  {
+    "code": "D03.03",
+    "name": "Videoüberwachungsanlage",
+    "color": "#6fce55",
+    "elements": []
+  },
+  {
+    "code": "D03.04",
+    "name": "Schliessanlage",
+    "color": "#7b537b",
+    "elements": []
+  },
+  {
+    "code": "D04.01",
+    "name": "Brandmeldeanlage",
+    "color": "#c7ee1f",
+    "elements": []
+  },
+  {
+    "code": "D04.02",
+    "name": "Gaswarnanlage",
+    "color": "#34be29",
+    "elements": []
+  },
+  {
+    "code": "D04.03",
+    "name": "Nasslöschanlage",
+    "color": "#088f88",
+    "elements": []
+  },
+  {
+    "code": "D04.04",
+    "name": "Trockenlöschanlage",
+    "color": "#6ecc3b",
+    "elements": []
+  },
+  {
+    "code": "D04.05",
+    "name": "Löschgerät",
+    "color": "#fe506b",
+    "elements": []
+  },
+  {
+    "code": "D04.06",
+    "name": "Rauch-  und Wärmebehandlungsanlage",
+    "color": "#21ddce",
+    "elements": []
+  },
+  {
+    "code": "D04.07",
+    "name": "Elektroakustische Lautsprecheranlage",
+    "color": "#68f9b8",
+    "elements": []
+  },
+  {
+    "code": "D05.01",
+    "name": "Wärmequelle, -senke, Brennstofflager",
+    "color": "#8111d4",
+    "elements": []
+  },
+  {
+    "code": "D05.02",
+    "name": "Wärmeerzeugung",
+    "color": "#434589",
+    "elements": []
+  },
+  {
+    "code": "D05.03",
+    "name": "Wärmespeicherung",
+    "color": "#de9d41",
+    "elements": []
+  },
+  {
+    "code": "D05.04",
+    "name": "Wärmeverteilung",
+    "color": "#0e70a8",
+    "elements": []
+  },
+  {
+    "code": "D05.05",
+    "name": "Wärmeabgabe",
+    "color": "#f8ad41",
+    "elements": []
+  },
+  {
+    "code": "D06.01",
+    "name": "Kältequelle, -senke, Brennstofflager",
+    "color": "#7f8d66",
+    "elements": []
+  },
+  {
+    "code": "D06.02",
+    "name": "Kälteerzeugung",
+    "color": "#eb1fc2",
+    "elements": []
+  },
+  {
+    "code": "D06.03",
+    "name": "Kältespeicherung",
+    "color": "#a85ee0",
+    "elements": []
+  },
+  {
+    "code": "D06.04",
+    "name": "Kälteverteilung",
+    "color": "#f88477",
+    "elements": []
+  },
+  {
+    "code": "D06.05",
+    "name": "Kälteabgabe",
+    "color": "#53b539",
+    "elements": []
+  },
+  {
+    "code": "D07.01",
+    "name": "Aussenluftversorgung, Fortluftführung",
+    "color": "#391dbf",
+    "elements": []
+  },
+  {
+    "code": "D07.02",
+    "name": "Luftaufbereitung",
+    "color": "#27563e",
+    "elements": []
+  },
+  {
+    "code": "D07.03",
+    "name": "Luftwärmespeicherung",
+    "color": "#ffc738",
+    "elements": []
+  },
+  {
+    "code": "D07.04",
+    "name": "Luftverteilung",
+    "color": "#7f6340",
+    "elements": []
+  },
+  {
+    "code": "D07.05",
+    "name": "Luftabgabe",
+    "color": "#21c160",
+    "elements": []
+  },
+  {
+    "code": "D08.01",
+    "name": "Wasserversorgung",
+    "color": "#0dc9fd",
+    "elements": []
+  },
+  {
+    "code": "D08.02",
+    "name": "Wasserbehandlung",
+    "color": "#56130b",
+    "elements": []
+  },
+  {
+    "code": "D08.03",
+    "name": "Wasserspeicher",
+    "color": "#5505bd",
+    "elements": []
+  },
+  {
+    "code": "D08.04",
+    "name": "Wasserverteilung",
+    "color": "#59fccc",
+    "elements": []
+  },
+  {
+    "code": "D08.05",
+    "name": "Wasser: Armatur, Apparat",
+    "color": "#1eab71",
+    "elements": []
+  },
+  {
+    "code": "D08.06",
+    "name": "Wasser: Installationselement",
+    "color": "#84fb5b",
+    "elements": []
+  },
+  {
+    "code": "D09.01",
+    "name": "Abwasserentsorgung",
+    "color": "#d2aaee",
+    "elements": []
+  },
+  {
+    "code": "D09.02",
+    "name": "Abwasserbehandlung",
+    "color": "#15565d",
+    "elements": []
+  },
+  {
+    "code": "D09.03",
+    "name": "Abwasserspeicher",
+    "color": "#34aec9",
+    "elements": []
+  },
+  {
+    "code": "D09.04",
+    "name": "Abwassersammlung",
+    "color": "#d5d27c",
+    "elements": []
+  },
+  {
+    "code": "D09.05",
+    "name": "Abwasser: Armatur, Apparat",
+    "color": "#21510d",
+    "elements": []
+  },
+  {
+    "code": "D10.01",
+    "name": "Gasversorgung",
+    "color": "#b8f529",
+    "elements": []
+  },
+  {
+    "code": "D10.02",
+    "name": "Gasbehandlung",
+    "color": "#fa8e81",
+    "elements": []
+  },
+  {
+    "code": "D10.03",
+    "name": "Gasspeicherung",
+    "color": "#0b0eb0",
+    "elements": []
+  },
+  {
+    "code": "D10.04",
+    "name": "Gasverteilung",
+    "color": "#5a5ac7",
+    "elements": []
+  },
+  {
+    "code": "D10.05",
+    "name": "Gas: Armatur, Apparat",
+    "color": "#290f1c",
+    "elements": []
+  },
+  {
+    "code": "D11.01",
+    "name": "Spezialmedien: Versorgung, Entsorgung",
+    "color": "#cfb848",
+    "elements": []
+  },
+  {
+    "code": "D11.02",
+    "name": "Spezialmedien: Aufbereitung",
+    "color": "#4c99c7",
+    "elements": []
+  },
+  {
+    "code": "D11.03",
+    "name": "Spezialmedien: Speicherung",
+    "color": "#e84c09",
+    "elements": []
+  },
+  {
+    "code": "D11.04",
+    "name": "Spezialmedien: Verteilung",
+    "color": "#3b1479",
+    "elements": []
+  },
+  {
+    "code": "D11.05",
+    "name": "Spezialmedien: Armatur, Apparat",
+    "color": "#2ef0f1",
+    "elements": []
+  },
+  {
+    "code": "D12.01",
+    "name": "Personenaufzug",
+    "color": "#f97d9c",
+    "elements": []
+  },
+  {
+    "code": "D12.02",
+    "name": "Lasten- und Serviceaufzug",
+    "color": "#0c624b",
+    "elements": []
+  },
+  {
+    "code": "D12.03",
+    "name": "Spezialaufzug",
+    "color": "#763e95",
+    "elements": []
+  },
+  {
+    "code": "D12.04",
+    "name": "Fahrtreppe",
+    "color": "#2d330b",
+    "elements": []
+  },
+  {
+    "code": "D12.05",
+    "name": "Fahrsteig",
+    "color": "#11570f",
+    "elements": []
+  },
+  {
+    "code": "D12.06",
+    "name": "Hebeeinrichtung, Verladestation",
+    "color": "#896d29",
+    "elements": []
+  },
+  {
+    "code": "E01.01",
+    "name": "Wandabdichtung unter Terrain",
+    "color": "#9d7be2",
+    "elements": []
+  },
+  {
+    "code": "E01.02",
+    "name": "Aussenwärmedämmung unter Terrain",
+    "color": "#2d12d6",
+    "elements": []
+  },
+  {
+    "code": "E01.03",
+    "name": "Schutzschicht unter Terrain",
+    "color": "#cf48e7",
+    "elements": []
+  },
+  {
+    "code": "E02.01",
+    "name": "Äussere Beschichtung",
+    "color": "#e3d146",
+    "elements": []
+  },
+  {
+    "code": "E02.02",
+    "name": "Aussenwärmedämmsystem",
+    "color": "#69c631",
+    "elements": []
+  },
+  {
+    "code": "E02.03",
+    "name": "Fassadenbekleidung",
+    "color": "#f938f8",
+    "elements": []
+  },
+  {
+    "code": "E02.04",
+    "name": "Systemfassade",
+    "color": "#995abb",
+    "elements": []
+  },
+  {
+    "code": "E02.05",
+    "name": "Fassadenbekleidung Untersicht",
+    "color": "#cb48bc",
+    "elements": []
+  },
+  {
+    "code": "E02.06",
+    "name": "Aussenliegende Absturzssicherung",
+    "color": "#b87aae",
+    "elements": []
+  },
+  {
+    "code": "E03.01",
+    "name": "Fenster",
+    "color": "#dc64b4",
+    "elements": []
+  },
+  {
+    "code": "E03.02",
+    "name": "Aussentür",
+    "color": "#0dee5f",
+    "elements": []
+  },
+  {
+    "code": "E03.03",
+    "name": "Aussentor",
+    "color": "#4ca7fd",
+    "elements": []
+  },
+  {
+    "code": "E03.04",
+    "name": "Sonnenschutz, Wetterschutz",
+    "color": "#3a50d9",
+    "elements": []
+  },
+  {
+    "code": "E03.05",
+    "name": "Absturzsicherung",
+    "color": "#bf4fdb",
+    "elements": []
+  },
+  {
+    "code": "F01.01",
+    "name": "Dachabdichtung unter Terrain",
+    "color": "#2220bb",
+    "elements": []
+  },
+  {
+    "code": "F01.02",
+    "name": "Bedachung Flachdach",
+    "color": "#7f58d5",
+    "elements": []
+  },
+  {
+    "code": "F01.03",
+    "name": "Bedachung geneigtes Dach",
+    "color": "#deaaa5",
+    "elements": []
+  },
+  {
+    "code": "F01.04",
+    "name": "Systemdach",
+    "color": "#898367",
+    "elements": []
+  },
+  {
+    "code": "F02.01",
+    "name": "Element zu Flachdach",
+    "color": "#7700de",
+    "elements": []
+  },
+  {
+    "code": "F02.02",
+    "name": "Element zu geneigtem Dach",
+    "color": "#520f86",
+    "elements": []
+  },
+  {
+    "code": "F02.03",
+    "name": "Schutzanlage zu Dach",
+    "color": "#d2897e",
+    "elements": []
+  },
+  {
+    "code": "G01.01",
+    "name": "Fest stehende Trennwand",
+    "color": "#a99b23",
+    "elements": []
+  },
+  {
+    "code": "G01.02",
+    "name": "Bewegliche Trennwand",
+    "color": "#d01743",
+    "elements": []
+  },
+  {
+    "code": "G01.03",
+    "name": "Schachtfront",
+    "color": "#cf12bf",
+    "elements": []
+  },
+  {
+    "code": "G01.04",
+    "name": "Innenfenster",
+    "color": "#232da6",
+    "elements": []
+  },
+  {
+    "code": "G01.05",
+    "name": "Innentür",
+    "color": "#b24807",
+    "elements": []
+  },
+  {
+    "code": "G01.06",
+    "name": "Innentor",
+    "color": "#c29037",
+    "elements": []
+  },
+  {
+    "code": "G02.01",
+    "name": "Unterkonstruktion zu Bodenbelag",
+    "color": "#5dfc83",
+    "elements": []
+  },
+  {
+    "code": "G02.02",
+    "name": "Bodenbelag",
+    "color": "#5bf3d8",
+    "elements": []
+  },
+  {
+    "code": "G03.01",
+    "name": "Unterkonstruktion zu Wandbekleidung",
+    "color": "#f907bb",
+    "elements": []
+  },
+  {
+    "code": "G03.02",
+    "name": "Wandbekleidung",
+    "color": "#09b0c7",
+    "elements": []
+  },
+  {
+    "code": "G04.01",
+    "name": "Unterkonstruktion zu Deckenbekleidung",
+    "color": "#a92489",
+    "elements": []
+  },
+  {
+    "code": "G04.02",
+    "name": "Deckenbekleidung",
+    "color": "#caa686",
+    "elements": []
+  },
+  {
+    "code": "G05.01",
+    "name": "Einbauschrank, Regal, Ablage",
+    "color": "#b2961e",
+    "elements": []
+  },
+  {
+    "code": "G05.02",
+    "name": "Einbauküche",
+    "color": "#a2d10b",
+    "elements": []
+  },
+  {
+    "code": "G05.03",
+    "name": "Innerer Fensterausbau",
+    "color": "#6b0cd4",
+    "elements": []
+  },
+  {
+    "code": "G05.04",
+    "name": "Innerer Abschluss",
+    "color": "#7b01cb",
+    "elements": []
+  },
+  {
+    "code": "G05.05",
+    "name": "Absturz-, Anprallschutzeinrichtung",
+    "color": "#330e9b",
+    "elements": []
+  },
+  {
+    "code": "G05.06",
+    "name": "Sonderbauteil",
+    "color": "#a59f96",
+    "elements": []
+  },
+  {
+    "code": "G05.07",
+    "name": "Kleinbauteil, Schutzraumeinrichtung",
+    "color": "#8ec07e",
+    "elements": []
+  },
+  {
+    "code": "G06.01",
+    "name": "Durchbruch, Schlitz zu Ausbau",
+    "color": "#9688ae",
+    "elements": []
+  },
+  {
+    "code": "G06.02",
+    "name": "Abschottung",
+    "color": "#29757e",
+    "elements": []
+  },
+  {
+    "code": "G06.03",
+    "name": "Reinigung",
+    "color": "#79edcb",
+    "elements": []
+  },
+  {
+    "code": "G06.04",
+    "name": "Trocknung",
+    "color": "#bc06d5",
+    "elements": []
+  },
+  {
+    "code": "H01.01",
+    "name": "Produktionsanlage: Versorgung, Entsorgung",
+    "color": "#347803",
+    "elements": []
+  },
+  {
+    "code": "H01.02",
+    "name": "Produktionsanlage: Aufbereitung",
+    "color": "#8d4a5b",
+    "elements": []
+  },
+  {
+    "code": "H01.03",
+    "name": "Produktionsanlage: Speicherung",
+    "color": "#8d44fa",
+    "elements": []
+  },
+  {
+    "code": "H01.04",
+    "name": "Produktionsanlage: Verteilung",
+    "color": "#c070fd",
+    "elements": []
+  },
+  {
+    "code": "H01.05",
+    "name": "Produktionsanlage: Armatur, Apparat",
+    "color": "#80bfba",
+    "elements": []
+  },
+  {
+    "code": "H02.01",
+    "name": "Laboranlage: Versorgung, Entsorgung",
+    "color": "#4fc820",
+    "elements": []
+  },
+  {
+    "code": "H02.02",
+    "name": "Laboranlage: Aufbereitung",
+    "color": "#60bae5",
+    "elements": []
+  },
+  {
+    "code": "H02.03",
+    "name": "Laboranlage: Speicherung",
+    "color": "#0dc81b",
+    "elements": []
+  },
+  {
+    "code": "H02.04",
+    "name": "Laboranlage: Verteilung",
+    "color": "#cce844",
+    "elements": []
+  },
+  {
+    "code": "H02.05",
+    "name": "Laboranlage: Armatur, Apparat",
+    "color": "#3a62c5",
+    "elements": []
+  },
+  {
+    "code": "H03.01",
+    "name": "Grossküche: Versorgung, Entsorgung",
+    "color": "#a7ce60",
+    "elements": []
+  },
+  {
+    "code": "H03.02",
+    "name": "Grossküche: Aufbereitung",
+    "color": "#896936",
+    "elements": []
+  },
+  {
+    "code": "H03.03",
+    "name": "Grossküche: Lagerung",
+    "color": "#c4e7e6",
+    "elements": []
+  },
+  {
+    "code": "H03.04",
+    "name": "Grossküche: Verteilung",
+    "color": "#0556f8",
+    "elements": []
+  },
+  {
+    "code": "H03.05",
+    "name": "Grossküche: Armatur, Apparat",
+    "color": "#fc3e07",
+    "elements": []
+  },
+  {
+    "code": "H04.01",
+    "name": "Wäscherei-, Reinigungsanlage: Versorgung, Entsorgung",
+    "color": "#3f4cb5",
+    "elements": []
+  },
+  {
+    "code": "H04.02",
+    "name": "Wäscherei-, Reinigungsanlage: Aufbereitung",
+    "color": "#43ec28",
+    "elements": []
+  },
+  {
+    "code": "H04.03",
+    "name": "Wäscherei-, Reinigungsanlage: Speicherung",
+    "color": "#2eda3c",
+    "elements": []
+  },
+  {
+    "code": "H04.04",
+    "name": "Wäscherei-, Reinigungsanlage: Verteilung",
+    "color": "#eb4eb5",
+    "elements": []
+  },
+  {
+    "code": "H04.05",
+    "name": "Wäscherei-, Reinigungsanlage: Armaturen, Apparat",
+    "color": "#763f15",
+    "elements": []
+  },
+  {
+    "code": "H05.01",
+    "name": "Gerät für Vitaldatenüberwachung",
+    "color": "#9e3775",
+    "elements": []
+  },
+  {
+    "code": "H05.02",
+    "name": "Einrichtung für Diagnostik",
+    "color": "#b69437",
+    "elements": []
+  },
+  {
+    "code": "H05.03",
+    "name": "Gerät für Behandlung, Pflege",
+    "color": "#d30ba4",
+    "elements": []
+  },
+  {
+    "code": "H05.04",
+    "name": "Medizinisches Kälte- / Wärmegerät",
+    "color": "#8211c1",
+    "elements": []
+  },
+  {
+    "code": "H05.04",
+    "name": "Medizinisches Kälte- / Wärmegerät",
+    "color": "#8e4c67",
+    "elements": []
+  },
+  {
+    "code": "H05.05",
+    "name": "Mess-, Analysetechnik",
+    "color": "#4088d0",
+    "elements": []
+  },
+  {
+    "code": "H05.06",
+    "name": "Reinigung, Desinfektion, Sterilisation",
+    "color": "#fafcb2",
+    "elements": []
+  },
+  {
+    "code": "H05.06",
+    "name": "Reinigung, Desinfektion, Sterilisation",
+    "color": "#6bd727",
+    "elements": []
+  },
+  {
+    "code": "H05.06",
+    "name": "Reinigung, Desinfektion, Sterilisation",
+    "color": "#3d83fe",
+    "elements": []
+  },
+  {
+    "code": "H05.07",
+    "name": "Medizinische Einrichtung, Ausstattung",
+    "color": "#c91602",
+    "elements": []
+  },
+  {
+    "code": "H05.08",
+    "name": "Medizinischer Beleuchtungskörper",
+    "color": "#e8c70f",
+    "elements": []
+  },
+  {
+    "code": "H05.09",
+    "name": "Medizinische Textilien",
+    "color": "#6af823",
+    "elements": []
+  },
+  {
+    "code": "H05.10",
+    "name": "Medizinisches Kleininventar",
+    "color": "#3c8b13",
+    "elements": []
+  },
+  {
+    "code": "H05.11",
+    "name": "Medizinisches Transportmittel",
+    "color": "#6f9e60",
+    "elements": []
+  },
+  {
+    "code": "H05.12",
+    "name": "Medizinisches Betriebsmittel",
+    "color": "#6e1659",
+    "elements": []
+  },
+  {
+    "code": "H06.01",
+    "name": "Bildung, Kultur: Versorgung, Entsorgung",
+    "color": "#6cfd84",
+    "elements": []
+  },
+  {
+    "code": "H06.02",
+    "name": "Bildung, Kultur: Apparat",
+    "color": "#8a8b74",
+    "elements": []
+  },
+  {
+    "code": "H06.03",
+    "name": "Bildung, Kultur: Steuerung",
+    "color": "#dc4161",
+    "elements": []
+  },
+  {
+    "code": "H06.04",
+    "name": "Bildung Kultur: Einbauten",
+    "color": "#e4706e",
+    "elements": []
+  },
+  {
+    "code": "H07.01",
+    "name": "Sportanlage, Freizeitanlage: Versorgung, Entsorgung",
+    "color": "#3b50fd",
+    "elements": []
+  },
+  {
+    "code": "H07.02",
+    "name": "Sportanlage, Freizeitanlage: Apparat",
+    "color": "#b43371",
+    "elements": []
+  },
+  {
+    "code": "H07.03",
+    "name": "Sportanlage, Freizeitanlage: Steuerung",
+    "color": "#8a3e13",
+    "elements": []
+  },
+  {
+    "code": "H07.04",
+    "name": "Sportanlage, Freizeitanlage: Einbauten",
+    "color": "#41af3a",
+    "elements": []
+  },
+  {
+    "code": "H08.01",
+    "name": "Erholungsanlage: Versorgung, Entsorgung",
+    "color": "#6c228b",
+    "elements": []
+  },
+  {
+    "code": "H08.02",
+    "name": "Erholungsanlage: Apparat",
+    "color": "#042eb0",
+    "elements": []
+  },
+  {
+    "code": "H08.03",
+    "name": "Erholungsanlage: Steuerung",
+    "color": "#4eafa4",
+    "elements": []
+  },
+  {
+    "code": "H08.04",
+    "name": "Erholungsanlage: Einbaute",
+    "color": "#f42aa7",
+    "elements": []
+  },
+  {
+    "code": "H09.01",
+    "name": "Nutzungsspezifische Anlage: Versorgung, Entsorgung",
+    "color": "#0aa788",
+    "elements": []
+  },
+  {
+    "code": "H09.02",
+    "name": "Nutzungsspezifische Anlage: Aufbereitung",
+    "color": "#384bfa",
+    "elements": []
+  },
+  {
+    "code": "H09.03",
+    "name": "Nutzungsspezifische Anlage: Speicherung, Lagerung",
+    "color": "#e8f976",
+    "elements": []
+  },
+  {
+    "code": "H09.04",
+    "name": "Nutzungsspezifische Anlage: Verteilung",
+    "color": "#84d4bf",
+    "elements": []
+  },
+  {
+    "code": "H09.05",
+    "name": "Nutzungsspezifische Anlage: Armatur, Apparat",
+    "color": "#428a97",
+    "elements": []
+  },
+  {
+    "code": "H09.06",
+    "name": "Parkieranlage",
+    "color": "#3f40fe",
+    "elements": []
+  },
+  {
+    "code": "H09.07",
+    "name": "Materialtransportanlage",
+    "color": "#850b34",
+    "elements": []
+  },
+  {
+    "code": "H09.08",
+    "name": "Kühlzelle",
+    "color": "#4a8ab1",
+    "elements": []
+  },
+  {
+    "code": "H09.09",
+    "name": "Lagereinrichtung",
+    "color": "#59ee41",
+    "elements": []
+  },
+  {
+    "code": "I01.01",
+    "name": "Geländeanpassung",
+    "color": "#151f21",
+    "elements": []
+  },
+  {
+    "code": "I01.02",
+    "name": "Tief liegende Entwässerung",
+    "color": "#902d17",
+    "elements": []
+  },
+  {
+    "code": "I02.01",
+    "name": "Böschungsverbau",
+    "color": "#431c6a",
+    "elements": []
+  },
+  {
+    "code": "I02.02",
+    "name": "Stützmauer",
+    "color": "#1f67fb",
+    "elements": []
+  },
+  {
+    "code": "I02.03",
+    "name": "Frei stehende Wand",
+    "color": "#a081e4",
+    "elements": []
+  },
+  {
+    "code": "I02.04",
+    "name": "Treppe, Rampe",
+    "color": "#7ce25d",
+    "elements": []
+  },
+  {
+    "code": "I02.05",
+    "name": "Kleinbauwerk",
+    "color": "#3daf9e",
+    "elements": []
+  },
+  {
+    "code": "I02.06",
+    "name": "Unterirdisches Bauwerk",
+    "color": "#822a1c",
+    "elements": []
+  },
+  {
+    "code": "I02.07",
+    "name": "Absturz-, Anprallschutzeinrichtungen für Umgebung",
+    "color": "#0a8a2e",
+    "elements": []
+  },
+  {
+    "code": "I02.08",
+    "name": "Einfriedung",
+    "color": "#80db19",
+    "elements": []
+  },
+  {
+    "code": "I03.01",
+    "name": "Vegetationstragschicht",
+    "color": "#b132b7",
+    "elements": []
+  },
+  {
+    "code": "I03.02",
+    "name": "Saatfläche",
+    "color": "#e81426",
+    "elements": []
+  },
+  {
+    "code": "I03.03",
+    "name": "Flächenbepflanzung, Hecke",
+    "color": "#774ba7",
+    "elements": []
+  },
+  {
+    "code": "I03.04",
+    "name": "Vertikale Begrünung",
+    "color": "#1a361c",
+    "elements": []
+  },
+  {
+    "code": "I03.05",
+    "name": "Einzelbepflanzung",
+    "color": "#a79ccd",
+    "elements": []
+  },
+  {
+    "code": "I03.06",
+    "name": "Einfassung, Abschluss Grünfläche",
+    "color": "#ae2f35",
+    "elements": []
+  },
+  {
+    "code": "I03.07",
+    "name": "Naturnahe Wasserfläche",
+    "color": "#dcb706",
+    "elements": []
+  },
+  {
+    "code": "I03.08",
+    "name": "Ingenieurbiologische Massnahme",
+    "color": "#d6723c",
+    "elements": []
+  },
+  {
+    "code": "I03.09",
+    "name": "Pflegemassnahme bis Übergabe",
+    "color": "#a7aa64",
+    "elements": []
+  },
+  {
+    "code": "I04.01",
+    "name": "Fundations-, Tragschicht",
+    "color": "#7cd3cf",
+    "elements": []
+  },
+  {
+    "code": "I04.02",
+    "name": "Einfassung, Abschluss Hartfläche",
+    "color": "#ced983",
+    "elements": []
+  },
+  {
+    "code": "I04.03",
+    "name": "Deckschicht",
+    "color": "#c88691",
+    "elements": []
+  },
+  {
+    "code": "I04.04",
+    "name": "Bodenmarkierung",
+    "color": "#bcfa0f",
+    "elements": []
+  },
+  {
+    "code": "I05.01",
+    "name": "Elektroanlage Starkstrom für Umgebung",
+    "color": "#ba59c3",
+    "elements": []
+  },
+  {
+    "code": "I05.02",
+    "name": "Elektroanlage Schwachstrom für Umgebung",
+    "color": "#800d58",
+    "elements": []
+  },
+  {
+    "code": "I05.03",
+    "name": "Wärmeanlage für Umgebung",
+    "color": "#21f0f9",
+    "elements": []
+  },
+  {
+    "code": "I05.04",
+    "name": "Kälteanlage für Umgebung",
+    "color": "#fa46d7",
+    "elements": []
+  },
+  {
+    "code": "I05.05",
+    "name": "Sanitäre Anlage für Umgebung",
+    "color": "#c6f6ee",
+    "elements": []
+  },
+  {
+    "code": "I05.06",
+    "name": "Oberflächenentwässerung für Umgebung",
+    "color": "#78e91d",
+    "elements": []
+  },
+  {
+    "code": "I05.07",
+    "name": "Transportanlage in Umgebung",
+    "color": "#d0d115",
+    "elements": []
+  },
+  {
+    "code": "I05.08",
+    "name": "Perimeterschutz",
+    "color": "#53a110",
+    "elements": []
+  },
+  {
+    "code": "I06.01",
+    "name": "Mobile Ausstattung für Umgebung",
+    "color": "#8efaa9",
+    "elements": []
+  },
+  {
+    "code": "I06.02",
+    "name": "Fixierte Ausstattung für Umgebung",
+    "color": "#26ec4b",
+    "elements": []
+  },
+  {
+    "code": "I06.03",
+    "name": "Spiel-, Sportgerät für Umgebung",
+    "color": "#2cee65",
+    "elements": []
+  },
+  {
+    "code": "I06.04",
+    "name": "Abfallentsorgungseinrichtung für Umgebung",
+    "color": "#912372",
+    "elements": []
+  },
+  {
+    "code": "J01.01",
+    "name": "Allgemeines Mobiliar",
+    "color": "#c0be2f",
+    "elements": []
+  },
+  {
+    "code": "J01.02",
+    "name": "Nutzungsspezifisches Mobiliar",
+    "color": "#191e32",
+    "elements": []
+  },
+  {
+    "code": "J01.03",
+    "name": "Mobile Leuchte",
+    "color": "#b86fe1",
+    "elements": []
+  },
+  {
+    "code": "J01.04",
+    "name": "Signaletik",
+    "color": "#166493",
+    "elements": []
+  },
+  {
+    "code": "J02.01",
+    "name": "Allgemeines Kleininventar",
+    "color": "#1ad104",
+    "elements": []
+  },
+  {
+    "code": "J02.02",
+    "name": "Nutzungsspezifisches Kleininventar",
+    "color": "#2b2abc",
+    "elements": []
+  },
+  {
+    "code": "J02.03",
+    "name": "Mobiles Gerät",
+    "color": "#4e4784",
+    "elements": []
+  },
+  {
+    "code": "J03.01",
+    "name": "Allgemeine Textilien",
+    "color": "#3e7849",
+    "elements": []
+  },
+  {
+    "code": "J03.02",
+    "name": "Nutzungsspezifische Textilien",
+    "color": "#fcea02",
+    "elements": []
+  },
+  {
+    "code": "J04.01",
+    "name": "Kunstobjekt",
+    "color": "#54319d",
+    "elements": []
+  },
+  {
+    "code": "J04.02",
+    "name": "Künstlerisch gestaltetes Bauteil",
+    "color": "#b35bc9",
+    "elements": []
+  }
+]
