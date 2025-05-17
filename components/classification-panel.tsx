@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useMemo } from "react"
 import { FixedSizeList as List } from "react-window"; // Import react-window
-import { useIFCContext, type SelectedElementInfo } from "@/context/ifc-context"
+import { useIFCContext, type SelectedElementInfo, type LoadedModelData } from "@/context/ifc-context"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -29,13 +29,14 @@ import {
   downloadFile,
   type ExportClassificationData
 } from "@/services/ifc-export-service"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 // Define an interface for our classification structure
 interface ClassificationItem {
   code: string;
   name: string;
   color: string;
-  elements: any[]; // Consider defining a more specific type for elements if possible
+  elements: SelectedElementInfo[]; // Use SelectedElementInfo for stricter typing
 }
 
 // Helper function to compare two arrays of SelectedElementInfo (order-independent)
@@ -73,176 +74,196 @@ export function ClassificationPanel() {
   })
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
   const [currentClassificationForEdit, setCurrentClassificationForEdit] = useState<ClassificationItem | null>(null)
-  const [defaultUniclassPr, setDefaultUniclassPr] = useState<ClassificationItem[]>([]);
-  const [isLoadingUniclass, setIsLoadingUniclass] = useState(true);
-  const [errorLoadingUniclass, setErrorLoadingUniclass] = useState<string | null>(null);
+  const [defaultUniclassPr, setDefaultUniclassPr] = useState<ClassificationItem[]>([])
+  const [isLoadingUniclass, setIsLoadingUniclass] = useState(true)
+  const [errorLoadingUniclass, setErrorLoadingUniclass] = useState<string | null>(null)
 
   // State for eBKP-H
-  const [defaultEBKPH, setDefaultEBKPH] = useState<ClassificationItem[]>([]);
-  const [isLoadingEBKPH, setIsLoadingEBKPH] = useState(true);
-  const [errorLoadingEBKPH, setErrorLoadingEBKPH] = useState<string | null>(null);
+  const [defaultEBKPH, setDefaultEBKPH] = useState<ClassificationItem[]>([])
+  const [isLoadingEBKPH, setIsLoadingEBKPH] = useState(true)
+  const [errorLoadingEBKPH, setErrorLoadingEBKPH] = useState<string | null>(null)
 
-  const [sortConfig, setSortConfig] = useState<{ key: SortableKey; direction: 'ascending' | 'descending' }>({ key: 'code', direction: 'ascending' });
-  const [isSpeedDialOpen, setIsSpeedDialOpen] = useState(false);
+  const [sortConfig, setSortConfig] = useState<{ key: SortableKey; direction: 'ascending' | 'descending' }>({ key: 'code', direction: 'ascending' })
+  const [isSpeedDialOpen, setIsSpeedDialOpen] = useState(false)
 
-  const classificationEntries = Object.entries(classifications); // Get entries once
+  const classificationEntries = Object.entries(classifications) // Get entries once
 
-  const listWrapperRef = useRef<HTMLDivElement>(null);
-  const [listHeight, setListHeight] = useState(0);
-  const [listWidth, setListWidth] = useState(0);
+  const listWrapperRef = useRef<HTMLDivElement>(null)
+  const [listHeight, setListHeight] = useState(0)
+  const [listWidth, setListWidth] = useState(0)
 
-  const [newClassificationName, setNewClassificationName] = useState("");
-  const [newClassificationCode, setNewClassificationCode] = useState("");
-  const [newClassificationColor, setNewClassificationColor] = useState("#rrggbb");
-  const [isExporting, setIsExporting] = useState(false);
+  // State for export functionality
+  const [isExporting, setIsExporting] = useState(false)
+  const [selectedModelIdForExport, setSelectedModelIdForExport] = useState<string | undefined>(undefined)
+
+  // Determine if any classifications have elements assigned
+  const hasClassifiedElements = useMemo(() => {
+    return Object.values(classifications).some(c => c.elements && c.elements.length > 0)
+  }, [classifications])
+
+  // Get models that are suitable for export (have rawBuffer and modelID)
+  const exportableModels = useMemo(() => {
+    return loadedModels.filter(model => model.rawBuffer && model.modelID !== null)
+  }, [loadedModels])
+
+  // Effect to manage the default selected model for export
+  useEffect(() => {
+    if (exportableModels.length > 0) {
+      if (!selectedModelIdForExport || !exportableModels.find(m => m.id === selectedModelIdForExport)) {
+        setSelectedModelIdForExport(exportableModels[0].id)
+      }
+    } else {
+      setSelectedModelIdForExport(undefined)
+    }
+  }, [exportableModels, selectedModelIdForExport])
 
   useEffect(() => {
     const fetchUniclassData = async () => {
-      setIsLoadingUniclass(true);
-      setErrorLoadingUniclass(null);
+      setIsLoadingUniclass(true)
+      setErrorLoadingUniclass(null)
       try {
-        const response = await fetch("/data/uniclass_pr.json");
-        if (!response.ok) throw new Error(`Failed to fetch Uniclass PR data: ${response.statusText}`);
-        const data: ClassificationItem[] = await response.json();
-        setDefaultUniclassPr(data);
+        const response = await fetch("/data/uniclass_pr.json")
+        if (!response.ok) throw new Error(`Failed to fetch Uniclass PR data: ${response.statusText}`)
+        const data: ClassificationItem[] = await response.json()
+        setDefaultUniclassPr(data)
       } catch (error) {
-        console.error("Error loading Uniclass PR data:", error);
-        setErrorLoadingUniclass(error instanceof Error ? error.message : "Unknown error");
+        console.error("Error loading Uniclass PR data:", error)
+        setErrorLoadingUniclass(error instanceof Error ? error.message : "Unknown error")
       } finally {
-        setIsLoadingUniclass(false);
+        setIsLoadingUniclass(false)
       }
-    };
+    }
 
     const fetcheBKPHData = async () => {
-      setIsLoadingEBKPH(true);
-      setErrorLoadingEBKPH(null);
+      setIsLoadingEBKPH(true)
+      setErrorLoadingEBKPH(null)
       try {
-        const response = await fetch("/data/ebkph.json");
-        if (!response.ok) throw new Error(`Failed to fetch eBKP-H data: ${response.statusText}`);
-        const data: ClassificationItem[] = await response.json();
-        setDefaultEBKPH(data);
+        const response = await fetch("/data/ebkph.json")
+        if (!response.ok) throw new Error(`Failed to fetch eBKP-H data: ${response.statusText}`)
+        const data: ClassificationItem[] = await response.json()
+        setDefaultEBKPH(data)
       } catch (error) {
-        console.error("Error loading eBKP-H data:", error);
-        setErrorLoadingEBKPH(error instanceof Error ? error.message : "Unknown error");
+        console.error("Error loading eBKP-H data:", error)
+        setErrorLoadingEBKPH(error instanceof Error ? error.message : "Unknown error")
       } finally {
-        setIsLoadingEBKPH(false);
+        setIsLoadingEBKPH(false)
       }
-    };
+    }
 
-    fetchUniclassData();
-    fetcheBKPHData();
-  }, []);
+    fetchUniclassData()
+    fetcheBKPHData()
+  }, [])
 
   const sortedClassificationEntries = useMemo(() => {
-    const currentEntries = Object.entries(classifications);
+    const currentEntries = Object.entries(classifications)
 
     if (!sortConfig) {
-      return currentEntries;
+      return currentEntries
     }
 
     return [...currentEntries].sort((entryA, entryB) => {
-      const itemA = entryA[1] as ClassificationItem;
-      const itemB = entryB[1] as ClassificationItem;
+      const itemA = entryA[1] as ClassificationItem
+      const itemB = entryB[1] as ClassificationItem
 
-      let valA: string | number, valB: string | number;
+      let valA: string | number, valB: string | number
 
       switch (sortConfig.key) {
         case 'code':
-          valA = itemA.code;
-          valB = itemB.code;
-          break;
+          valA = itemA.code
+          valB = itemB.code
+          break
         case 'name':
-          valA = itemA.name;
-          valB = itemB.name;
-          break;
+          valA = itemA.name
+          valB = itemB.name
+          break
         case 'elementsCount':
-          valA = itemA.elements?.length || 0;
-          valB = itemB.elements?.length || 0;
-          break;
+          valA = itemA.elements?.length || 0
+          valB = itemB.elements?.length || 0
+          break
         default:
-          return 0;
+          return 0
       }
 
-      let comparison = 0;
+      let comparison = 0
       if (typeof valA === 'number' && typeof valB === 'number') {
-        comparison = valA - valB;
+        comparison = valA - valB
       } else if (typeof valA === 'string' && typeof valB === 'string') {
-        comparison = valA.localeCompare(valB);
+        comparison = valA.localeCompare(valB)
       } else {
-        if (valA < valB) comparison = -1;
-        else if (valA > valB) comparison = 1;
+        if (valA < valB) comparison = -1
+        else if (valA > valB) comparison = 1
       }
-      return sortConfig.direction === 'ascending' ? comparison : -comparison;
-    });
-  }, [classifications, sortConfig]);
+      return sortConfig.direction === 'ascending' ? comparison : -comparison
+    })
+  }, [classifications, sortConfig])
 
   const requestSort = (key: SortableKey) => {
-    let direction: 'ascending' | 'descending' = 'ascending';
+    let direction: 'ascending' | 'descending' = 'ascending'
     if (sortConfig && sortConfig.key === key && sortConfig.direction === 'ascending') {
-      direction = 'descending';
+      direction = 'descending'
     }
-    setSortConfig({ key, direction });
-  };
+    setSortConfig({ key, direction })
+  }
 
   useEffect(() => {
     // Handles resizing of the list container
     if (listWrapperRef.current) {
       const resizeObserver = new ResizeObserver(entries => {
-        if (!entries || entries.length === 0) return;
-        const entry = entries[0];
-        setListHeight(entry.contentRect.height);
-        setListWidth(entry.contentRect.width);
-      });
-      resizeObserver.observe(listWrapperRef.current);
+        if (!entries || entries.length === 0) return
+        const entry = entries[0]
+        setListHeight(entry.contentRect.height)
+        setListWidth(entry.contentRect.width)
+      })
+      resizeObserver.observe(listWrapperRef.current)
       // Initial measurement
-      setListHeight(listWrapperRef.current.offsetHeight);
-      setListWidth(listWrapperRef.current.offsetWidth);
-      return () => resizeObserver.disconnect();
+      setListHeight(listWrapperRef.current.offsetHeight)
+      setListWidth(listWrapperRef.current.offsetWidth)
+      return () => resizeObserver.disconnect()
     }
-  }, [sortedClassificationEntries.length]); // Re-observe if the list appears/disappears
+  }, [sortedClassificationEntries.length]) // Re-observe if the list appears/disappears
 
   const handleAddAllUniclassPr = () => {
-    if (!defaultUniclassPr || defaultUniclassPr.length === 0) return;
-    let addedCount = 0;
+    if (!defaultUniclassPr || defaultUniclassPr.length === 0) return
+    let addedCount = 0
     defaultUniclassPr.forEach(defClass => {
       if (!classifications[defClass.code]) {
-        addClassification(defClass);
-        addedCount++;
+        addClassification(defClass)
+        addedCount++
       }
-    });
-    console.log(`Added ${addedCount} Uniclass Pr classifications.`);
-  };
+    })
+    console.log(`Added ${addedCount} Uniclass Pr classifications.`)
+  }
 
   const handleAddAlleBKPH = () => {
-    if (!defaultEBKPH || defaultEBKPH.length === 0) return;
-    let addedCount = 0;
+    if (!defaultEBKPH || defaultEBKPH.length === 0) return
+    let addedCount = 0
     defaultEBKPH.forEach(defClass => {
       if (!classifications[defClass.code]) {
-        addClassification(defClass);
-        addedCount++;
+        addClassification(defClass)
+        addedCount++
       }
-    });
-    console.log(`Added ${addedCount} eBKP-H classifications.`);
-  };
+    })
+    console.log(`Added ${addedCount} eBKP-H classifications.`)
+  }
 
   const areAllUniclassAdded = () => {
-    if (isLoadingUniclass || errorLoadingUniclass || defaultUniclassPr.length === 0) return false;
-    return defaultUniclassPr.every(defClass => !!classifications[defClass.code]);
-  };
+    if (isLoadingUniclass || errorLoadingUniclass || defaultUniclassPr.length === 0) return false
+    return defaultUniclassPr.every(defClass => !!classifications[defClass.code])
+  }
 
   const areAlleBKPHAdded = () => {
-    if (isLoadingEBKPH || errorLoadingEBKPH || defaultEBKPH.length === 0) return false;
-    return defaultEBKPH.every(defClass => !!classifications[defClass.code]);
-  };
+    if (isLoadingEBKPH || errorLoadingEBKPH || defaultEBKPH.length === 0) return false
+    return defaultEBKPH.every(defClass => !!classifications[defClass.code])
+  }
 
   const handleAddClassification = () => {
     if (newClassification.code && newClassification.name) {
       // Check if classification with the same code already exists
       if (classifications[newClassification.code]) {
         // Handle existing classification (e.g., show an error, or decide not to add)
-        console.warn(`Classification with code ${newClassification.code} already exists.`);
+        console.warn(`Classification with code ${newClassification.code} already exists.`)
         // Optionally, clear inputs or provide feedback to the user
-        return;
+        return
       }
       addClassification({
         ...newClassification,
@@ -260,48 +281,48 @@ export function ClassificationPanel() {
   const handleAddDefaultClassification = (defaultClassification: ClassificationItem) => {
     if (classifications[defaultClassification.code]) {
       // Handle existing classification (e.g., show an error, or decide not to add)
-      console.warn(`Classification with code ${defaultClassification.code} already exists.`);
+      console.warn(`Classification with code ${defaultClassification.code} already exists.`)
       // Optionally, provide feedback to the user (e.g., toast notification)
-      return;
+      return
     }
-    addClassification(defaultClassification);
-  };
+    addClassification(defaultClassification)
+  }
 
   const handleOpenEditDialog = (classificationToEdit: ClassificationItem) => {
-    setCurrentClassificationForEdit(classificationToEdit);
-    setIsEditDialogOpen(true);
+    setCurrentClassificationForEdit(classificationToEdit)
+    setIsEditDialogOpen(true)
   }
 
   const handleUpdateClassification = () => {
     if (currentClassificationForEdit) {
-      updateClassification(currentClassificationForEdit.code, currentClassificationForEdit);
-      setIsEditDialogOpen(false);
-      setCurrentClassificationForEdit(null);
+      updateClassification(currentClassificationForEdit.code, currentClassificationForEdit)
+      setIsEditDialogOpen(false)
+      setCurrentClassificationForEdit(null)
     }
   }
 
   // Component to render each row in the virtualized list
   const ClassificationRow = ({ index, style }: { index: number; style: React.CSSProperties }) => {
-    const [code, classification] = sortedClassificationEntries[index];
-    const item = classification as ClassificationItem;
+    const [code, classification] = sortedClassificationEntries[index]
+    const item = classification as ClassificationItem
 
-    const codeColWidth = "33%";
-    const nameColWidth = "38%";
-    const elementsColWidth = "29%";
+    const codeColWidth = "33%"
+    const nameColWidth = "38%"
+    const elementsColWidth = "29%"
 
-    const isHighlighted = item.code === highlightedClassificationCode;
+    const isHighlighted = item.code === highlightedClassificationCode
 
     // Define base classes for the row
-    let rowClasses = "flex items-stretch border-b border-border/50 last:border-b-0 cursor-pointer";
+    let rowClasses = "flex items-stretch border-b border-border/50 last:border-b-0 cursor-pointer"
     if (isHighlighted) {
       // Tailwind arbitrary values for inset box shadow. Using a distinct highlight color.
       // Using a variable for the color that would ideally come from your Tailwind theme (e.g., border-highlight or similar)
       // For now, let's use a derivative of accent-foreground or a specific color if available.
       // Using a semi-transparent white or black can also work depending on theme.
       // Let's use a slightly more opaque version of accent-foreground for the inset shadow.
-      rowClasses += " bg-accent hover:bg-accent text-accent-foreground shadow-[inset_0_0_0_2px_rgba(var(--accent-foreground-rgb),0.4)]";
+      rowClasses += " bg-accent hover:bg-accent text-accent-foreground shadow-[inset_0_0_0_2px_rgba(var(--accent-foreground-rgb),0.4)]"
     } else {
-      rowClasses += " hover:bg-muted/50";
+      rowClasses += " hover:bg-muted/50"
     }
 
     return (
@@ -331,86 +352,96 @@ export function ClassificationPanel() {
           <span>{item.elements?.length || 0}</span>
         </div>
       </div>
-    );
-  };
+    )
+  }
 
   const SortIndicator = ({ columnKey, currentSortConfig }: { columnKey: SortableKey, currentSortConfig: { key: SortableKey; direction: 'ascending' | 'descending' } | null }) => {
     if (!currentSortConfig || currentSortConfig.key !== columnKey) {
       // Return a subtle, less prominent icon or even an empty span if no default indicator is desired for non-active columns.
       // Using ChevronDown with opacity to suggest clickability without implying active sort.
-      return <ChevronDown className="w-3 h-3 ml-1 text-muted-foreground/30" />;
+      return <ChevronDown className="w-3 h-3 ml-1 text-muted-foreground/30" />
     }
     if (currentSortConfig.direction === 'ascending') {
-      return <ChevronUp className="w-3 h-3 ml-1 text-primary" />;
+      return <ChevronUp className="w-3 h-3 ml-1 text-primary" />
     }
-    return <ChevronDown className="w-3 h-3 ml-1 text-primary" />;
-  };
+    return <ChevronDown className="w-3 h-3 ml-1 text-primary" />
+  }
 
   const handleExportIFC = async () => {
-    if (isExporting) return;
+    if (isExporting || !selectedModelIdForExport) {
+      alert("Please select a model to export.")
+      return
+    }
 
-    const modelToExport = loadedModels.find(model => model.rawBuffer && model.modelID !== null);
+    const modelToExport = loadedModels.find(model => model.id === selectedModelIdForExport)
 
     if (!modelToExport || !modelToExport.rawBuffer) {
-      alert("No model with a loaded buffer is available for export. Please load an IFC file first.");
-      console.warn("Export IFC: No model with a raw buffer found.");
-      return;
+      alert("Selected model is not available for export or its data is missing.")
+      return
     }
 
-    if (Object.keys(classifications).length === 0) {
-      alert("There are no classifications to export. Please define some classifications first.");
-      console.warn("Export IFC: No classifications defined.");
-      return;
+    if (!hasClassifiedElements || Object.keys(classifications).length === 0) {
+      alert("There are no classifications with assigned elements to export.")
+      return
     }
 
-    setIsExporting(true);
-    console.log("Exporting IFC with classifications...");
+    setIsExporting(true)
+    console.log(`Exporting IFC model '${modelToExport.name}' with classifications...`)
 
     try {
-      const exportData: ExportClassificationData = {};
+      const exportData: ExportClassificationData = {}
       for (const code in classifications) {
-        const currentClass = classifications[code];
-        if (currentClass && currentClass.elements) {
+        const currentClass = classifications[code] as ClassificationItem // Cast to ClassificationItem
+        if (currentClass && currentClass.elements && currentClass.elements.length > 0) { // Only include classifications with elements
           exportData[code] = {
             name: currentClass.name || code,
             code: currentClass.code || code,
             color: currentClass.color,
             elements: currentClass.elements.map((el: SelectedElementInfo) => ({
-              modelID: el.modelID,
+              modelID: el.modelID, // Important if Python script needs to filter by modelID from a global element list
               expressID: el.expressID,
             })),
-          };
+          }
         }
+      }
+
+      if (Object.keys(exportData).length === 0) {
+        alert("No classifications have elements assigned. Nothing to export.")
+        setIsExporting(false)
+        return
       }
 
       const modifiedIfcData = await exportIfcWithClassificationsService(
         modelToExport.rawBuffer,
         exportData
-      );
+      )
 
       if (modifiedIfcData) {
-        const originalFileName = modelToExport.name || "classified_model.ifc";
-        const newFileName = originalFileName.replace(/\.ifc$/i, "_classified.ifc");
-        downloadFile(modifiedIfcData, newFileName, "application/octet-stream");
-        console.log("IFC export successful, download initiated.");
-        alert("IFC model exported successfully!");
+        const originalFileName = modelToExport.name || "model.ifc"
+        const baseName = originalFileName.endsWith('.ifc')
+          ? originalFileName.slice(0, -4)
+          : originalFileName
+        const newFileName = `${baseName}_classified.ifc`
+        downloadFile(modifiedIfcData, newFileName, "application/octet-stream")
+        alert("IFC model exported successfully!")
       } else {
-        console.error("IFC export failed. The service returned no data.");
-        alert("IFC export failed. Please check the console for more details.");
+        alert("IFC export failed. Please check the console for more details.")
       }
     } catch (error) {
-      console.error("An error occurred during the IFC export process:", error);
-      alert("An error occurred during export. Please check the console for details.");
+      console.error("An error occurred during the IFC export process:", error)
+      alert("An error occurred during export. Please check the console for details.")
     } finally {
-      setIsExporting(false);
+      setIsExporting(false)
     }
-  };
+  }
+
+  const showExportSection = hasClassifiedElements && exportableModels.length > 0
 
   return (
     <div className="space-y-4 h-full flex flex-col">
-      <div className="flex flex-wrap justify-between items-center gap-2 shrink-0">
-        <h3 className="text-lg font-medium whitespace-nowrap">Classifications</h3>
-        <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+      <div className="shrink-0 space-y-2">
+        <div className="flex justify-between items-center gap-2">
+          <h3 className="text-lg font-medium whitespace-nowrap">Classifications</h3>
           <TooltipProvider delayDuration={300}>
             <div className="flex items-center p-0.5 bg-muted rounded-full">
               <Tooltip>
@@ -453,6 +484,10 @@ export function ClassificationPanel() {
               </Tooltip>
             </div>
           </TooltipProvider>
+        </div>
+
+        {/* Row 2: Action Buttons (Add New, Add Default) - Aligned to the center */}
+        <div className="flex justify-center items-center gap-2 flex-wrap sm:flex-nowrap">
           <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
             <DialogTrigger asChild>
               <Button size="sm" variant="outline" className="whitespace-nowrap">
@@ -515,40 +550,28 @@ export function ClassificationPanel() {
             <DropdownMenuContent align="end">
               <DropdownMenuLabel>Default Classification Sets</DropdownMenuLabel>
               <DropdownMenuSeparator />
-
-              {/* Uniclass Pr Option */}
               {isLoadingUniclass && <DropdownMenuItem disabled>Loading Uniclass Pr...</DropdownMenuItem>}
               {errorLoadingUniclass && <DropdownMenuItem disabled className="text-destructive">Uniclass Pr Error: {errorLoadingUniclass}</DropdownMenuItem>}
               {!isLoadingUniclass && !errorLoadingUniclass && defaultUniclassPr.length > 0 && (
-                <DropdownMenuItem
-                  onClick={handleAddAllUniclassPr}
-                  disabled={areAllUniclassAdded()}
-                >
+                <DropdownMenuItem onClick={handleAddAllUniclassPr} disabled={areAllUniclassAdded()}>
                   Load Uniclass Pr ({defaultUniclassPr.length} items)
                 </DropdownMenuItem>
               )}
               {!isLoadingUniclass && !errorLoadingUniclass && defaultUniclassPr.length === 0 && (
                 <DropdownMenuItem disabled>No Uniclass Pr items found.</DropdownMenuItem>
               )}
-
-              {/* eBKP-H Option */}
               {isLoadingEBKPH && <DropdownMenuItem disabled>Loading eBKP-H...</DropdownMenuItem>}
               {errorLoadingEBKPH && <DropdownMenuItem disabled className="text-destructive">eBKP-H Error: {errorLoadingEBKPH}</DropdownMenuItem>}
               {!isLoadingEBKPH && !errorLoadingEBKPH && defaultEBKPH.length > 0 && (
-                <DropdownMenuItem
-                  onClick={handleAddAlleBKPH}
-                  disabled={areAlleBKPHAdded()}
-                >
+                <DropdownMenuItem onClick={handleAddAlleBKPH} disabled={areAlleBKPHAdded()}>
                   Load eBKP-H ({defaultEBKPH.length} items)
                 </DropdownMenuItem>
               )}
               {!isLoadingEBKPH && !errorLoadingEBKPH && defaultEBKPH.length === 0 && (
                 <DropdownMenuItem disabled>No eBKP-H items found.</DropdownMenuItem>
               )}
-
             </DropdownMenuContent>
           </DropdownMenu>
-
         </div>
       </div>
 
@@ -625,69 +648,35 @@ export function ClassificationPanel() {
       )}
 
       {sortedClassificationEntries.length === 0 ? (
-        // Styling for empty state, ensure it also looks good, maybe similar card look but simpler
         <div className="text-center py-8 text-muted-foreground bg-card shadow-sm rounded-lg p-4 flex-grow border border-border">
           <p>No classifications added yet.</p>
           <p className="text-sm mt-2">Add a classification to start organizing your IFC elements.</p>
         </div>
       ) : (
-        // Main container for the list, matches ModelInfo styling
         <div className="flex-grow overflow-hidden bg-card shadow-sm rounded-lg flex flex-col min-h-0 border border-border">
-          {/* Static Header Part - styled like ModelInfo header section */}
-          <div className="shrink-0 border-b border-border p-2"> {/* Reduced padding from p-3 to p-2 */}
+          <div className="shrink-0 border-b border-border p-2">
             <Table className="w-full">
               <TableHeader>
                 <TableRow className="flex">
-                  {/* Removed border-r from TableHead for cleaner look, relying on padding and structure */}
-                  <TableHead
-                    style={{ width: "33%" }}
-                    className="py-1.5 px-2 text-xs font-medium text-muted-foreground cursor-pointer hover:bg-muted/50 transition-colors"
-                    onClick={() => requestSort('code')}
-                  >
-                    <div className="flex items-center">
-                      Code
-                      <SortIndicator columnKey="code" currentSortConfig={sortConfig} />
-                    </div>
+                  <TableHead style={{ width: "33%" }} className="py-1.5 px-2 text-xs font-medium text-muted-foreground cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => requestSort('code')}>
+                    <div className="flex items-center">Code<SortIndicator columnKey="code" currentSortConfig={sortConfig} /></div>
                   </TableHead>
-                  <TableHead
-                    style={{ width: "38%" }}
-                    className="py-1.5 px-2 text-xs font-medium text-muted-foreground cursor-pointer hover:bg-muted/50 transition-colors"
-                    onClick={() => requestSort('name')}
-                  >
-                    <div className="flex items-center">
-                      Name
-                      <SortIndicator columnKey="name" currentSortConfig={sortConfig} />
-                    </div>
+                  <TableHead style={{ width: "38%" }} className="py-1.5 px-2 text-xs font-medium text-muted-foreground cursor-pointer hover:bg-muted/50 transition-colors" onClick={() => requestSort('name')}>
+                    <div className="flex items-center">Name<SortIndicator columnKey="name" currentSortConfig={sortConfig} /></div>
                   </TableHead>
-                  <TableHead
-                    style={{ width: "29%" }}
-                    className="py-1.5 px-2 text-xs font-medium text-muted-foreground cursor-pointer hover:bg-muted/50 transition-colors text-center"
-                    onClick={() => requestSort('elementsCount')}
-                  >
-                    <div className="flex items-center justify-center">
-                      Elements
-                      <SortIndicator columnKey="elementsCount" currentSortConfig={sortConfig} />
-                    </div>
+                  <TableHead style={{ width: "29%" }} className="py-1.5 px-2 text-xs font-medium text-muted-foreground cursor-pointer hover:bg-muted/50 transition-colors text-center" onClick={() => requestSort('elementsCount')}>
+                    <div className="flex items-center justify-center">Elements<SortIndicator columnKey="elementsCount" currentSortConfig={sortConfig} /></div>
                   </TableHead>
                 </TableRow>
               </TableHeader>
             </Table>
           </div>
-
-          {/* Scrollable List Part */}
           <div className="flex-grow overflow-hidden relative" ref={listWrapperRef}>
             {(listHeight > 0 && listWidth > 0) && (
-              <List
-                height={listHeight}
-                width={listWidth}
-                itemCount={sortedClassificationEntries.length}
-                itemSize={48}
-                className="w-full"
-              >
+              <List height={listHeight} width={listWidth} itemCount={sortedClassificationEntries.length} itemSize={48} className="w-full">
                 {ClassificationRow}
               </List>
             )}
-            {/* Floating Action Button / Speed Dial */}
             {highlightedClassificationCode && classifications[highlightedClassificationCode] && (
               <div className="absolute bottom-4 right-4 flex flex-col items-end gap-2 z-10">
                 {isSpeedDialOpen && (
@@ -695,16 +684,7 @@ export function ClassificationPanel() {
                     <TooltipProvider>
                       <Tooltip>
                         <TooltipTrigger asChild>
-                          <Button
-                            variant="outline"
-                            size="icon"
-                            className="rounded-full w-10 h-10 shadow-lg bg-background hover:bg-muted"
-                            onClick={() => {
-                              const item = classifications[highlightedClassificationCode!];
-                              if (item) handleOpenEditDialog(item);
-                              setIsSpeedDialOpen(false);
-                            }}
-                          >
+                          <Button variant="outline" size="icon" className="rounded-full w-10 h-10 shadow-lg bg-background hover:bg-muted" onClick={() => { const item = classifications[highlightedClassificationCode!]; if (item) handleOpenEditDialog(item); setIsSpeedDialOpen(false); }}>
                             <Edit className="w-4 h-4" />
                           </Button>
                         </TooltipTrigger>
@@ -714,16 +694,7 @@ export function ClassificationPanel() {
                     <TooltipProvider>
                       <Tooltip>
                         <TooltipTrigger asChild>
-                          <Button
-                            variant="outline"
-                            size="icon"
-                            className="rounded-full w-10 h-10 shadow-lg text-destructive border-destructive hover:bg-destructive/10 hover:text-destructive bg-background"
-                            onClick={() => {
-                              removeClassification(highlightedClassificationCode!);
-                              setIsSpeedDialOpen(false);
-                              // Optionally deselect after removal: toggleClassificationHighlight(null);
-                            }}
-                          >
+                          <Button variant="outline" size="icon" className="rounded-full w-10 h-10 shadow-lg text-destructive border-destructive hover:bg-destructive/10 hover:text-destructive bg-background" onClick={() => { removeClassification(highlightedClassificationCode!); setIsSpeedDialOpen(false); }}>
                             <Trash2 className="w-4 h-4" />
                           </Button>
                         </TooltipTrigger>
@@ -732,12 +703,7 @@ export function ClassificationPanel() {
                     </TooltipProvider>
                   </>
                 )}
-                <Button
-                  variant="default"
-                  size="icon"
-                  className="rounded-full w-12 h-12 shadow-xl"
-                  onClick={() => setIsSpeedDialOpen(!isSpeedDialOpen)}
-                >
+                <Button variant="default" size="icon" className="rounded-full w-12 h-12 shadow-xl" onClick={() => setIsSpeedDialOpen(!isSpeedDialOpen)}>
                   {isSpeedDialOpen ? <X className="w-5 h-5" /> : <MoreHorizontal className="w-5 h-5" />}
                 </Button>
               </div>
@@ -746,12 +712,43 @@ export function ClassificationPanel() {
         </div>
       )}
 
-      <div className="mt-auto pt-4 border-t">
-        <Button onClick={handleExportIFC} disabled={isExporting} className="w-full">
-          <Download className="mr-2 h-4 w-4" />
-          {isExporting ? "Exporting..." : "Export Classified IFC"}
-        </Button>
-      </div>
+      {showExportSection && (
+        <div className="mt-auto pt-4 border-t space-y-3">
+          <h4 className="text-md font-medium">Export Classified Model</h4>
+          {exportableModels.length > 1 && (
+            <div>
+              <Label htmlFor="model-select-export" className="text-sm font-normal text-muted-foreground">Select model to export:</Label>
+              <Select value={selectedModelIdForExport} onValueChange={setSelectedModelIdForExport}>
+                <SelectTrigger id="model-select-export" className="w-full mt-1">
+                  <SelectValue placeholder="Select a model..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {exportableModels.map(model => (
+                    <SelectItem key={model.id} value={model.id}>
+                      {model.name} (ID: {model.modelID})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+          {exportableModels.length === 1 && (
+            <div className="text-sm text-muted-foreground">
+              Exporting model: <span className="font-medium text-foreground">{exportableModels[0].name}</span>
+            </div>
+          )}
+          <Button
+            onClick={handleExportIFC}
+            disabled={isExporting || !selectedModelIdForExport}
+            className="w-full bg-primary text-primary-foreground hover:bg-primary/90 transition-colors duration-150 ease-in-out shadow hover:shadow-md flex items-center justify-center py-2.5"
+          >
+            <Download className={`mr-2 h-5 w-5 ${isExporting ? 'animate-spin' : ''}`} />
+            <span className="text-base font-medium">
+              {isExporting ? "Exporting..." : "Export IFC"}
+            </span>
+          </Button>
+        </div>
+      )}
     </div>
   )
 }

@@ -32,7 +32,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Trash2, Edit, Play, Settings2, PlayCircle } from "lucide-react";
+import { Plus, Trash2, Edit, Play, Settings2, PlayCircle, CheckCircle2, XCircle, Tag } from "lucide-react";
 
 // Define a more specific type for what a rule property could be.
 // This might come from your IFC model's available properties/categories.
@@ -156,92 +156,109 @@ export function RulePanel() {
           </p>
         </div>
       ) : (
-        <div className="space-y-3">
-          {rules.map((rule) => (
-            <div key={rule.id} className="p-4 border rounded-lg bg-card shadow">
-              <div className="flex justify-between items-start">
-                <div>
-                  <h4 className="font-semibold text-md">{rule.name}</h4>
-                  <p className="text-xs text-muted-foreground mb-1">
-                    {rule.description}
-                  </p>
-                  <Badge variant={rule.active ? "secondary" : "outline"}>
-                    {rule.active ? "Active" : "Inactive"}
-                  </Badge>
-                  <Badge variant="outline" className="ml-2">
-                    Applies to:{" "}
-                    {classifications[rule.classificationCode]?.name ||
-                      rule.classificationCode}
-                  </Badge>
-                </div>
-                <div className="flex items-center gap-1 shrink-0">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => previewRuleHighlight(rule.id)}
-                    title={previewingRuleId === rule.id ? "Clear Preview" : "Preview Rule Impact"}
-                  >
-                    {previewingRuleId === rule.id ? (
-                      <PlayCircle className="text-orange-500" />
-                    ) : (
-                      <Play className="text-blue-500" />
+        <div className="space-y-4">
+          {rules.map((rule) => {
+            const targetClassification = classifications[rule.classificationCode];
+            return (
+              <div
+                key={rule.id}
+                className="p-4 rounded-lg bg-card shadow-md hover:shadow-lg hover:bg-muted/60 transition-all duration-150 cursor-default"
+              >
+                <div className="flex justify-between items-start gap-3">
+                  <div className="flex-1 min-w-0 space-y-1">
+                    <div className="flex items-center gap-2">
+                      {rule.active ? (
+                        <CheckCircle2 className="h-5 w-5 text-green-500 flex-shrink-0" />
+                      ) : (
+                        <XCircle className="h-5 w-5 text-muted-foreground flex-shrink-0" />
+                      )}
+                      <h4 className="font-semibold text-lg text-foreground truncate">{rule.name}</h4>
+                    </div>
+                    {rule.description && (
+                      <p className="text-sm text-muted-foreground truncate">
+                        {rule.description}
+                      </p>
                     )}
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => openEditRuleDialog(rule)}
-                    title="Edit Rule"
-                  >
-                    <Edit />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => removeRule(rule.id)}
-                    title="Delete Rule"
-                  >
-                    <Trash2 className="text-destructive" />
-                  </Button>
-                </div>
-              </div>
-              <div className="mt-3 pt-3 border-t border-dashed">
-                <div className="text-xs font-medium mb-1 text-muted-foreground uppercase">
-                  Conditions:
-                </div>
-                <div className="space-y-1">
-                  {rule.conditions.map(
-                    (condition: RuleCondition, index: number) => (
-                      <div
-                        key={index}
-                        className="text-xs flex items-center gap-1 p-1 bg-muted/50 rounded"
-                      >
-                        <Badge
-                          variant="outline"
-                          className="font-mono text-[10px] py-0"
+                    {targetClassification && (
+                      <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                        <Tag className="h-3.5 w-3.5" />
+                        <span
+                          style={{ color: targetClassification.color || 'inherit' }}
+                          className="font-medium"
                         >
-                          {availableRuleProperties.find(
-                            (p) => p.value === condition.property
-                          )?.label || condition.property}
-                        </Badge>
-                        <span className="font-mono text-[10px]">
-                          {availableOperators.find(
-                            (o) => o.value === condition.operator
-                          )?.label || condition.operator}
+                          {targetClassification.name || rule.classificationCode}
                         </span>
-                        <Badge
-                          variant="secondary"
-                          className="font-mono text-[10px] py-0"
-                        >
-                          {String(condition.value)}
-                        </Badge>
                       </div>
-                    )
-                  )}
+                    )}
+                  </div>
+                  <div className="flex items-center gap-0.5 shrink-0">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-blue-500 hover:text-blue-600 hover:bg-blue-500/10"
+                      onClick={() => previewRuleHighlight(rule.id)}
+                      title={previewingRuleId === rule.id ? "Clear Preview" : "Preview Rule Impact"}
+                    >
+                      {previewingRuleId === rule.id ? (
+                        <PlayCircle className="h-5 w-5" />
+                      ) : (
+                        <Play className="h-5 w-5" />
+                      )}
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-accent"
+                      onClick={() => openEditRuleDialog(rule)}
+                      title="Edit Rule"
+                    >
+                      <Edit className="h-5 w-5" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 text-red-500 hover:text-red-600 hover:bg-red-500/10"
+                      onClick={() => removeRule(rule.id)}
+                      title="Delete Rule"
+                    >
+                      <Trash2 className="h-5 w-5" />
+                    </Button>
+                  </div>
                 </div>
+                {rule.conditions && rule.conditions.length > 0 && (
+                  <div className="mt-3 pt-3 border-t border-border/50">
+                    <div className="text-xs font-medium mb-2 text-muted-foreground/80 uppercase tracking-wider">
+                      Conditions
+                    </div>
+                    <div className="space-y-1.5 pl-1">
+                      {rule.conditions.map(
+                        (condition: RuleCondition, index: number) => (
+                          <div
+                            key={index}
+                            className="flex flex-nowrap items-baseline gap-x-2 p-1 bg-muted/30 rounded text-xs"
+                          >
+                            <span className="font-medium text-foreground/90 whitespace-nowrap">
+                              {availableRuleProperties.find(
+                                (p) => p.value === condition.property
+                              )?.label || condition.property}
+                            </span>
+                            <span className="text-muted-foreground whitespace-nowrap">
+                              {availableOperators.find(
+                                (o) => o.value === condition.operator
+                              )?.label || condition.operator}
+                            </span>
+                            <span className="font-semibold text-accent-foreground bg-accent/50 py-0.5 px-1.5 rounded whitespace-nowrap break-all">
+                              {String(condition.value)}
+                            </span>
+                          </div>
+                        )
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
