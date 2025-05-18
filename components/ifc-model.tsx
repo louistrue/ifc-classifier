@@ -1434,20 +1434,7 @@ export function IFCModel({ modelData, outlineLayer }: IFCModelProps) {
           propertySets: psetsData,
         };
 
-        const collectedProps = new Set<string>();
-        collectedProps.add("ifcType");
-        for (const groupName of Object.keys(psetsData)) {
-          const group = psetsData[groupName];
-          for (const key in group) {
-            if (Object.prototype.hasOwnProperty.call(group, key)) {
-              const full =
-                groupName === "Element Attributes"
-                  ? key
-                  : `${groupName}.${key}`;
-              collectedProps.add(full);
-            }
-          }
-        }
+// (The unused `collectedProps` block has been removed)
         setElementProperties(allProperties);
         console.log(
           `IFCModel (${modelData.id}): Properties set (Full Approach) for ${currentSelectedExpressID}`,
