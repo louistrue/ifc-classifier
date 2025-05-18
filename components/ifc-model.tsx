@@ -182,7 +182,6 @@ export function IFCModel({ modelData, outlineLayer }: IFCModelProps) {
     highlightedClassificationCode,
     setModelIDForLoadedModel,
     setAvailableCategoriesForModel,
-    setAvailableProperties,
     classifications,
     showAllClassificationColors,
     userHiddenElements,
@@ -588,15 +587,21 @@ export function IFCModel({ modelData, outlineLayer }: IFCModelProps) {
           originalMaterials.current.set(expressID, mesh.material);
         }
         const trueOriginalMaterial = originalMaterials.current.get(expressID)!;
-        let targetMaterial: THREE.Material | THREE.Material[] = trueOriginalMaterial;
+        let targetMaterial: THREE.Material | THREE.Material[] =
+          trueOriginalMaterial;
         let isCurrentlyVisible = true;
 
         // Step 1: Apply "Show All Classification Colors" if active
         if (showAllClassificationColors) {
           let elementClassificationColor: string | null = null;
-          for (const classification of Object.values(classifications as Record<string, any>)) {
+          for (const classification of Object.values(
+            classifications as Record<string, any>
+          )) {
             const isInClassification = classification.elements?.some(
-              (el: SelectedElementInfo) => el && el.modelID === currentModelID && el.expressID === expressID
+              (el: SelectedElementInfo) =>
+                el &&
+                el.modelID === currentModelID &&
+                el.expressID === expressID
             );
             if (isInClassification) {
               elementClassificationColor = classification.color || "#808080";
@@ -606,8 +611,12 @@ export function IFCModel({ modelData, outlineLayer }: IFCModelProps) {
           if (elementClassificationColor) {
             let isCorrectMaterial = false;
             if (mesh.material instanceof THREE.MeshStandardMaterial) {
-              if (mesh.material.color.getHexString().toLowerCase() === elementClassificationColor.substring(1).toLowerCase() &&
-                mesh.material.opacity === 0.9 && mesh.material.transparent) {
+              if (
+                mesh.material.color.getHexString().toLowerCase() ===
+                  elementClassificationColor.substring(1).toLowerCase() &&
+                mesh.material.opacity === 0.9 &&
+                mesh.material.transparent
+              ) {
                 isCorrectMaterial = true;
                 targetMaterial = mesh.material; // Use existing material instance
               }
@@ -627,18 +636,27 @@ export function IFCModel({ modelData, outlineLayer }: IFCModelProps) {
 
         // Step 2: Apply single highlighted classification effects
         if (highlightedClassificationCode) {
-          const activeClassification = classifications[highlightedClassificationCode];
-          const isElementInActiveClassification = activeClassification?.elements?.some(
-            (el: SelectedElementInfo) => el && el.modelID === currentModelID && el.expressID === expressID
-          );
+          const activeClassification =
+            classifications[highlightedClassificationCode];
+          const isElementInActiveClassification =
+            activeClassification?.elements?.some(
+              (el: SelectedElementInfo) =>
+                el &&
+                el.modelID === currentModelID &&
+                el.expressID === expressID
+            );
 
           if (isElementInActiveClassification) {
             isCurrentlyVisible = true;
             if (activeClassification && activeClassification.color) {
               let isCorrectMaterial = false;
               if (mesh.material instanceof THREE.MeshStandardMaterial) {
-                if (mesh.material.color.getHexString().toLowerCase() === activeClassification.color.substring(1).toLowerCase() &&
-                  mesh.material.opacity === 0.7 && mesh.material.transparent) {
+                if (
+                  mesh.material.color.getHexString().toLowerCase() ===
+                    activeClassification.color.substring(1).toLowerCase() &&
+                  mesh.material.opacity === 0.7 &&
+                  mesh.material.transparent
+                ) {
                   isCorrectMaterial = true;
                   targetMaterial = mesh.material;
                 }
@@ -646,12 +664,18 @@ export function IFCModel({ modelData, outlineLayer }: IFCModelProps) {
               if (!isCorrectMaterial) {
                 targetMaterial = new THREE.MeshStandardMaterial({
                   color: new THREE.Color(activeClassification.color),
-                  transparent: true, opacity: 0.7, side: THREE.DoubleSide,
+                  transparent: true,
+                  opacity: 0.7,
+                  side: THREE.DoubleSide,
                 });
               }
             }
           } else {
-            if (activeClassification && activeClassification.elements && activeClassification.elements.length > 0) {
+            if (
+              activeClassification &&
+              activeClassification.elements &&
+              activeClassification.elements.length > 0
+            ) {
               isCurrentlyVisible = false;
               targetMaterial = trueOriginalMaterial;
             } else {
@@ -662,7 +686,9 @@ export function IFCModel({ modelData, outlineLayer }: IFCModelProps) {
 
         // Step 3: Apply User Hidden State (high precedence, but selected can override)
         const isUserExplicitlyHidden = userHiddenElements.some(
-          (hiddenEl) => hiddenEl.modelID === currentModelID && hiddenEl.expressID === expressID
+          (hiddenEl) =>
+            hiddenEl.modelID === currentModelID &&
+            hiddenEl.expressID === expressID
         );
 
         if (isUserExplicitlyHidden) {
@@ -670,7 +696,11 @@ export function IFCModel({ modelData, outlineLayer }: IFCModelProps) {
         }
 
         // Step 4: Selected Element (highest priority for visibility and material)
-        if (selectedElement && selectedElement.modelID === currentModelID && selectedElement.expressID === expressID) {
+        if (
+          selectedElement &&
+          selectedElement.modelID === currentModelID &&
+          selectedElement.expressID === expressID
+        ) {
           targetMaterial = selectionMaterial;
           isCurrentlyVisible = true;
         }
@@ -680,15 +710,34 @@ export function IFCModel({ modelData, outlineLayer }: IFCModelProps) {
         // Apply the determined targetMaterial, with disposal check
         if (mesh.material !== targetMaterial && isCurrentlyVisible) {
           const oldMaterial = mesh.material as THREE.Material;
-          if (oldMaterial !== trueOriginalMaterial && !(Array.isArray(trueOriginalMaterial) && trueOriginalMaterial.includes(oldMaterial)) && !Array.isArray(oldMaterial)) {
-            if (typeof oldMaterial.dispose === 'function') oldMaterial.dispose();
+          if (
+            oldMaterial !== trueOriginalMaterial &&
+            !(
+              Array.isArray(trueOriginalMaterial) &&
+              trueOriginalMaterial.includes(oldMaterial)
+            ) &&
+            !Array.isArray(oldMaterial)
+          ) {
+            if (typeof oldMaterial.dispose === "function")
+              oldMaterial.dispose();
           }
           mesh.material = targetMaterial;
-        } else if (!isCurrentlyVisible && mesh.material !== trueOriginalMaterial) {
+        } else if (
+          !isCurrentlyVisible &&
+          mesh.material !== trueOriginalMaterial
+        ) {
           if (mesh.material !== trueOriginalMaterial) {
             const oldMaterial = mesh.material as THREE.Material;
-            if (oldMaterial !== trueOriginalMaterial && !(Array.isArray(trueOriginalMaterial) && trueOriginalMaterial.includes(oldMaterial)) && !Array.isArray(oldMaterial)) {
-              if (typeof oldMaterial.dispose === 'function') oldMaterial.dispose();
+            if (
+              oldMaterial !== trueOriginalMaterial &&
+              !(
+                Array.isArray(trueOriginalMaterial) &&
+                trueOriginalMaterial.includes(oldMaterial)
+              ) &&
+              !Array.isArray(oldMaterial)
+            ) {
+              if (typeof oldMaterial.dispose === "function")
+                oldMaterial.dispose();
             }
             mesh.material = trueOriginalMaterial;
           }
@@ -738,7 +787,6 @@ export function IFCModel({ modelData, outlineLayer }: IFCModelProps) {
         if (!selectedElement) {
           setElementProperties(null);
         }
-        setAvailableProperties([]);
         console.log(
           `IFCModel (${modelData.id}) - Property Fetch (Full Approach): Aborting due to missing selection, API, or modelID mismatch.`,
           {
@@ -893,13 +941,14 @@ export function IFCModel({ modelData, outlineLayer }: IFCModelProps) {
                     else
                       propValue = propToProcess.type
                         ? `(Type is ${typeOfPropType}: ${String(
-                          propToProcess.type
-                        )})`
+                            propToProcess.type
+                          )})`
                         : `(Unknown Type)`;
                   }
                   targetPSetData[propToProcess.Name.value] = propValue;
                   console.log(
-                    `      [${psetNameForLogging}] Successfully processed Property '${propToProcess.Name.value
+                    `      [${psetNameForLogging}] Successfully processed Property '${
+                      propToProcess.Name.value
                     }': ${JSON.stringify(propValue)}`
                   );
                 } else {
@@ -967,7 +1016,8 @@ export function IFCModel({ modelData, outlineLayer }: IFCModelProps) {
             true
           );
           console.log(
-            `  Found ${psetsFromApi?.length || 0
+            `  Found ${
+              psetsFromApi?.length || 0
             } PSet definitions via getPropertySets()`
           );
           if (psetsFromApi && psetsFromApi.length > 0) {
@@ -1115,7 +1165,8 @@ export function IFCModel({ modelData, outlineLayer }: IFCModelProps) {
             true
           );
           console.log(
-            `  Found ${typeObjects?.length || 0
+            `  Found ${
+              typeObjects?.length || 0
             } Type definitions via getTypeProperties()`
           );
           if (typeObjects && typeObjects.length > 0) {
@@ -1276,7 +1327,8 @@ export function IFCModel({ modelData, outlineLayer }: IFCModelProps) {
             true
           );
           console.log(
-            `  Found ${materials?.length || 0
+            `  Found ${
+              materials?.length || 0
             } Material definitions via getMaterialsProperties()`
           );
           if (materials && materials.length > 0) {
@@ -1388,13 +1440,14 @@ export function IFCModel({ modelData, outlineLayer }: IFCModelProps) {
           const group = psetsData[groupName];
           for (const key in group) {
             if (Object.prototype.hasOwnProperty.call(group, key)) {
-              const full = groupName === "Element Attributes" ? key : `${groupName}.${key}`;
+              const full =
+                groupName === "Element Attributes"
+                  ? key
+                  : `${groupName}.${key}`;
               collectedProps.add(full);
             }
           }
         }
-        setAvailableProperties(Array.from(collectedProps).sort());
-
         setElementProperties(allProperties);
         console.log(
           `IFCModel (${modelData.id}): Properties set (Full Approach) for ${currentSelectedExpressID}`,
@@ -1406,7 +1459,6 @@ export function IFCModel({ modelData, outlineLayer }: IFCModelProps) {
           error
         );
         setElementProperties(null);
-        setAvailableProperties([]);
       }
       console.timeEnd(
         `fetchProps-full-${currentSelectedExpressID}-m${currentModelID}`

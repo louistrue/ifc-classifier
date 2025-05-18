@@ -24,6 +24,10 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import {
+  CreatableCombobox,
+  ComboboxOption,
+} from "@/components/ui/creatable-combobox";
+import {
   Table,
   TableBody,
   TableCell,
@@ -32,7 +36,17 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Trash2, Edit, Play, Settings2, PlayCircle, CheckCircle2, XCircle, Tag } from "lucide-react";
+import {
+  Plus,
+  Trash2,
+  Edit,
+  Play,
+  Settings2,
+  PlayCircle,
+  CheckCircle2,
+  XCircle,
+  Tag,
+} from "lucide-react";
 
 const availableOperators = [
   { value: "equals", label: "Equals" },
@@ -43,8 +57,16 @@ const availableOperators = [
 ];
 
 export function RulePanel() {
-  const { rules, addRule, removeRule, updateRule, classifications, previewRuleHighlight, previewingRuleId, availableProperties } =
-    useIFCContext();
+  const {
+    rules,
+    addRule,
+    removeRule,
+    updateRule,
+    classifications,
+    previewRuleHighlight,
+    previewingRuleId,
+    availableProperties,
+  } = useIFCContext();
   const [isRuleDialogOpen, setIsRuleDialogOpen] = useState(false);
   const [currentRule, setCurrentRule] = useState<Rule | null>(null);
   const [editingRule, setEditingRule] = useState<Partial<Rule> | null>(null);
@@ -152,7 +174,8 @@ export function RulePanel() {
       ) : (
         <div className="space-y-4">
           {rules.map((rule) => {
-            const targetClassification = classifications[rule.classificationCode];
+            const targetClassification =
+              classifications[rule.classificationCode];
             return (
               <div
                 key={rule.id}
@@ -166,7 +189,9 @@ export function RulePanel() {
                       ) : (
                         <XCircle className="h-5 w-5 text-muted-foreground flex-shrink-0" />
                       )}
-                      <h4 className="font-semibold text-lg text-foreground truncate">{rule.name}</h4>
+                      <h4 className="font-semibold text-lg text-foreground truncate">
+                        {rule.name}
+                      </h4>
                     </div>
                     {rule.description && (
                       <p className="text-sm text-muted-foreground truncate">
@@ -177,7 +202,9 @@ export function RulePanel() {
                       <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                         <Tag className="h-3.5 w-3.5" />
                         <span
-                          style={{ color: targetClassification.color || 'inherit' }}
+                          style={{
+                            color: targetClassification.color || "inherit",
+                          }}
                           className="font-medium"
                         >
                           {targetClassification.name || rule.classificationCode}
@@ -191,7 +218,11 @@ export function RulePanel() {
                       size="icon"
                       className="h-8 w-8 text-blue-500 hover:text-blue-600 hover:bg-blue-500/10"
                       onClick={() => previewRuleHighlight(rule.id)}
-                      title={previewingRuleId === rule.id ? "Clear Preview" : "Preview Rule Impact"}
+                      title={
+                        previewingRuleId === rule.id
+                          ? "Clear Preview"
+                          : "Preview Rule Impact"
+                      }
                     >
                       {previewingRuleId === rule.id ? (
                         <PlayCircle className="h-5 w-5" />
@@ -232,7 +263,7 @@ export function RulePanel() {
                             className="flex flex-nowrap items-baseline gap-x-2 p-1 bg-muted/30 rounded text-xs"
                           >
                             <span className="font-medium text-foreground/90 whitespace-nowrap">
-                            {propertyOptions.find(
+                              {propertyOptions.find(
                                 (p) => p.value === condition.property
                               )?.label || condition.property}
                             </span>
@@ -309,23 +340,16 @@ export function RulePanel() {
                       className="grid grid-cols-12 gap-2 items-center"
                     >
                       <div className="col-span-4">
-                        <Select
+                        <CreatableCombobox
+                          options={propertyOptions}
                           value={condition.property}
-                          onValueChange={(value) =>
+                          onChange={(value) =>
                             handleConditionChange(index, "property", value)
                           }
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select property" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {propertyOptions.map((prop) => (
-                              <SelectItem key={prop.value} value={prop.value}>
-                                {prop.label}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                          placeholder="Select or create property..."
+                          searchPlaceholder="Search properties..."
+                          emptyResultText="No property found. Type to create."
+                        />
                       </div>
                       <div className="col-span-3">
                         <Select
@@ -335,7 +359,7 @@ export function RulePanel() {
                           }
                         >
                           <SelectTrigger>
-                            <SelectValue placeholder="Operator" />
+                            <SelectValue placeholder="Select operator" />
                           </SelectTrigger>
                           <SelectContent>
                             {availableOperators.map((op) => (
@@ -346,19 +370,20 @@ export function RulePanel() {
                           </SelectContent>
                         </Select>
                       </div>
-                      <div className="col-span-4">
-                        <Input
-                          value={String(condition.value)}
-                          onChange={(e) =>
-                            handleConditionChange(
-                              index,
-                              "value",
-                              e.target.value
-                            )
-                          }
-                          placeholder="Value"
-                        />
-                      </div>
+                      <Input
+                        id={`condition-value-${index}`}
+                        value={String(condition.value)}
+                        onChange={(e) =>
+                          handleConditionChange(index, "value", e.target.value)
+                        }
+                        placeholder={
+                          condition.property.toLowerCase().includes("is") ||
+                          condition.property.toLowerCase().includes("has")
+                            ? "e.g., true, false, yes, no"
+                            : "Value"
+                        }
+                        className="col-span-3"
+                      />
                       <div className="col-span-1">
                         <Button
                           variant="ghost"
