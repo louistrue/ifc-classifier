@@ -15,6 +15,7 @@ import { OrbitControls, Environment } from "@react-three/drei";
 import { IFCModel } from "@/components/ifc-model";
 import { ClassificationPanel } from "@/components/classification-panel";
 import { RulePanel } from "@/components/rule-panel";
+import { SelectionClassificationPanel } from "@/components/selection-classification-panel";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -1021,6 +1022,9 @@ function ViewerContent() {
                 onZoomSelected={handleZoomSelected}
                 isElementSelected={!!selectedElement}
               />
+            )}
+            {ifcEngineReady && !webGLContextLost && (
+              <SelectionClassificationPanel />
             )}
           </div>
         </Panel>
