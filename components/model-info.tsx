@@ -527,7 +527,6 @@ export function ModelInfo() {
                 // Count unique layers for LayerSet to decide singular/plural title
                 const layerNumbers = new Set();
                 for (const key in singleGroup.properties) {
-                  }
                 }
                 if (
                   layerNumbers.size <= 1 &&

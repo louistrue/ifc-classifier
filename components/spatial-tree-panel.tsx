@@ -93,9 +93,7 @@ const TreeNode: React.FC<TreeNodeProps> = ({
   selectedNodeActualRef,
   modelID,
 }) => {
-  const { selectedElement, getNaturalIfcClassName } = useIFCContext();
-  const [isOpen, setIsOpen] = useState(level < 2);
-
+  const { getNaturalIfcClassName } = useIFCContext();
   const memoizedChildren = useMemo(() => node.children || [], [node.children]);
 
   const currentModelIDForNode = isRootModelNode
