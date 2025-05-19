@@ -163,8 +163,8 @@ const TreeNode: React.FC<TreeNodeProps> = ({
 
   const originalIfcType = node.type;
   const naturalNameResult = getNaturalIfcClassName(originalIfcType);
-  const naturalIfcName = naturalNameResult.name;
-  const schemaUrl = naturalNameResult.schemaUrl;
+  const naturalIfcName = naturalNameResult?.name ?? "";
+  const schemaUrl = naturalNameResult?.schemaUrl ?? "";
 
   const displayName = isRootModelNode
     ? modelFileInfo.name
