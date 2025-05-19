@@ -131,6 +131,10 @@ interface IFCContextType {
   toggleUserHideElement: (element: SelectedElementInfo) => void; // New function
   unhideLastElement: () => void; // New function
   unhideAllElements: () => void; // New function
+  classifyFromProperties: (options: {
+    codeProperty?: string;
+    nameProperty?: string;
+  }) => Promise<void>;
 }
 
 const IFCContext = createContext<IFCContextType | undefined>(undefined);
@@ -1442,6 +1446,167 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
     console.log("IFCContext: All elements unhidden.");
   }, []);
 
+  const classifyFromProperties = useCallback(
+    async (options: { codeProperty?: string; nameProperty?: string }) => {
+      if (!ifcApiInternal) return;
+      const { codeProperty, nameProperty } = options;
+      if (!codeProperty && !nameProperty) return;
+
+      if (!ifcApiInternal.properties) {
+        try {
+          ifcApiInternal.properties = new Properties(ifcApiInternal);
+        } catch (e) {
+          console.error("IFCContext: Failed to init properties", e);
+          return;
+        }
+      }
+
+      function wildcardToRegExp(pattern: string): RegExp {
+        const escaped = pattern.replace(/[-/\\^$+?.()|[\]{}]/g, "\\$&");
+        return new RegExp("^" + escaped.replace(/\\\*/g, ".*") + "$", "i");
+      }
+
+      async function getValue(
+        element: SpatialStructureNode,
+        modelID: number,
+        path: string
+      ): Promise<any> {
+        if (!ifcApiInternal || element.expressID === undefined) return undefined;
+        if (path === "Ifc Class") return element.type;
+        let props: any;
+        try {
+          props = await ifcApiInternal.properties!.getItemProperties(
+            modelID,
+            element.expressID,
+            true
+          );
+        } catch (e) {
+          return undefined;
+        }
+        if (!props) return undefined;
+
+        if (path.includes(".")) {
+          const [psetPattern, propName] = path.split(".");
+          const regex = wildcardToRegExp(psetPattern);
+          const searchSets: any[] = [];
+          if (props.PropertySets) searchSets.push(...props.PropertySets);
+          for (const key in props) {
+            const obj = props[key];
+            if (obj && obj.Name && obj.HasProperties) searchSets.push(obj);
+          }
+          for (const ps of searchSets) {
+            const name = ps.Name?.value || ps.Name;
+            if (name && regex.test(String(name))) {
+              const prop = (ps.HasProperties || []).find(
+                (p: any) => p.Name?.value === propName
+              );
+              if (prop) {
+                return prop.NominalValue?.value ?? prop.NominalValue;
+              }
+            }
+          }
+          return undefined;
+        } else {
+          const direct = props[path];
+          if (direct !== undefined) {
+            return direct?.value !== undefined ? direct.value : direct;
+          }
+          const nodeVal = (element as any)[path];
+          if (nodeVal !== undefined) {
+            return nodeVal?.value !== undefined ? nodeVal.value : nodeVal;
+          }
+          return undefined;
+        }
+      }
+
+      function levenshtein(a: string, b: string): number {
+        const an = a.length;
+        const bn = b.length;
+        if (an === 0) return bn;
+        if (bn === 0) return an;
+        const matrix = Array.from({ length: bn + 1 }, (_, i) => [i]);
+        for (let j = 0; j <= an; j++) matrix[0][j] = j;
+        for (let i = 1; i <= bn; i++) {
+          for (let j = 1; j <= an; j++) {
+            if (b.charAt(i - 1) === a.charAt(j - 1)) matrix[i][j] = matrix[i - 1][j - 1];
+            else
+              matrix[i][j] =
+                Math.min(
+                  matrix[i - 1][j] + 1,
+                  matrix[i][j - 1] + 1,
+                  matrix[i - 1][j - 1] + 1
+                );
+          }
+        }
+        return matrix[bn][an];
+      }
+
+      function fuzzy(a: string, b: string): boolean {
+        const aa = a.toLowerCase();
+        const bb = b.toLowerCase();
+        if (aa === bb) return true;
+        if (aa.includes(bb) || bb.includes(aa)) return true;
+        const dist = levenshtein(aa, bb);
+        const sim = 1 - dist / Math.max(aa.length, bb.length);
+        return sim >= 0.6;
+      }
+
+      const newElems: Record<string, SelectedElementInfo[]> = {};
+      for (const code in classifications) newElems[code] = [];
+
+      for (const model of loadedModels) {
+        if (model.modelID == null || !model.spatialTree) continue;
+        const elements = getAllElementsFromSpatialTreeNodesRecursive([
+          model.spatialTree,
+        ]);
+        for (const el of elements) {
+          if (el.expressID === undefined) continue;
+          const valCode = codeProperty
+            ? await getValue(el, model.modelID!, codeProperty)
+            : undefined;
+          const valName = nameProperty
+            ? await getValue(el, model.modelID!, nameProperty)
+            : undefined;
+          if (valCode === undefined && valName === undefined) continue;
+
+          for (const [code, cls] of Object.entries(classifications)) {
+            const matchCode = codeProperty
+              ? valCode !== undefined && fuzzy(String(valCode), code)
+              : true;
+            const matchName = nameProperty
+              ? valName !== undefined && fuzzy(String(valName), cls.name)
+              : true;
+            if (matchCode && matchName) {
+              const info = { modelID: model.modelID!, expressID: el.expressID };
+              if (
+                !newElems[code].some(
+                  (e) => e.modelID === info.modelID && e.expressID === info.expressID
+                )
+              ) {
+                newElems[code].push(info);
+              }
+              break;
+            }
+          }
+        }
+      }
+
+      setClassifications((prev) => {
+        const updated: Record<string, any> = {};
+        for (const [code, cls] of Object.entries(prev)) {
+          updated[code] = { ...cls, elements: newElems[code] };
+        }
+        return updated;
+      });
+    },
+    [
+      ifcApiInternal,
+      loadedModels,
+      classifications,
+      getAllElementsFromSpatialTreeNodesRecursive,
+    ]
+  );
+
   return (
     <IFCContext.Provider
       value={{
@@ -1484,6 +1649,7 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
         toggleUserHideElement,
         unhideLastElement,
         unhideAllElements,
+        classifyFromProperties,
         naturalIfcClassNames,
         getNaturalIfcClassName,
       }}

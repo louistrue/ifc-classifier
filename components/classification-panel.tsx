@@ -16,7 +16,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Plus, Trash2, Edit, Eye, Palette, Eraser, CircleOff, ChevronDown, MoreHorizontal, ChevronUp, X, Download } from "lucide-react"
+import { Plus, Trash2, Edit, Eye, Palette, Eraser, CircleOff, ChevronDown, MoreHorizontal, ChevronUp, X, Download, Search } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import {
   Tooltip,
@@ -69,6 +69,7 @@ export function ClassificationPanel() {
     assignClassificationToElement,
     unassignClassificationFromElement,
     unassignElementFromAllClassifications,
+    classifyFromProperties,
   } = useIFCContext()
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
   const [newClassification, setNewClassification] = useState({
@@ -81,6 +82,10 @@ export function ClassificationPanel() {
   const [defaultUniclassPr, setDefaultUniclassPr] = useState<ClassificationItem[]>([])
   const [isLoadingUniclass, setIsLoadingUniclass] = useState(true)
   const [errorLoadingUniclass, setErrorLoadingUniclass] = useState<string | null>(null)
+
+  const [isAutoDialogOpen, setIsAutoDialogOpen] = useState(false)
+  const [codePropInput, setCodePropInput] = useState("")
+  const [namePropInput, setNamePropInput] = useState("")
 
   // State for eBKP-H
   const [defaultEBKPH, setDefaultEBKPH] = useState<ClassificationItem[]>([])
@@ -303,6 +308,14 @@ export function ClassificationPanel() {
       setIsEditDialogOpen(false)
       setCurrentClassificationForEdit(null)
     }
+  }
+
+  const handleAutoClassify = async () => {
+    await classifyFromProperties({
+      codeProperty: codePropInput || undefined,
+      nameProperty: namePropInput || undefined,
+    })
+    setIsAutoDialogOpen(false)
   }
 
   const handleAssignSelected = () => {
@@ -594,6 +607,49 @@ export function ClassificationPanel() {
               )}
             </DropdownMenuContent>
           </DropdownMenu>
+
+          <Dialog open={isAutoDialogOpen} onOpenChange={setIsAutoDialogOpen}>
+            <DialogTrigger asChild>
+              <Button size="sm" variant="outline" className="whitespace-nowrap">
+                <Search className="w-4 h-4 mr-2 flex-shrink-0" />
+                Match From Property
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Match Classifications From Property</DialogTitle>
+              </DialogHeader>
+              <div className="grid gap-4 py-4">
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="code-prop" className="text-right">Code Source</Label>
+                  <Input
+                    id="code-prop"
+                    value={codePropInput}
+                    onChange={(e) => setCodePropInput(e.target.value)}
+                    placeholder="e.g. Pset_Class.Code"
+                    className="col-span-3"
+                  />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="name-prop" className="text-right">Name Source</Label>
+                  <Input
+                    id="name-prop"
+                    value={namePropInput}
+                    onChange={(e) => setNamePropInput(e.target.value)}
+                    placeholder="Optional"
+                    className="col-span-3"
+                  />
+                </div>
+                <p className="text-xs col-span-4 text-muted-foreground">
+                  Use * as wildcard in property set name, e.g. PSet_*Common.Reference
+                </p>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setIsAutoDialogOpen(false)}>Cancel</Button>
+                <Button onClick={handleAutoClassify}>Run</Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </div>
       </div>
 
