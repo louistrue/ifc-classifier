@@ -65,6 +65,10 @@ export function ClassificationPanel() {
     showAllClassificationColors,
     toggleShowAllClassificationColors,
     loadedModels,
+    selectedElement,
+    assignClassificationToElement,
+    unassignClassificationFromElement,
+    unassignElementFromAllClassifications,
   } = useIFCContext()
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
   const [newClassification, setNewClassification] = useState({
@@ -298,6 +302,24 @@ export function ClassificationPanel() {
       updateClassification(currentClassificationForEdit.code, currentClassificationForEdit)
       setIsEditDialogOpen(false)
       setCurrentClassificationForEdit(null)
+    }
+  }
+
+  const handleAssignSelected = () => {
+    if (selectedElement && highlightedClassificationCode) {
+      assignClassificationToElement(highlightedClassificationCode, selectedElement)
+    }
+  }
+
+  const handleUnassignSelected = () => {
+    if (selectedElement && highlightedClassificationCode) {
+      unassignClassificationFromElement(highlightedClassificationCode, selectedElement)
+    }
+  }
+
+  const handleClearSelected = () => {
+    if (selectedElement) {
+      unassignElementFromAllClassifications(selectedElement)
     }
   }
 
@@ -709,6 +731,20 @@ export function ClassificationPanel() {
               </div>
             )}
           </div>
+        </div>
+      )}
+
+      {selectedElement && (
+        <div className="mt-4 space-y-2 border-t pt-4">
+          {highlightedClassificationCode ? (
+            <>
+              <Button className="w-full" onClick={handleAssignSelected}>Assign Selected Element</Button>
+              <Button className="w-full" variant="outline" onClick={handleUnassignSelected}>Remove Selected from Classification</Button>
+            </>
+          ) : (
+            <p className="text-sm text-muted-foreground">Highlight a classification to assign.</p>
+          )}
+          <Button className="w-full" variant="outline" onClick={handleClearSelected}>Clear from All Classifications</Button>
         </div>
       )}
 
