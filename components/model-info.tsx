@@ -527,18 +527,11 @@ export function ModelInfo() {
                 // Count unique layers for LayerSet to decide singular/plural title
                 const layerNumbers = new Set();
                 for (const key in singleGroup.properties) {
-                  if (key.startsWith("Layer_")) {
-                    const parts = key.split("_");
-                    if (parts.length > 1) {
-                      layerNumbers.add(parts[1]); // Add the layer number string
-                    }
                   }
                 }
                 if (
                   layerNumbers.size <= 1 &&
-                  Object.keys(singleGroup.properties).hasOwnProperty(
-                    "TotalThickness"
-                  ) &&
+                  Object.hasOwn(singleGroup.properties, "TotalThickness") &&
                   Object.keys(singleGroup.properties).length === 1
                 ) {
                   // Only TotalThickness and no actual layers, or only one layer
