@@ -118,6 +118,15 @@ interface IFCContextType {
   updateRule: (rule: Rule) => void;
   previewRuleHighlight: (ruleId: string) => Promise<void>;
 
+  assignClassificationToElement: (
+    code: string,
+    element: SelectedElementInfo
+  ) => void;
+  unassignClassificationFromElement: (
+    code: string,
+    element: SelectedElementInfo
+  ) => void;
+
   toggleUserHideElement: (element: SelectedElementInfo) => void; // New function
   unhideLastElement: () => void; // New function
   unhideAllElements: () => void; // New function
@@ -715,26 +724,22 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
       );
       // Only clear elements if there are no models. Definitions should persist.
       if (loadedModels.length === 0) {
-        setClassifications((prevClassifications) => {
-          const newCleared = { ...prevClassifications };
-          let actuallyClearedSomething = false;
-          for (const code in newCleared) {
-            if (
-              newCleared[code] &&
-              newCleared[code].elements &&
-              newCleared[code].elements.length > 0
-            ) {
-              newCleared[code] = { ...newCleared[code], elements: [] };
-              actuallyClearedSomething = true;
+        setClassifications((prev) => {
+          const updated = { ...prev }
+          for (const code in updated) {
+            const current = updated[code]
+            updated[code] = {
+              ...current,
+              ruleElements: [],
+              elements: computeFinalElements(
+                [],
+                current.manualAssignments || [],
+                current.manualUnassignments || []
+              ),
             }
           }
-          if (actuallyClearedSomething) {
-            console.log(
-              "IFCContext: IFC API not available & no models: Ensured all classification elements are empty."
-            );
-          }
-          return newCleared;
-        });
+          return updated
+        })
       }
       return;
     }
@@ -760,30 +765,23 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
       loadedModels.filter((m) => m.modelID != null && m.spatialTree != null)
         .length === 0
     ) {
-      setClassifications((prevClassifications) => {
-        const newCleared = { ...prevClassifications };
-        let actuallyClearedSomething = false;
-        for (const code in newCleared) {
-          if (
-            newCleared[code] &&
-            newCleared[code].elements &&
-            newCleared[code].elements.length > 0
-          ) {
-            newCleared[code] = { ...newCleared[code], elements: [] };
-            actuallyClearedSomething = true;
+      setClassifications((prev) => {
+        const updated = { ...prev }
+        for (const code in updated) {
+          const current = updated[code]
+          updated[code] = {
+            ...current,
+            ruleElements: [],
+            elements: computeFinalElements(
+              [],
+              current.manualAssignments || [],
+              current.manualUnassignments || []
+            ),
           }
         }
-        if (actuallyClearedSomething) {
-          console.log(
-            "IFCContext: No models ready, ensured rule-based elements from classifications are empty."
-          );
-        }
-        // else {
-        //      console.log("IFCContext: No models ready, classifications elements were already empty or no classifications.");
-        // }
-        return newCleared;
-      });
-      return;
+        return updated
+      })
+      return
     }
 
     // Proceed with rule application if models are ready
@@ -855,34 +853,41 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
       }
     }
 
-    // Update classifications state with new elements, only if changed
+    // Update classifications state with new elements and apply manual overrides
     setClassifications((prevClassifications) => {
-      const updatedClassifications = { ...prevClassifications };
-      let changed = false;
+      const updatedClassifications = { ...prevClassifications }
+      let changed = false
       for (const code of Object.keys(updatedClassifications)) {
-        const newElements = newElementsPerClassification[code] || [];
+        const ruleEls = newElementsPerClassification[code] || []
+        const current = updatedClassifications[code]
+        const manualAdd = current.manualAssignments || []
+        const manualRemove = current.manualUnassignments || []
+        const finalEls = computeFinalElements(ruleEls, manualAdd, manualRemove)
         if (
-          JSON.stringify(updatedClassifications[code].elements || []) !==
-          JSON.stringify(newElements)
+          JSON.stringify(current.elements || []) !==
+            JSON.stringify(finalEls) ||
+          JSON.stringify(current.ruleElements || []) !==
+            JSON.stringify(ruleEls)
         ) {
           updatedClassifications[code] = {
-            ...updatedClassifications[code],
-            elements: newElements,
-          };
-          changed = true;
+            ...current,
+            ruleElements: ruleEls,
+            elements: finalEls,
+          }
+          changed = true
         }
       }
       if (changed) {
         console.log(
           "IFCContext: Finished applying all active rules. Classifications updated."
-        );
+        )
       } else {
         console.log(
           "IFCContext: Finished applying all active rules. No changes to classifications elements."
-        );
+        )
       }
-      return updatedClassifications;
-    });
+      return updatedClassifications
+    })
   }, [
     ifcApiInternal,
     loadedModels,
@@ -1246,7 +1251,13 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
     (classificationItem: any) => {
       setClassifications((prev) => ({
         ...prev,
-        [classificationItem.code]: classificationItem,
+        [classificationItem.code]: {
+          ...classificationItem,
+          elements: [],
+          ruleElements: [],
+          manualAssignments: [],
+          manualUnassignments: [],
+        },
       }));
     },
     [setClassifications]
@@ -1265,7 +1276,10 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
 
   const updateClassification = useCallback(
     (code: string, classificationItem: any) => {
-      setClassifications((prev) => ({ ...prev, [code]: classificationItem }));
+      setClassifications((prev) => ({
+        ...prev,
+        [code]: { ...prev[code], ...classificationItem },
+      }));
     },
     [setClassifications]
   );
@@ -1292,6 +1306,91 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
     },
     [setRules]
   );
+
+  const elementsEqual = (
+    a: SelectedElementInfo,
+    b: SelectedElementInfo
+  ) => a.modelID === b.modelID && a.expressID === b.expressID
+
+  const computeFinalElements = (
+    ruleEls: SelectedElementInfo[],
+    manualAdd: SelectedElementInfo[],
+    manualRemove: SelectedElementInfo[]
+  ): SelectedElementInfo[] => {
+    const final: SelectedElementInfo[] = []
+    for (const el of ruleEls) {
+      if (!manualRemove.some((m) => elementsEqual(m, el))) {
+        final.push(el)
+      }
+    }
+    for (const el of manualAdd) {
+      if (!final.some((f) => elementsEqual(f, el))) final.push(el)
+    }
+    return final
+  }
+
+  const assignClassificationToElement = useCallback(
+    (code: string, element: SelectedElementInfo) => {
+      setClassifications((prev) => {
+        const current = prev[code]
+        if (!current) return prev
+        const manualAdd = current.manualAssignments || []
+        const manualRemove = current.manualUnassignments || []
+        if (!manualAdd.some((e) => elementsEqual(e, element))) {
+          manualAdd.push(element)
+        }
+        const filteredRemove = manualRemove.filter(
+          (e) => !elementsEqual(e, element)
+        )
+        const final = computeFinalElements(
+          current.ruleElements || [],
+          manualAdd,
+          filteredRemove
+        )
+        return {
+          ...prev,
+          [code]: {
+            ...current,
+            manualAssignments: manualAdd,
+            manualUnassignments: filteredRemove,
+            elements: final,
+          },
+        }
+      })
+    },
+    [setClassifications]
+  )
+
+  const unassignClassificationFromElement = useCallback(
+    (code: string, element: SelectedElementInfo) => {
+      setClassifications((prev) => {
+        const current = prev[code]
+        if (!current) return prev
+        const manualAdd = (current.manualAssignments || []).filter(
+          (e) => !elementsEqual(e, element)
+        )
+        const manualRemove = current.manualUnassignments || []
+        if (!manualRemove.some((e) => elementsEqual(e, element))) {
+          manualRemove.push(element)
+        }
+        const final = computeFinalElements(
+          current.ruleElements || [],
+          manualAdd,
+          manualRemove
+        )
+        return {
+          ...prev,
+          [code]: {
+            ...current,
+            manualAssignments: manualAdd,
+            manualUnassignments: manualRemove,
+            elements: final,
+          },
+        }
+      })
+    },
+    [setClassifications]
+  )
 
   const toggleUserHideElement = useCallback(
     (elementToToggle: SelectedElementInfo) => {
@@ -1399,6 +1498,8 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
         removeRule,
         updateRule,
         previewRuleHighlight,
+        assignClassificationToElement,
+        unassignClassificationFromElement,
         toggleUserHideElement,
         unhideLastElement,
         unhideAllElements,

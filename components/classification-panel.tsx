@@ -36,7 +36,10 @@ interface ClassificationItem {
   code: string;
   name: string;
   color: string;
-  elements: SelectedElementInfo[]; // Use SelectedElementInfo for stricter typing
+  elements: SelectedElementInfo[]; // Final elements (rule + manual)
+  ruleElements?: SelectedElementInfo[];
+  manualAssignments?: SelectedElementInfo[];
+  manualUnassignments?: SelectedElementInfo[];
 }
 
 // Helper function to compare two arrays of SelectedElementInfo (order-independent)
@@ -268,6 +271,9 @@ export function ClassificationPanel() {
       addClassification({
         ...newClassification,
         elements: [],
+        ruleElements: [],
+        manualAssignments: [],
+        manualUnassignments: [],
       } as ClassificationItem)
       setNewClassification({
         code: "",
@@ -285,7 +291,13 @@ export function ClassificationPanel() {
       // Optionally, provide feedback to the user (e.g., toast notification)
       return
     }
-    addClassification(defaultClassification)
+    addClassification({
+      ...defaultClassification,
+      elements: [],
+      ruleElements: [],
+      manualAssignments: [],
+      manualUnassignments: [],
+    })
   }
 
   const handleOpenEditDialog = (classificationToEdit: ClassificationItem) => {
