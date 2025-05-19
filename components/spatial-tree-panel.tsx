@@ -1,6 +1,12 @@
 "use client";
 
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import React, {
+  useState,
+  useEffect,
+  useCallback,
+  useRef,
+  useMemo,
+} from "react";
 import {
   useIFCContext,
   SpatialStructureNode,
@@ -18,6 +24,7 @@ import {
   FileText,
   XCircle,
   AlertTriangle,
+  ExternalLink,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -29,6 +36,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { Badge } from "@/components/ui/badge";
 
 // Helper function to generate a unique key for a node
 const getNodeKey = (
@@ -62,6 +76,7 @@ interface TreeNodeProps {
   toggleNodeExpansion: (nodeKey: string) => void;
   selectedNodeKeyForScroll: string | null;
   selectedNodeActualRef: React.RefObject<HTMLDivElement> | null;
+  modelID: number | null;
 }
 
 const TreeNode: React.FC<TreeNodeProps> = ({
@@ -76,7 +91,11 @@ const TreeNode: React.FC<TreeNodeProps> = ({
   toggleNodeExpansion,
   selectedNodeKeyForScroll,
   selectedNodeActualRef,
+  modelID,
 }) => {
+  const { getNaturalIfcClassName } = useIFCContext();
+  const memoizedChildren = useMemo(() => node.children || [], [node.children]);
+
   const currentModelIDForNode = isRootModelNode
     ? modelFileInfo.modelID
     : modelFileInfo?.modelID ?? null;
@@ -140,9 +159,18 @@ const TreeNode: React.FC<TreeNodeProps> = ({
     }
   };
 
+  const originalIfcType = node.type;
+  const naturalNameResult = getNaturalIfcClassName(originalIfcType);
+  const naturalIfcName = naturalNameResult?.name ?? "";
+  const schemaUrl = naturalNameResult?.schemaUrl ?? "";
+
   const displayName = isRootModelNode
     ? modelFileInfo.name
-    : node.Name || node.type.replace("IFC", "") || `ID: ${node.expressID}`;
+    : node.Name || naturalIfcName || `ID: ${node.expressID}`;
+
+  let tooltipPrimaryContent = isRootModelNode
+    ? modelFileInfo.name
+    : `${naturalIfcName}${node.Name ? ` - ${node.Name}` : ""}`;
 
   const isSelected =
     !isRootModelNode &&
@@ -182,10 +210,43 @@ const TreeNode: React.FC<TreeNodeProps> = ({
         ) : (
           <span className="w-6 h-6 mr-1"></span>
         )}
-        {getIcon(node.type)}
-        <span className="truncate flex-grow" title={displayName}>
-          {displayName}
-        </span>
+        {getIcon(originalIfcType)}
+        <TooltipProvider delayDuration={300}>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span className="truncate flex-grow">{displayName}</span>
+            </TooltipTrigger>
+            <TooltipContent
+              side="right"
+              align="start"
+              className="flex flex-col gap-1"
+            >
+              <p>{tooltipPrimaryContent}</p>
+              {!isRootModelNode && (
+                <p className="text-xs text-muted-foreground">
+                  (IFC Class: {originalIfcType})
+                </p>
+              )}
+              {node.expressID !== undefined && (
+                <p className="text-xs text-muted-foreground">
+                  Express ID: {node.expressID}
+                </p>
+              )}
+              {!isRootModelNode && schemaUrl && (
+                <a
+                  href={schemaUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={(e) => e.stopPropagation()}
+                  className="text-xs text-blue-500 hover:text-blue-400 hover:underline flex items-center gap-1 mt-1 pt-1 border-t border-border/30"
+                >
+                  View Schema <ExternalLink className="w-3 h-3" />
+                </a>
+              )}
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+        {!memoizedChildren.length && <div className="w-4 mr-1 flex-shrink-0" />}
         {isRootModelNode && onAttemptRemoveModel && (
           <Button
             variant="ghost"
@@ -213,6 +274,7 @@ const TreeNode: React.FC<TreeNodeProps> = ({
               toggleNodeExpansion={toggleNodeExpansion}
               selectedNodeKeyForScroll={selectedNodeKeyForScroll}
               selectedNodeActualRef={selectedNodeActualRef}
+              modelID={modelFileInfo.modelID}
             />
           ))}
         </div>
@@ -228,6 +290,7 @@ export function SpatialTreePanel() {
     selectedElement,
     ifcApi,
     removeIFCModel,
+    getNaturalIfcClassName,
   } = useIFCContext();
   const [isConfirmRemoveOpen, setIsConfirmRemoveOpen] = useState(false);
   const [modelToRemove, setModelToRemove] = useState<{
@@ -417,7 +480,8 @@ export function SpatialTreePanel() {
   if (loadedModels.length === 0) {
     return (
       <div className="p-4 text-sm text-muted-foreground h-full flex items-center justify-center">
-        No models loaded. Use the &apos;Load IFC File&apos; or &apos;Add Model&apos; button.
+        No models loaded. Use the &apos;Load IFC File&apos; or &apos;Add
+        Model&apos; button.
       </div>
     );
   }
@@ -470,6 +534,7 @@ export function SpatialTreePanel() {
                 toggleNodeExpansion={toggleNodeExpansion}
                 selectedNodeKeyForScroll={selectedNodeKeyForScroll}
                 selectedNodeActualRef={selectedNodeRef}
+                modelID={modelEntry.modelID}
               />
             );
           }
