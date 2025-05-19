@@ -1,0 +1,173 @@
+{
+    "IfcBeam": {
+      "en": "Beam",
+      "de": "Träger",
+      "schema": "https://ifc43-docs.standards.buildingsmart.org/IFC/RELEASE/IFC4x3/HTML/lexical/IfcBeam.htm"
+    },
+    "IfcBearing": {
+      "en": "Bearing",
+      "de": "Lager",
+      "schema": "https://ifc43-docs.standards.buildingsmart.org/IFC/RELEASE/IFC4x3/HTML/lexical/IfcBearing.htm"
+    },
+    "IfcBuildingElementProxy": {
+      "en": "Element Proxy",
+      "de": "Bauelement-Platzhalter",
+      "schema": "https://ifc43-docs.standards.buildingsmart.org/IFC/RELEASE/IFC4x3/HTML/lexical/IfcBuildingElementProxy.htm"
+    },
+    "IfcBuildingSystem": {
+      "en": "Building System",
+      "de": "Gebäudesystem",
+      "schema": "https://ifc43-docs.standards.buildingsmart.org/IFC/RELEASE/IFC4x3/HTML/lexical/IfcBuildingSystem.htm"
+    },
+    "IfcChimney": {
+      "en": "Chimney",
+      "de": "Schornstein",
+      "schema": "https://ifc43-docs.standards.buildingsmart.org/IFC/RELEASE/IFC4x3/HTML/lexical/IfcChimney.htm"
+    },
+    "IfcColumn": {
+      "en": "Column",
+      "de": "Stütze",
+      "schema": "https://ifc43-docs.standards.buildingsmart.org/IFC/RELEASE/IFC4x3/HTML/lexical/IfcColumn.htm"
+    },
+    "IfcCovering": {
+      "en": "Covering",
+      "de": "Bekleidung",
+      "schema": "https://ifc43-docs.standards.buildingsmart.org/IFC/RELEASE/IFC4x3/HTML/lexical/IfcCovering.htm"
+    },
+    "IfcCurtainWall": {
+      "en": "Curtain Wall",
+      "de": "Vorhangfassade",
+      "schema": "https://ifc43-docs.standards.buildingsmart.org/IFC/RELEASE/IFC4x3/HTML/lexical/IfcCurtainWall.htm"
+    },
+    "IfcDoor": {
+      "en": "Door",
+      "de": "Tür",
+      "schema": "https://ifc43-docs.standards.buildingsmart.org/IFC/RELEASE/IFC4x3/HTML/lexical/IfcDoor.htm"
+    },
+    "IfcMember": {
+      "en": "Member",
+      "de": "Bauteil",
+      "schema": "https://ifc43-docs.standards.buildingsmart.org/IFC/RELEASE/IFC4x3/HTML/lexical/IfcMember.htm"
+    },
+    "IfcPlate": {
+      "en": "Plate",
+      "de": "Platte",
+      "schema": "https://ifc43-docs.standards.buildingsmart.org/IFC/RELEASE/IFC4x3/HTML/lexical/IfcPlate.htm"
+    },
+    "IfcRailing": {
+      "en": "Railing",
+      "de": "Geländer",
+      "schema": "https://ifc43-docs.standards.buildingsmart.org/IFC/RELEASE/IFC4x3/HTML/lexical/IfcRailing.htm"
+    },
+    "IfcRamp": {
+      "en": "Ramp",
+      "de": "Rampe",
+      "schema": "https://ifc43-docs.standards.buildingsmart.org/IFC/RELEASE/IFC4x3/HTML/lexical/IfcRamp.htm"
+    },
+    "IfcRampFlight": {
+      "en": "Ramp Flight",
+      "de": "Rampenlauf",
+      "schema": "https://ifc43-docs.standards.buildingsmart.org/IFC/RELEASE/IFC4x3/HTML/lexical/IfcRampFlight.htm"
+    },
+    "IfcRoof": {
+      "en": "Roof",
+      "de": "Dach",
+      "schema": "https://ifc43-docs.standards.buildingsmart.org/IFC/RELEASE/IFC4x3/HTML/lexical/IfcRoof.htm"
+    },
+    "IfcShadingDevice": {
+      "en": "Shading Device",
+      "de": "Beschattungselement",
+      "schema": "https://ifc43-docs.standards.buildingsmart.org/IFC/RELEASE/IFC4x3/HTML/lexical/IfcShadingDevice.htm"
+    },
+    "IfcSlab": {
+      "en": "Slab",
+      "de": "Platte",
+      "schema": "https://ifc43-docs.standards.buildingsmart.org/IFC/RELEASE/IFC4x3/HTML/lexical/IfcSlab.htm"
+    },
+    "IfcStair": {
+      "en": "Stair",
+      "de": "Treppe",
+      "schema": "https://ifc43-docs.standards.buildingsmart.org/IFC/RELEASE/IFC4x3/HTML/lexical/IfcStair.htm"
+    },
+    "IfcWall": {
+      "en": "Wall",
+      "de": "Wand",
+      "schema": "https://ifc43-docs.standards.buildingsmart.org/IFC/RELEASE/IFC4x3/HTML/lexical/IfcWall.htm"
+    },
+    "IfcWallStandardCase": {
+      "en": "Wall",
+      "de": "Wand",
+      "schema": "https://ifc43-docs.standards.buildingsmart.org/IFC/RELEASE/IFC4x3/HTML/lexical/IfcWallStandardCase.htm"
+    },
+    "IfcWindow": {
+      "en": "Window",
+      "de": "Fenster",
+      "schema": "https://ifc43-docs.standards.buildingsmart.org/IFC/RELEASE/IFC4x3/HTML/lexical/IfcWindow.htm"
+    },
+    "IfcCaissonFoundation": {
+      "en": "Caisson Foundation",
+    "de": "Caissonfundament",
+    "schema": "https://ifc43-docs.standards.buildingsmart.org/IFC/RELEASE/IFC4x3/HTML/lexical/IfcCaissonFoundation.htm"
+  },
+  "IfcDeepFoundation": {
+    "en": "Deep Foundation",
+    "de": "Tiefgründung",
+    "schema": "https://ifc43-docs.standards.buildingsmart.org/IFC/RELEASE/IFC4x3/HTML/lexical/IfcDeepFoundation.htm"
+  },
+  "IfcFooting": {
+    "en": "Footing",
+    "de": "Fundament",
+    "schema": "https://ifc43-docs.standards.buildingsmart.org/IFC/RELEASE/IFC4x3/HTML/lexical/IfcFooting.htm"
+  },
+  "IfcPile": {
+    "en": "Pile",
+    "de": "Pfahl",
+    "schema": "https://ifc43-docs.standards.buildingsmart.org/IFC/RELEASE/IFC4x3/HTML/lexical/IfcPile.htm"
+  },
+  "IfcReinforcementDefinitionProperties": {
+    "en": "Reinforcement Definition Properties",
+    "de": "Bewehrungsdefinitions-eigenschaften",
+    "schema": "https://ifc43-docs.standards.buildingsmart.org/IFC/RELEASE/IFC4x3/HTML/lexical/IfcReinforcementDefinitionProperties.htm"
+  },
+  "IfcReinforcingBar": {
+    "en": "Reinforcing Bar",
+    "de": "Bewehrungsstab",
+    "schema": "https://ifc43-docs.standards.buildingsmart.org/IFC/RELEASE/IFC4x3/HTML/lexical/IfcReinforcingBar.htm"
+  },
+  "IfcReinforcingElement": {
+    "en": "Reinforcing Element",
+    "de": "Bewehrungselement",
+    "schema": "https://ifc43-docs.standards.buildingsmart.org/IFC/RELEASE/IFC4x3/HTML/lexical/IfcReinforcingElement.htm"
+  },
+  "IfcReinforcingMesh": {
+    "en": "Reinforcing Mesh",
+    "de": "Bewehrungsgitter",
+    "schema": "https://ifc43-docs.standards.buildingsmart.org/IFC/RELEASE/IFC4x3/HTML/lexical/IfcReinforcingMesh.htm"
+  },
+  "IfcSurfaceFeature": {
+    "en": "Surface Feature",
+    "de": "Oberflächenmerkmal",
+    "schema": "https://ifc43-docs.standards.buildingsmart.org/IFC/RELEASE/IFC4x3/HTML/lexical/IfcSurfaceFeature.htm"
+  },
+  "IfcTendon": {
+    "en": "Tendon",
+    "de": "Spannstrang",
+    "schema": "https://ifc43-docs.standards.buildingsmart.org/IFC/RELEASE/IFC4x3/HTML/lexical/IfcTendon.htm"
+  },
+  "IfcTendonAnchor": {
+    "en": "Tendon Anchor",
+    "de": "Spannstrangverankerung",
+    "schema": "https://ifc43-docs.standards.buildingsmart.org/IFC/RELEASE/IFC4x3/HTML/lexical/IfcTendonAnchor.htm"
+  },
+  "IfcTendonConduit": {
+    "en": "Tendon Conduit",
+    "de": "Spannstrangführung",
+    "schema": "https://ifc43-docs.standards.buildingsmart.org/IFC/RELEASE/IFC4x3/HTML/lexical/IfcTendonConduit.htm"
+  },
+  "IfcVoidingFeature": {
+    "en": "Voiding Feature",
+    "de": "Aussparungselement",
+    "schema": "https://ifc43-docs.standards.buildingsmart.org/IFC/RELEASE/IFC4x3/HTML/lexical/IfcVoidingFeature.htm"
+  }
+}
+  

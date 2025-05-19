@@ -15,8 +15,17 @@ import {
   ToggleLeft,
   ALargeSmall,
   List,
+  ExternalLink,
 } from "lucide-react";
 import React, { useState, useMemo } from "react";
+import { MaterialSectionDisplay } from "./material-section-display";
+import { cn } from "@/lib/utils";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 // Enhanced renderPropertyValue function
 const renderPropertyValue = (value: any, keyHint?: string): React.ReactNode => {
@@ -146,6 +155,7 @@ interface CollapsibleSectionProps {
   defaultOpen?: boolean;
   icon?: React.ReactNode;
   propertyCount?: number;
+  isSubSection?: boolean;
 }
 
 const CollapsibleSection: React.FC<CollapsibleSectionProps> = ({
@@ -154,14 +164,23 @@ const CollapsibleSection: React.FC<CollapsibleSectionProps> = ({
   defaultOpen = false,
   icon,
   propertyCount,
+  isSubSection = false,
 }) => {
   const [isOpen, setIsOpen] = useState(defaultOpen);
 
   return (
-    <div className="border-b border-border last:border-b-0 mb-1">
+    <div
+      className={cn(
+        "border-b border-border last:border-b-0",
+        isSubSection ? "ml-2 pl-2 border-l-2 border-border/30 mb-1" : "mb-1"
+      )}
+    >
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center justify-between w-full py-2.5 px-2 text-sm font-semibold text-left hover:bg-muted/60 focus:outline-none rounded-md transition-colors duration-150 group"
+        className={cn(
+          "flex items-center justify-between w-full text-sm font-semibold text-left hover:bg-muted/60 focus:outline-none rounded-md transition-colors duration-150 group",
+          isSubSection ? "py-1.5 px-1.5" : "py-2.5 px-2"
+        )}
       >
         <div className="flex items-center">
           {icon && (
@@ -170,7 +189,7 @@ const CollapsibleSection: React.FC<CollapsibleSectionProps> = ({
             </span>
           )}
           <span>{title}</span>
-          {propertyCount !== undefined && (
+          {propertyCount !== undefined && propertyCount > 0 && (
             <Badge variant="secondary" className="ml-2 text-xs font-normal">
               {propertyCount} {propertyCount === 1 ? "prop" : "props"}
             </Badge>
@@ -183,7 +202,14 @@ const CollapsibleSection: React.FC<CollapsibleSectionProps> = ({
         )}
       </button>
       {isOpen && (
-        <div className="pt-1 pb-2 px-2 text-xs space-y-0">{children}</div>
+        <div
+          className={cn(
+            "text-xs space-y-0",
+            isSubSection ? "pt-0.5 pb-1 pr-1" : "pt-1 pb-2 px-2"
+          )}
+        >
+          {children}
+        </div>
       )}
     </div>
   );
@@ -227,7 +253,12 @@ const getPropertyIcon = (name: string): React.ReactNode => {
 };
 
 export function ModelInfo() {
-  const { selectedElement, elementProperties, loadedModels } = useIFCContext();
+  const {
+    selectedElement,
+    elementProperties,
+    loadedModels,
+    getNaturalIfcClassName,
+  } = useIFCContext();
 
   // Memoize processed properties to avoid re-computation on every render
   const processedProps = useMemo(() => {
@@ -296,27 +327,138 @@ export function ModelInfo() {
   const { attributes: displayableAttributes, propertySets } =
     processedProps || { attributes: {}, propertySets: {} };
 
-  // Sort property sets: Element Attributes first, then Type Properties, then Materials, then others alphabetically
-  const sortedPSetKeys = Object.keys(propertySets || {}).sort((a, b) => {
-    if (a === "Element Attributes") return -1;
-    if (b === "Element Attributes") return 1;
-    if (a.includes("Type Properties")) return -1;
-    if (b.includes("Type Properties")) return 1;
-    if (a.startsWith("Material:")) return -1;
-    if (b.startsWith("Material:")) return 1;
-    return a.localeCompare(b);
+  const materialPropertyGroups: Array<{
+    setName: string;
+    properties: Record<string, any>;
+    isLayerSet: boolean;
+  }> = [];
+  const otherPropertySets: Record<string, any> = {};
+
+  // New structure to group type information
+  interface TypeInfoGroup {
+    typeName: string; // The actual IfcWallType.Name, IfcWindowType.Name etc.
+    typeObjectName: string; // The full original key like "Type Attributes: Basic Wall: Holz..."
+    directAttributes: Record<string, any>;
+    propertySetsFromType: Array<{
+      setName: string;
+      properties: Record<string, any>;
+    }>;
+  }
+  const typeInformationGroups: Record<string, TypeInfoGroup> = {}; // Keyed by typeObjectName for initial grouping
+
+  for (const setName in propertySets) {
+    if (Object.prototype.hasOwnProperty.call(propertySets, setName)) {
+      const props = propertySets[setName];
+      if (props && Object.keys(props).length > 0) {
+        if (
+          setName.startsWith("Material:") ||
+          setName.startsWith("Material Properties:") ||
+          setName.startsWith("LayerSet:") ||
+          setName.startsWith("MaterialList:") ||
+          setName.startsWith("MaterialInfo:")
+        ) {
+          materialPropertyGroups.push({
+            setName,
+            properties: props,
+            isLayerSet: setName.startsWith("LayerSet:"),
+          });
+        } else if (setName.startsWith("Type Attributes:")) {
+          const typeNameForGroup = setName
+            .substring("Type Attributes:".length)
+            .trim();
+          if (!typeInformationGroups[setName]) {
+            typeInformationGroups[setName] = {
+              typeName: typeNameForGroup, // Store the cleaned type name
+              typeObjectName: setName, // Keep original key for matching Psets
+              directAttributes: {},
+              propertySetsFromType: [],
+            };
+          }
+          typeInformationGroups[setName].directAttributes = props;
+        } else if (setName.includes("(from Type:")) {
+          // Find which TypeInfoGroup this PSet belongs to
+          // The typeNameInPset will be like "Basic Wall: Holz tragende..."
+          const typeNameInPset = setName
+            .substring(
+              setName.indexOf("(from Type:") + "(from Type:".length,
+              setName.lastIndexOf(")")
+            )
+            .trim();
+          // We need to match this with a typeObjectName (which includes "Type Attributes: " prefix)
+          let foundGroup = false;
+          for (const key in typeInformationGroups) {
+            if (typeInformationGroups[key].typeName === typeNameInPset) {
+              typeInformationGroups[key].propertySetsFromType.push({
+                setName,
+                properties: props,
+              });
+              foundGroup = true;
+              break;
+            }
+          }
+          if (!foundGroup) {
+            // Should not happen if Type Attributes are processed first
+            otherPropertySets[setName] = props; // Fallback if no matching type group found
+          }
+        } else if (setName !== "Element Attributes") {
+          otherPropertySets[setName] = props;
+        }
+      }
+    }
+  }
+
+  materialPropertyGroups.sort((a, b) => {
+    if (a.isLayerSet && !b.isLayerSet) return -1;
+    if (!a.isLayerSet && b.isLayerSet) return 1;
+    return a.setName.localeCompare(b.setName);
   });
+
+  // Convert typeInformationGroups object to an array for rendering and sort it
+  const sortedTypeInfoGroups = Object.values(typeInformationGroups).sort(
+    (a, b) => a.typeName.localeCompare(b.typeName)
+  );
+
+  const sortedOtherPSetKeys = Object.keys(otherPropertySets || {}).sort(
+    (a, b) => {
+      // Type properties are now handled in typeInformationGroups, so this sort is simpler
+      return a.localeCompare(b);
+    }
+  );
 
   return (
     <div className="bg-card h-full flex flex-col text-sm rounded-lg border border-border shadow-sm">
       {/* Header Section */}
       <div className="p-3 border-b border-border">
         <div className="flex items-center justify-between mb-1">
-          <h3
-            className="font-semibold text-base truncate text-foreground"
-            title={ifcType}
-          >
-            {ifcType || "Element Details"}
+          <h3 className="font-semibold text-base truncate text-foreground">
+            <TooltipProvider delayDuration={200}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span>
+                    {getNaturalIfcClassName(ifcType || "Element").name ||
+                      "Element Details"}
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" className="flex flex-col gap-1">
+                  <p>
+                    <span className="font-semibold">IFC Class:</span>{" "}
+                    {ifcType || "N/A"}
+                  </p>
+                  {getNaturalIfcClassName(ifcType || "Element").schemaUrl && (
+                    <a
+                      href={
+                        getNaturalIfcClassName(ifcType || "Element").schemaUrl
+                      }
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs text-blue-500 hover:text-blue-400 hover:underline flex items-center gap-1"
+                    >
+                      View Schema <ExternalLink className="w-3 h-3" />
+                    </a>
+                  )}
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           </h3>
           <Badge variant="secondary" className="font-mono text-xs">
             ID: {expressID}
@@ -370,22 +512,212 @@ export function ModelInfo() {
           </CollapsibleSection>
         )}
 
-        {/* Display Property Sets */}
-        {sortedPSetKeys.length > 0
-          ? sortedPSetKeys.map((setName) => {
-              if (setName === "Element Attributes") return null; // Already handled
-              const props = (propertySets as Record<string, any>)[setName];
-              const propCount = Object.keys(props || {}).length;
-              if (propCount === 0) return null; // Don't render empty Psets
+        {/* Display Material Sections Consolidated */}
+        {materialPropertyGroups.length > 0 &&
+          (() => {
+            let title = "Materials"; // Default to plural
+            let totalDisplayablePropsCount = 0; // For the badge
 
-              // Clean up PSet name for display (e.g., remove "(from Type...)" for title)
-              const displaySetName = setName.replace(/ \(from Type:.*?\)/, "");
-              const isTypePset = setName.includes("(from Type:");
-              const isMaterialPset = setName.startsWith("Material:");
-              let sectionIcon = getPropertyIcon(displaySetName);
-              if (isTypePset && !isMaterialPset)
-                sectionIcon = <ALargeSmall className="w-4 h-4" />;
+            if (materialPropertyGroups.length === 1) {
+              const singleGroup = materialPropertyGroups[0];
+              totalDisplayablePropsCount = Object.keys(
+                singleGroup.properties
+              ).length;
+              if (singleGroup.isLayerSet) {
+                // Count unique layers for LayerSet to decide singular/plural title
+                const layerNumbers = new Set();
+                for (const key in singleGroup.properties) {
+                  if (key.startsWith("Layer_")) {
+                    const parts = key.split("_");
+                    if (parts.length > 1) {
+                      layerNumbers.add(parts[1]); // Add the layer number string
+                    }
+                  }
+                }
+                if (
+                  layerNumbers.size <= 1 &&
+                  Object.keys(singleGroup.properties).hasOwnProperty(
+                    "TotalThickness"
+                  ) &&
+                  Object.keys(singleGroup.properties).length === 1
+                ) {
+                  // Only TotalThickness and no actual layers, or only one layer
+                  title = "Material";
+                } else if (
+                  layerNumbers.size <= 1 &&
+                  Object.keys(singleGroup.properties).length > 1 &&
+                  !Object.keys(singleGroup.properties).hasOwnProperty(
+                    "TotalThickness"
+                  )
+                ) {
+                  title = "Material";
+                } else if (layerNumbers.size <= 1) {
+                  title = "Material";
+                } else {
+                  title = "Materials";
+                }
+              } else {
+                // Single material group that is not a LayerSet
+                title = "Material";
+              }
+            } else {
+              // Multiple material groups, definitely plural title
+              title = "Materials";
+              totalDisplayablePropsCount = materialPropertyGroups.reduce(
+                (acc, group) => acc + Object.keys(group.properties).length,
+                0
+              );
+            }
+
+            // Ensure the section is not rendered if, after all, no properties are to be shown.
+            // This re-calculates total for safety, especially if a single group had no props.
+            const finalPropCountForBadge = materialPropertyGroups.reduce(
+              (acc, group) => acc + Object.keys(group.properties).length,
+              0
+            );
+            if (finalPropCountForBadge === 0) return null;
+
+            return (
+              <CollapsibleSection
+                key="materials-consolidated"
+                title={title}
+                defaultOpen={false}
+                icon={<Palette className="w-4 h-4" />}
+                propertyCount={finalPropCountForBadge}
+              >
+                <MaterialSectionDisplay
+                  materialPropertyGroups={materialPropertyGroups}
+                />
+              </CollapsibleSection>
+            );
+          })()}
+
+        {/* Display Consolidated Type Information Sections */}
+        {sortedTypeInfoGroups.map((typeGroup) => {
+          const directAttrCount = Object.keys(
+            typeGroup.directAttributes
+          ).length;
+          const psetsFromTypeCount = typeGroup.propertySetsFromType.reduce(
+            (acc, ps) => acc + Object.keys(ps.properties).length,
+            0
+          );
+          const totalTypePropsCount = directAttrCount + psetsFromTypeCount;
+
+          if (totalTypePropsCount === 0) return null;
+
+          // Format the main type group title
+          let typeGroupDisplayTitle = typeGroup.typeName
+            .replace(/^\s+|\s+$/g, "")
+            .replace(/ :/g, ":")
+            .replace(/:([^\s])/g, ": $1")
+            .replace(/^./, (str) => str.toUpperCase());
+
+          return (
+            <CollapsibleSection
+              key={typeGroup.typeObjectName} // Use original key for stability
+              title={`Type: ${typeGroupDisplayTitle}`}
+              defaultOpen={false} // Type sections closed by default for now
+              icon={<ALargeSmall className="w-4 h-4" />}
+              propertyCount={totalTypePropsCount}
+            >
+              {/* Sub-section for Direct Type Attributes */}
+              {directAttrCount > 0 && (
+                <CollapsibleSection
+                  key={`${typeGroup.typeObjectName}-directAttributes`}
+                  title="Direct Attributes"
+                  defaultOpen={true} // Open direct attributes by default within the type group
+                  icon={<Info className="w-3.5 h-3.5" />} // Generic info icon for this sub-group
+                  propertyCount={directAttrCount}
+                  isSubSection={true}
+                >
+                  {Object.entries(typeGroup.directAttributes).map(
+                    ([key, value]) => (
+                      <PropertyRow
+                        key={key}
+                        propKey={key}
+                        propValue={value}
+                        icon={getPropertyIcon(key)} // Use existing icon logic for these rows
+                      />
+                    )
+                  )}
+                </CollapsibleSection>
+              )}
+
+              {/* Sub-sections for PSets from this Type */}
+              {typeGroup.propertySetsFromType
+                .sort((a, b) => a.setName.localeCompare(b.setName))
+                .map((typePset) => {
+                  const typePsetPropCount = Object.keys(
+                    typePset.properties
+                  ).length;
+                  if (typePsetPropCount === 0) return null;
+
+                  // Clean up PSet name for display (remove (from Type...) and format)
+                  let psetDisplayName = typePset.setName.replace(
+                    / \(from Type:.*?\)/,
+                    ""
+                  );
+                  psetDisplayName = psetDisplayName
+                    .replace(/^\s+|\s+$/g, "")
+                    .replace(/ :/g, ":")
+                    .replace(/:([^\s])/g, ": $1")
+                    .replace(/^./, (str) => str.toUpperCase());
+
+                  return (
+                    <CollapsibleSection
+                      key={typePset.setName}
+                      title={psetDisplayName}
+                      defaultOpen={false} // PSets within type group closed by default
+                      icon={getPropertyIcon(psetDisplayName)} // Use PSet specific icon
+                      propertyCount={typePsetPropCount}
+                      isSubSection={true}
+                    >
+                      {Object.entries(typePset.properties).map(
+                        ([key, value]) => (
+                          <PropertyRow
+                            key={key}
+                            propKey={key}
+                            propValue={value}
+                            icon={getPropertyIcon(key)}
+                          />
+                        )
+                      )}
+                    </CollapsibleSection>
+                  );
+                })}
+            </CollapsibleSection>
+          );
+        })}
+
+        {/* Display Other Property Sets */}
+        {sortedOtherPSetKeys.length > 0
+          ? sortedOtherPSetKeys.map((setName) => {
+              const props = otherPropertySets[setName];
+              const propCount = Object.keys(props || {}).length;
+              if (propCount === 0) return null;
+
+              let displaySetName = setName.replace(/ \(from Type:.*?\)/, "");
+              displaySetName = displaySetName
+                .replace(/^\s+|\s+$/g, "")
+                .replace(/ :/g, ":")
+                .replace(/:([^\s])/g, ": $1")
+                .replace(/^./, (str) => str.toUpperCase());
+
+              const isTypePset =
+                setName.includes("(from Type:") ||
+                setName.startsWith("Type Attributes:");
+              const isMaterialPset =
+                setName.startsWith("Material:") ||
+                setName.startsWith("Material Properties:") ||
+                setName.startsWith("LayerSet:") ||
+                setName.startsWith("MaterialList:") ||
+                setName.startsWith("MaterialInfo:");
+
+              let sectionIcon = getPropertyIcon(displaySetName); // Get a default icon based on formatted name
+
               if (isMaterialPset) sectionIcon = <Palette className="w-4 h-4" />;
+              else if (isTypePset)
+                sectionIcon = <ALargeSmall className="w-4 h-4" />;
 
               // Default open for common psets
               const commonPsetsToOpen = [
@@ -395,9 +727,10 @@ export function ModelInfo() {
                 "pset_windowcommon",
               ];
               const defaultOpen = commonPsetsToOpen.includes(
-                displaySetName.toLowerCase()
+                displaySetName.toLowerCase().replace(/ /g, "") // also remove spaces for matching
               );
 
+              // Default rendering for other Psets
               return (
                 <CollapsibleSection
                   key={setName}

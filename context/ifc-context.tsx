@@ -72,6 +72,14 @@ interface IFCContextType {
   userHiddenElements: SelectedElementInfo[]; // New state for user-hidden elements
   availableProperties: string[]; // Collected property names for rule building
   setAvailableProperties: (props: string[]) => void;
+  naturalIfcClassNames: Record<
+    string,
+    { en: string; de: string; schema?: string }
+  > | null; // Added schema to type
+  getNaturalIfcClassName: (
+    ifcClass: string,
+    lang?: "en" | "de"
+  ) => { name: string; schemaUrl?: string }; // Updated return type
 
   replaceIFCModel: (
     url: string,
@@ -141,6 +149,10 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
   const [availableProperties, setAvailablePropertiesInternal] = useState<
     string[]
   >([]);
+  const [naturalIfcClassNames, setNaturalIfcClassNames] = useState<Record<
+    string,
+    { en: string; de: string; schema?: string }
+  > | null>(null); // Added schema to state type
 
   // Initialize classifications with a default entry
   const [classifications, setClassifications] = useState<Record<string, any>>({
@@ -155,6 +167,70 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
   });
   const [rules, setRules] = useState<Rule[]>([]);
   const [ifcApiInternal, setIfcApiInternal] = useState<IfcAPI | null>(null);
+
+  // Fetch natural IFC class names
+  useEffect(() => {
+    const fetchNaturalNames = async () => {
+      try {
+        const response = await fetch("/data/natural_ifcclass.json");
+        if (!response.ok) {
+          throw new Error(
+            `Failed to fetch natural_ifcclass.json: ${response.statusText}`
+          );
+        }
+        const data = await response.json();
+        setNaturalIfcClassNames(data);
+        console.log("IFCContext: Natural IFC class names loaded.", data);
+      } catch (error) {
+        console.error(
+          "IFCContext: Error loading natural IFC class names:",
+          error
+        );
+        setNaturalIfcClassNames({}); // Set to empty object on error to prevent repeated attempts
+      }
+    };
+    fetchNaturalNames();
+  }, []); // Fetch only once on mount
+
+  // Helper function to get natural IFC class name and schema URL
+  const getNaturalIfcClassName = useCallback(
+    (
+      ifcClass: string,
+      lang: "en" | "de" = "en"
+    ): { name: string; schemaUrl?: string } => {
+      if (!ifcClass) return { name: "Unknown Type", schemaUrl: undefined };
+
+      if (naturalIfcClassNames) {
+        // Attempt direct lookup first
+        if (naturalIfcClassNames[ifcClass]) {
+          return {
+            name: naturalIfcClassNames[ifcClass][lang] || ifcClass,
+            schemaUrl: naturalIfcClassNames[ifcClass].schema,
+          };
+        }
+        // Fallback for case-insensitive lookup
+        const lowerIfcClass = ifcClass.toLowerCase();
+        for (const key in naturalIfcClassNames) {
+          if (Object.prototype.hasOwnProperty.call(naturalIfcClassNames, key)) {
+            if (key.toLowerCase() === lowerIfcClass) {
+              return {
+                name: naturalIfcClassNames[key][lang] || ifcClass,
+                schemaUrl: naturalIfcClassNames[key].schema,
+              };
+            }
+          }
+        }
+      }
+
+      // Fallback to stripping "Ifc" prefix if no natural name found
+      if (ifcClass.toLowerCase().startsWith("ifc")) {
+        return { name: ifcClass.substring(3), schemaUrl: undefined };
+      }
+      // Default to original name if no mapping or prefix stripping applies
+      return { name: ifcClass, schemaUrl: undefined };
+    },
+    [naturalIfcClassNames]
+  );
 
   // Effect to collect and set available properties from all loaded models
   useEffect(() => {
@@ -1326,6 +1402,8 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
         toggleUserHideElement,
         unhideLastElement,
         unhideAllElements,
+        naturalIfcClassNames,
+        getNaturalIfcClassName,
       }}
     >
       {children}
