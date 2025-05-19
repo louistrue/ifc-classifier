@@ -118,6 +118,16 @@ interface IFCContextType {
   updateRule: (rule: Rule) => void;
   previewRuleHighlight: (ruleId: string) => Promise<void>;
 
+  assignClassificationToElement: (
+    classificationCode: string,
+    element: SelectedElementInfo
+  ) => void;
+  unassignClassificationFromElement: (
+    classificationCode: string,
+    element: SelectedElementInfo
+  ) => void;
+  unassignElementFromAllClassifications: (element: SelectedElementInfo) => void;
+
   toggleUserHideElement: (element: SelectedElementInfo) => void; // New function
   unhideLastElement: () => void; // New function
   unhideAllElements: () => void; // New function
@@ -1270,6 +1280,75 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
     [setClassifications]
   );
 
+  const assignClassificationToElement = useCallback(
+    (classificationCode: string, element: SelectedElementInfo) => {
+      setClassifications((prev) => {
+        const current = prev[classificationCode];
+        if (!current) return prev;
+        const already = current.elements?.some(
+          (el: SelectedElementInfo) =>
+            el.modelID === element.modelID && el.expressID === element.expressID
+        );
+        if (already) return prev;
+        const updated = {
+          ...prev,
+          [classificationCode]: {
+            ...current,
+            elements: [...(current.elements || []), element],
+          },
+        };
+        return updated;
+      });
+    },
+    [setClassifications]
+  );
+
+  const unassignClassificationFromElement = useCallback(
+    (classificationCode: string, element: SelectedElementInfo) => {
+      setClassifications((prev) => {
+        const current = prev[classificationCode];
+        if (!current || !current.elements) return prev;
+        const newElements = current.elements.filter(
+          (el: SelectedElementInfo) =>
+            !(el.modelID === element.modelID && el.expressID === element.expressID)
+        );
+        if (newElements.length === current.elements.length) return prev;
+        return {
+          ...prev,
+          [classificationCode]: { ...current, elements: newElements },
+        };
+      });
+    },
+    [setClassifications]
+  );
+
+  const unassignElementFromAllClassifications = useCallback(
+    (element: SelectedElementInfo) => {
+      setClassifications((prev) => {
+        let changed = false;
+        const updated: Record<string, any> = {};
+        for (const [code, item] of Object.entries(prev)) {
+          if (item.elements) {
+            const newEls = item.elements.filter(
+              (el: SelectedElementInfo) =>
+                !(el.modelID === element.modelID && el.expressID === element.expressID)
+            );
+            if (newEls.length !== item.elements.length) {
+              changed = true;
+              updated[code] = { ...item, elements: newEls };
+            } else {
+              updated[code] = item;
+            }
+          } else {
+            updated[code] = item;
+          }
+        }
+        return changed ? updated : prev;
+      });
+    },
+    [setClassifications]
+  );
+
   const addRule = useCallback(
     (ruleItem: Rule) => {
       setRules((prev) => [...prev, ruleItem]);
@@ -1395,6 +1474,9 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
         addClassification,
         removeClassification,
         updateClassification,
+        assignClassificationToElement,
+        unassignClassificationFromElement,
+        unassignElementFromAllClassifications,
         addRule,
         removeRule,
         updateRule,
