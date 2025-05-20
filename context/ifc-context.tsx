@@ -79,6 +79,8 @@ interface IFCContextType {
   userHiddenElements: SelectedElementInfo[]; // New state for user-hidden elements
   availableProperties: string[]; // Collected property names for rule building
   setAvailableProperties: (props: string[]) => void;
+  baseCoordinationMatrix: number[] | null; // Base matrix for aligning multiple models
+  setBaseCoordinationMatrix: (matrix: number[] | null) => void;
   naturalIfcClassNames: Record<
     string,
     { en: string; de: string; schema?: string }
@@ -177,6 +179,7 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
     string,
     { en: string; de: string; schema?: string }
   > | null>(null); // Added schema to state type
+  const [baseCoordinationMatrix, setBaseCoordinationMatrix] = useState<number[] | null>(null);
 
   // Initialize classifications with a default entry
   const [classifications, setClassifications] = useState<Record<string, any>>({
@@ -1086,8 +1089,8 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
 
   const removeIFCModel = useCallback(
     (id: string) => {
-      setLoadedModels((prev) =>
-        prev.filter((m) => {
+      setLoadedModels((prev) => {
+        const filtered = prev.filter((m) => {
           if (m.id === id && m.modelID !== null && ifcApiInternal) {
             try {
               ifcApiInternal.CloseModel(m.modelID);
@@ -1101,8 +1104,12 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
             });
           }
           return m.id !== id;
-        })
-      );
+        });
+        if (filtered.length === 0) {
+          setBaseCoordinationMatrix(null);
+        }
+        return filtered;
+      });
       if (
         selectedElement &&
         loadedModels.find((m) => m.id === id)?.modelID ===
@@ -1232,6 +1239,13 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
       setAvailablePropertiesInternal(props);
     },
     [setAvailablePropertiesInternal]
+  );
+
+  const setBaseCoordinationMatrixFn = useCallback(
+    (matrix: number[] | null) => {
+      setBaseCoordinationMatrix(matrix);
+    },
+    [setBaseCoordinationMatrix]
   );
 
   const setAvailableCategoriesForModel = useCallback(
@@ -1542,6 +1556,8 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
         setAvailableProperties,
         setIfcApi,
         toggleShowAllClassificationColors,
+        baseCoordinationMatrix,
+        setBaseCoordinationMatrix: setBaseCoordinationMatrixFn,
         addClassification,
         removeClassification,
         removeAllClassifications,
