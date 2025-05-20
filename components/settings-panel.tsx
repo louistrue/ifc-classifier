@@ -141,7 +141,7 @@ export function SettingsPanel({ onSettingsChanged }: SettingsPanelProps) {
                   </Label>
                 </TooltipTrigger>
                 <TooltipContent>
-                  <p>If enabled, the selected 'Default Classification' will be automatically applied on load.</p>
+                  <p>If enabled, the selected &apos;Default Classification&apos; will be automatically applied on load.</p>
                 </TooltipContent>
               </Tooltip>
               <div className="col-span-2">
