@@ -5,6 +5,7 @@ import { ThemeProvider } from "@/app/theme-provider";
 import { IFCContextProvider } from "@/context/ifc-context";
 import Script from 'next/script';
 import Menubar from "@/components/layout/Menubar";
+import Footer from "@/components/layout/Footer";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -43,6 +44,7 @@ export default function RootLayout({
             <div className="flex flex-col h-full">
               <Menubar />
               <main className="flex-1 overflow-hidden">{children}</main>
+              <Footer />
             </div>
           </ThemeProvider>
         </IFCContextProvider>
