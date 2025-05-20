@@ -18,6 +18,14 @@ import { ClassificationPanel } from "@/components/classification-panel";
 import { RulePanel } from "@/components/rule-panel";
 import { SettingsPanel } from "@/components/settings-panel";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Layers,
@@ -630,6 +638,7 @@ function ViewerContent() {
     unhideLastElement,
     unhideAllElements,
     userHiddenElements,
+    addIFCModel,
   } = useIFCContext();
   const [ifcEngineReady, setIfcEngineReady] = useState(false);
   const [webGLContextLost, setWebGLContextLost] = useState(false);
@@ -756,6 +765,23 @@ function ViewerContent() {
       didCancel = true;
     };
   }, [ifcApi, setIfcApi, SKIP_IFC_INITIALIZATION_FOR_TEST]);
+
+  const [hasAutoLoadedModels, setHasAutoLoadedModels] = useState(false);
+
+  useEffect(() => {
+    if (!ifcEngineReady || hasAutoLoadedModels || loadedModels.length > 0)
+      return;
+    try {
+      const stored = localStorage.getItem("appSettings");
+      if (!stored) return;
+      const { modelUrls, alwaysLoad } = JSON.parse(stored);
+      if (!alwaysLoad || !Array.isArray(modelUrls)) return;
+      modelUrls.forEach((m: any) => addIFCModel(m.url, m.name));
+      setHasAutoLoadedModels(true);
+    } catch (err) {
+      console.error("Failed to autoload models", err);
+    }
+  }, [ifcEngineReady, hasAutoLoadedModels, loadedModels, addIFCModel]);
 
   // Re-enable selectedElement logging if desired, or keep it minimal
   useEffect(() => {
@@ -1099,12 +1125,40 @@ function ViewerContent() {
 }
 
 // Re-enable full FileUpload
+interface ModelSource {
+  name: string;
+  url: string;
+}
 interface FileUploadProps {
   isAdding?: boolean;
 }
 function FileUpload({ isAdding = false }: FileUploadProps) {
   const { replaceIFCModel, addIFCModel } = useIFCContext();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [demoModels, setDemoModels] = useState<ModelSource[]>([]);
+  const [savedModels, setSavedModels] = useState<ModelSource[]>([]);
+
+  useEffect(() => {
+    const fetchDemo = async () => {
+      try {
+        const res = await fetch("/data/demo_models.json");
+        if (res.ok) setDemoModels(await res.json());
+      } catch (err) {
+        console.error("Failed to load demo models", err);
+      }
+    };
+    fetchDemo();
+    const stored = localStorage.getItem("appSettings");
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored);
+        setSavedModels(parsed.modelUrls || []);
+      } catch (e) {
+        console.error("Failed to parse stored model urls", e);
+      }
+    }
+  }, []);
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
@@ -1112,6 +1166,11 @@ function FileUpload({ isAdding = false }: FileUploadProps) {
       if (isAdding) addIFCModel(url, file.name);
       else replaceIFCModel(url, file.name);
     }
+  };
+
+  const handleLoadModel = (model: ModelSource) => {
+    if (isAdding) addIFCModel(model.url, model.name);
+    else replaceIFCModel(model.url, model.name);
   };
 
   const buttonStyle = isAdding ? "h-8 w-8" : "";
@@ -1126,6 +1185,51 @@ function FileUpload({ isAdding = false }: FileUploadProps) {
     ? "Add another IFC model"
     : "Load initial IFC model";
 
+  const triggerButton = (
+    <Button
+      variant={isAdding ? "ghost" : "default"}
+      size={isAdding ? "icon" : "default"}
+      onClick={() => fileInputRef.current?.click()}
+      title={buttonTitle}
+      className={buttonStyle}
+    >
+      {buttonContent}
+    </Button>
+  );
+
+  const menu = (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>{triggerButton}</DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        <DropdownMenuItem onSelect={() => fileInputRef.current?.click()}>
+          Upload IFC File
+        </DropdownMenuItem>
+        {savedModels.length > 0 && (
+          <>
+            <DropdownMenuSeparator />
+            <DropdownMenuLabel className="text-xs">My Models</DropdownMenuLabel>
+            {savedModels.map((m) => (
+              <DropdownMenuItem key={m.url} onSelect={() => handleLoadModel(m)}>
+                {m.name}
+              </DropdownMenuItem>
+            ))}
+          </>
+        )}
+        {demoModels.length > 0 && (
+          <>
+            <DropdownMenuSeparator />
+            <DropdownMenuLabel className="text-xs">Demo Models</DropdownMenuLabel>
+            {demoModels.map((m) => (
+              <DropdownMenuItem key={m.url} onSelect={() => handleLoadModel(m)}>
+                {m.name}
+              </DropdownMenuItem>
+            ))}
+          </>
+        )}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+
   if (isAdding) {
     return (
       <>
@@ -1136,25 +1240,16 @@ function FileUpload({ isAdding = false }: FileUploadProps) {
           ref={fileInputRef}
           onChange={handleFileChange}
         />
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => fileInputRef.current?.click()}
-          title={buttonTitle}
-          className={buttonStyle}
-        >
-          {buttonContent}
-        </Button>
+        {menu}
       </>
     );
   }
 
-  // Restore original styling for the initial load prompt
   return (
     <div className="text-center p-8 bg-muted/50 rounded-lg backdrop-blur-sm">
       <h2 className="text-2xl font-bold mb-4">IFC Model Viewer</h2>
       <p className="mb-6 text-muted-foreground">
-        Upload an IFC file to get started
+        Upload an IFC file to get started or choose a demo model
       </p>
       <input
         type="file"
@@ -1163,9 +1258,7 @@ function FileUpload({ isAdding = false }: FileUploadProps) {
         ref={fileInputRef}
         onChange={handleFileChange}
       />
-      <Button onClick={() => fileInputRef.current?.click()} title={buttonTitle}>
-        {buttonContent}
-      </Button>
+      {menu}
     </div>
   );
 }

@@ -11,9 +11,15 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 
+interface ModelSource {
+  name: string;
+  url: string;
+}
+
 interface AppSettings {
   defaultClassification: string;
   alwaysLoad: boolean;
+  modelUrls: ModelSource[];
 }
 
 const SETTINGS_KEY = "appSettings";
@@ -30,6 +36,7 @@ const getInitialSettings = (): AppSettings => {
         return {
           defaultClassification: parsed.defaultClassification || "",
           alwaysLoad: parsed.alwaysLoad || false,
+          modelUrls: parsed.modelUrls || [],
         };
       } catch (err) {
         console.error(
@@ -40,7 +47,7 @@ const getInitialSettings = (): AppSettings => {
     }
   }
   // Default settings if nothing in localStorage or if parsing failed
-  return { defaultClassification: "", alwaysLoad: false };
+  return { defaultClassification: "", alwaysLoad: false, modelUrls: [] };
 };
 
 export function SettingsPanel() {
@@ -51,12 +58,37 @@ export function SettingsPanel() {
   const [alwaysLoad, setAlwaysLoad] = useState<boolean>(
     () => getInitialSettings().alwaysLoad
   );
+  const [modelUrls, setModelUrls] = useState<ModelSource[]>(
+    () => getInitialSettings().modelUrls
+  );
+  const [newModelName, setNewModelName] = useState("");
+  const [newModelUrl, setNewModelUrl] = useState("");
+  const [demoModels, setDemoModels] = useState<ModelSource[]>([]);
+
+  useEffect(() => {
+    const fetchDemo = async () => {
+      try {
+        const res = await fetch("/data/demo_models.json");
+        if (res.ok) {
+          const data: ModelSource[] = await res.json();
+          setDemoModels(data);
+        }
+      } catch (err) {
+        console.error("Failed to load demo models", err);
+      }
+    };
+    fetchDemo();
+  }, []);
 
   // Persist settings whenever they change
   useEffect(() => {
-    const toStore: AppSettings = { defaultClassification, alwaysLoad };
+    const toStore: AppSettings = {
+      defaultClassification,
+      alwaysLoad,
+      modelUrls,
+    };
     localStorage.setItem(SETTINGS_KEY, JSON.stringify(toStore));
-  }, [defaultClassification, alwaysLoad]);
+  }, [defaultClassification, alwaysLoad, modelUrls]);
 
   return (
     <div className="space-y-6">
@@ -94,6 +126,71 @@ export function SettingsPanel() {
                 onCheckedChange={setAlwaysLoad}
               />
             </div>
+          </div>
+        </div>
+        <div className="p-4 rounded-lg bg-muted/30 space-y-4">
+          <Label className="block mb-2">Model URLs</Label>
+          {modelUrls.length > 0 && (
+            <ul className="space-y-1">
+              {modelUrls.map((m, idx) => (
+                <li key={idx} className="flex items-center justify-between">
+                  <span className="truncate mr-2" title={m.url}>
+                    {m.name}
+                  </span>
+                  <button
+                    onClick={() =>
+                      setModelUrls(modelUrls.filter((_, i) => i !== idx))
+                    }
+                    className="text-destructive hover:underline text-sm"
+                  >
+                    remove
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+          <div className="grid grid-cols-3 gap-2">
+            <input
+              className="col-span-1 border rounded px-2 py-1 text-sm"
+              placeholder="Name"
+              value={newModelName}
+              onChange={(e) => setNewModelName(e.target.value)}
+            />
+            <input
+              className="col-span-2 border rounded px-2 py-1 text-sm"
+              placeholder="URL"
+              value={newModelUrl}
+              onChange={(e) => setNewModelUrl(e.target.value)}
+            />
+          </div>
+          <div className="flex gap-2 justify-end">
+            <button
+              className="text-sm underline"
+              onClick={() => {
+                if (!newModelName || !newModelUrl) return;
+                setModelUrls([...modelUrls, { name: newModelName, url: newModelUrl }]);
+                setNewModelName("");
+                setNewModelUrl("");
+              }}
+            >
+              add
+            </button>
+            {demoModels.length > 0 && (
+              <button
+                className="text-sm underline"
+                onClick={() => {
+                  const combined = [...modelUrls];
+                  demoModels.forEach((d) => {
+                    if (!combined.find((m) => m.url === d.url)) {
+                      combined.push(d);
+                    }
+                  });
+                  setModelUrls(combined);
+                }}
+              >
+                add demo models
+              </button>
+            )}
           </div>
         </div>
       </div>
