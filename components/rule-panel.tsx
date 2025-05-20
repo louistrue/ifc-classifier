@@ -48,7 +48,6 @@ import {
   Tag,
   MoreHorizontal,
   FileOutput,
-  FileSpreadsheet,
   ArchiveRestore,
   AlertTriangle,
   CopyPlus,
@@ -60,6 +59,9 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
 } from "@/components/ui/dropdown-menu";
 import { downloadFile } from "@/services/ifc-export-service";
 
@@ -328,28 +330,42 @@ export function RulePanel() {
               <DropdownMenuLabel className="text-xs font-semibold text-muted-foreground px-2 py-1.5">
                 Manage Data
               </DropdownMenuLabel>
-              <DropdownMenuItem onClick={handleExportJson}>
-                <FileOutput className="mr-2 h-4 w-4" /> Export Rules
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={handleExportExcel}>
-                <FileSpreadsheet className="mr-2 h-4 w-4" /> Export to Excel
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onSelect={(e) => {
-                  e.preventDefault();
-                  triggerImport();
-                }}
-              >
-                <ArchiveRestore className="mr-2 h-4 w-4" /> Load Rules (JSON)
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onSelect={(e) => {
-                  e.preventDefault();
-                  triggerExcelImport();
-                }}
-              >
-                <ArchiveRestore className="mr-2 h-4 w-4" /> Load from Excel
-              </DropdownMenuItem>
+              <DropdownMenuSub>
+                <DropdownMenuSubTrigger>
+                  <FileOutput className="mr-2 h-4 w-4" /> Export
+                </DropdownMenuSubTrigger>
+                <DropdownMenuSubContent>
+                  <DropdownMenuItem onClick={handleExportJson}>
+                    JSON
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleExportExcel}>
+                    Excel
+                  </DropdownMenuItem>
+                </DropdownMenuSubContent>
+              </DropdownMenuSub>
+              <DropdownMenuSub>
+                <DropdownMenuSubTrigger>
+                  <ArchiveRestore className="mr-2 h-4 w-4" /> Load
+                </DropdownMenuSubTrigger>
+                <DropdownMenuSubContent>
+                  <DropdownMenuItem
+                    onSelect={(e) => {
+                      e.preventDefault();
+                      triggerImport();
+                    }}
+                  >
+                    JSON
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onSelect={(e) => {
+                      e.preventDefault();
+                      triggerExcelImport();
+                    }}
+                  >
+                    Excel
+                  </DropdownMenuItem>
+                </DropdownMenuSubContent>
+              </DropdownMenuSub>
               <DropdownMenuSeparator />
               <DropdownMenuItem
                 className="text-destructive focus:bg-destructive/10 focus:text-destructive"
