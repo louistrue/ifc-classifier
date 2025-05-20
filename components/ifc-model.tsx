@@ -577,12 +577,10 @@ export function IFCModel({ modelData, outlineLayer }: IFCModelProps) {
     group.name = `IFCModelGroup_${modelData.id}_${ownModelID.current}`;
     meshesRef.current = group;
     try {
-      const flatMeshes = ifcApi.LoadAllGeometry(ownModelID.current!);
-      for (let i = 0; i < flatMeshes.size(); i++) {
-        const flatMesh = flatMeshes.get(i);
+      const processFlatMesh = (flatMesh: any) => {
         const elementExpressID = flatMesh.expressID;
         const placedGeometries = flatMesh.geometries;
-      for (let j = 0; j < placedGeometries.size(); j++) {
+        for (let j = 0; j < placedGeometries.size(); j++) {
           const placedGeometry = placedGeometries.get(j);
           const ifcGeometryData = ifcApi.GetGeometry(
             ownModelID.current!,
@@ -607,7 +605,9 @@ export function IFCModel({ modelData, outlineLayer }: IFCModelProps) {
           };
           group.add(mesh);
         }
-      }
+      };
+
+      ifcApi.StreamAllMeshes(ownModelID.current!, processFlatMesh);
       group.applyMatrix4(modelTransformRef.current);
       scene.add(group); // Add this model's group to the main scene
     } catch (error) {
