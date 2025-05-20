@@ -623,11 +623,11 @@ export function RulePanel() {
               </div>
             </DialogHeader>
             <DialogDescription className="mt-2 text-sm text-muted-foreground">
-              Are you sure you want to remove the rule "
+              Are you sure you want to remove the rule &quot;
               <span className="font-semibold text-foreground">
                 {ruleToRemove.name || ruleToRemove.id}
               </span>
-              "? This action cannot be undone.
+              &quot;? This action cannot be undone.
             </DialogDescription>
             <DialogFooter className="mt-6 sm:justify-end gap-2">
               <Button
