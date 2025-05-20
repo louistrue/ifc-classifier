@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useMemo } from "react";
+import { useEffect, useRef, useState, useMemo, useCallback } from "react";
 import { useThree } from "@react-three/fiber";
 import {
   useIFCContext,
@@ -19,6 +19,7 @@ import {
   IFCRELAGGREGATES,
   IFCRELCONTAINEDINSPATIALSTRUCTURE,
   IFCRELDEFINESBYPROPERTIES,
+  IFCRELASSOCIATESMATERIAL,
   Properties,
 } from "web-ifc"; // Import IfcAPI type and constants
 
@@ -514,48 +515,51 @@ export function IFCModel({ modelData, outlineLayer }: IFCModelProps) {
       highlightMaterial.dispose();
       selectionMaterial.dispose();
     };
-  }, [scene, ifcApi, modelData.id]);
+  }, [scene, ifcApi, modelData.id, highlightMaterial, selectionMaterial]);
 
-  const createThreeJSGeometry = (ifcGeomData: any) => {
-    if (!ifcApi || ownModelID.current === null)
-      throw new Error(
-        "ifcApi or modelID not available in createThreeJSGeometry"
+  const createThreeJSGeometry = useCallback(
+    (ifcGeomData: any) => {
+      if (!ifcApi || ownModelID.current === null)
+        throw new Error(
+          "ifcApi or modelID not available in createThreeJSGeometry"
+        );
+      const verts = ifcApi.GetVertexArray(
+        ifcGeomData.GetVertexData(),
+        ifcGeomData.GetVertexDataSize()
       );
-    const verts = ifcApi.GetVertexArray(
-      ifcGeomData.GetVertexData(),
-      ifcGeomData.GetVertexDataSize()
-    );
-    const indices = ifcApi.GetIndexArray(
-      ifcGeomData.GetIndexData(),
-      ifcGeomData.GetIndexDataSize()
-    );
-    const bufferGeometry = new THREE.BufferGeometry();
-    const numVertices = verts.length / 6;
-    const positions = new Float32Array(numVertices * 3);
-    const normals = new Float32Array(numVertices * 3);
-    for (let i = 0; i < numVertices; i++) {
-      const vertexOffset = i * 6;
-      const positionOffset = i * 3;
-      positions[positionOffset] = verts[vertexOffset];
-      positions[positionOffset + 1] = verts[vertexOffset + 1];
-      positions[positionOffset + 2] = verts[vertexOffset + 2];
-      normals[positionOffset] = verts[vertexOffset + 3];
-      normals[positionOffset + 1] = verts[vertexOffset + 4];
-      normals[positionOffset + 2] = verts[vertexOffset + 5];
-    }
-    bufferGeometry.setAttribute(
-      "position",
-      new THREE.Float32BufferAttribute(positions, 3)
-    );
-    bufferGeometry.setAttribute(
-      "normal",
-      new THREE.Float32BufferAttribute(normals, 3)
-    );
-    bufferGeometry.setIndex(Array.from(indices));
-    return bufferGeometry;
-  };
+      const indices = ifcApi.GetIndexArray(
+        ifcGeomData.GetIndexData(),
+        ifcGeomData.GetIndexDataSize()
+      );
+      const bufferGeometry = new THREE.BufferGeometry();
+      const numVertices = verts.length / 6;
+      const positions = new Float32Array(numVertices * 3);
+      const normals = new Float32Array(numVertices * 3);
+      for (let i = 0; i < numVertices; i++) {
+        const vertexOffset = i * 6;
+        const positionOffset = i * 3;
+        positions[positionOffset] = verts[vertexOffset];
+        positions[positionOffset + 1] = verts[vertexOffset + 1];
+        positions[positionOffset + 2] = verts[vertexOffset + 2];
+        normals[positionOffset] = verts[vertexOffset + 3];
+        normals[positionOffset + 1] = verts[vertexOffset + 4];
+        normals[positionOffset + 2] = verts[vertexOffset + 5];
+      }
+      bufferGeometry.setAttribute(
+        "position",
+        new THREE.Float32BufferAttribute(positions, 3)
+      );
+      bufferGeometry.setAttribute(
+        "normal",
+        new THREE.Float32BufferAttribute(normals, 3)
+      );
+      bufferGeometry.setIndex(Array.from(indices));
+      return bufferGeometry;
+    },
+    [ifcApi]
+  );
 
-  const createMeshes = () => {
+  const createMeshes = useCallback(() => {
     if (!ifcApi || ownModelID.current === null) return;
     if (meshesRef.current) {
       scene.remove(meshesRef.current);
@@ -570,11 +574,9 @@ export function IFCModel({ modelData, outlineLayer }: IFCModelProps) {
     }
     const group = new THREE.Group();
     group.name = `IFCModelGroup_${modelData.id}_${ownModelID.current}`;
-    // IMPORTANT: Add this group to a known list or make it identifiable for the global raycaster
-    // For now, the global raycaster will intersect scene.children. Ensure this group is added to scene.
     meshesRef.current = group;
     try {
-      const flatMeshes = ifcApi.LoadAllGeometry(ownModelID.current);
+      const flatMeshes = ifcApi.LoadAllGeometry(ownModelID.current!);
       for (let i = 0; i < flatMeshes.size(); i++) {
         const flatMesh = flatMeshes.get(i);
         const elementExpressID = flatMesh.expressID;
@@ -582,7 +584,7 @@ export function IFCModel({ modelData, outlineLayer }: IFCModelProps) {
       for (let j = 0; j < placedGeometries.size(); j++) {
           const placedGeometry = placedGeometries.get(j);
           const ifcGeometryData = ifcApi.GetGeometry(
-            ownModelID.current,
+            ownModelID.current!,
             placedGeometry.geometryExpressID
           );
           const threeJsGeometry = createThreeJSGeometry(ifcGeometryData);
@@ -598,7 +600,6 @@ export function IFCModel({ modelData, outlineLayer }: IFCModelProps) {
           const mat = new THREE.Matrix4();
           mat.fromArray(matrix);
           mesh.applyMatrix4(mat);
-          // Ensure userData contains both modelID (API model ID) and expressID
           mesh.userData = {
             expressID: elementExpressID,
             modelID: ownModelID.current,
@@ -614,7 +615,7 @@ export function IFCModel({ modelData, outlineLayer }: IFCModelProps) {
         error
       );
     }
-  };
+  }, [ifcApi, scene, modelData.id, createThreeJSGeometry]);
 
   // Load this specific IFC model
   useEffect(() => {
@@ -738,17 +739,16 @@ export function IFCModel({ modelData, outlineLayer }: IFCModelProps) {
     };
     loadThisModel();
   }, [
-    modelData.url, // Primary trigger for loading a new model
-    // Dependencies for functions called inside: ifcApi, scene, setModelIDForLoadedModel, setSpatialTreeForModel, setAvailableCategoriesForModel
-    // modelData.id is also used for logging and setModelIDForLoadedModel context
+    modelData.url,
     ifcApi,
     scene,
     modelData.id,
     setModelIDForLoadedModel,
     setSpatialTreeForModel,
     setAvailableCategoriesForModel,
-    setInternalApiIdForEffects, // Added setInternalApiIdForEffects
+    setInternalApiIdForEffects,
     setRawBufferForModel,
+    createMeshes,
   ]);
 
   // New useEffect for initial camera positioning
@@ -1047,577 +1047,417 @@ export function IFCModel({ modelData, outlineLayer }: IFCModelProps) {
     return foundMesh;
   };
 
-  // Fetch properties effect
-  useEffect(() => {
-    // Define the async function that will perform the property fetching
-    const fetchPropertiesForSelectedElement = async () => {
-      if (
-        !ifcApi ||
-        !selectedElement ||
-        internalApiIdForEffects === null ||
-        selectedElement.modelID !== internalApiIdForEffects
-      ) {
-        if (!selectedElement) {
-          setElementProperties(null);
-        }
-        console.log(
-          `IFCModel (${modelData.id}) - Property Fetch (Full Approach): Aborting due to missing selection, API, or modelID mismatch.`,
-          {
-            selectedElementExists: !!selectedElement,
-            ifcApiAvailable: !!ifcApi,
-            internalApiIdForEffects,
-            modelIDMatch: selectedElement
-              ? selectedElement.modelID === internalApiIdForEffects
-              : "N/A",
-          }
-        );
-        return;
+  // Memoized function for fetching properties
+  const fetchPropertiesForSelectedElement = useCallback(async () => {
+    if (
+      !ifcApi ||
+      !selectedElement ||
+      internalApiIdForEffects === null ||
+      selectedElement.modelID !== internalApiIdForEffects
+    ) {
+      if (!selectedElement) setElementProperties(null);
+      console.log(`IFCModel (${modelData.id}) - Property Fetch: Aborting.`);
+      return;
+    }
+
+    const { expressID: currentSelectedExpressID } = selectedElement;
+    const currentModelID = internalApiIdForEffects;
+    const psetsData: Record<string, Record<string, any>> = {};
+
+    console.log(
+      `IFCModel (${modelData.id}): Fetching ALL props for element ${currentSelectedExpressID} in model ${currentModelID}`
+    );
+
+    try {
+      if (!ifcApi.properties) {
+        ifcApi.properties = new Properties(ifcApi);
       }
 
-      const { expressID: currentSelectedExpressID } = selectedElement;
-      const currentModelID = internalApiIdForEffects;
-
-      console.time(
-        `fetchProps-full-${currentSelectedExpressID}-m${currentModelID}`
+      // --- Step A: Get Basic Element Attributes (Restored) ---
+      const elementDataFromServer = await ifcApi.GetLine(
+        currentModelID,
+        currentSelectedExpressID,
+        true
       );
-      console.log(
-        `IFCModel (${modelData.id}): Fetching props for element ${currentSelectedExpressID} in model ${currentModelID} (Full Approach)`
+      const elementType = ifcApi.GetNameFromTypeCode(
+        elementDataFromServer.type
       );
-
-      try {
-        // Ensure Properties API is initialized
-        if (!ifcApi.properties) {
-          console.log(
-            "Initializing Properties API (fetchPropertiesForSelectedElement)"
-          );
-          ifcApi.properties = new Properties(ifcApi);
+      psetsData["Element Attributes"] = {};
+      for (const key in elementDataFromServer) {
+        if (Object.prototype.hasOwnProperty.call(elementDataFromServer, key)) {
+          if (key === "expressID" || key === "type") continue;
+          const value = elementDataFromServer[key];
+          if (typeof value !== "object" || value === null)
+            psetsData["Element Attributes"][key] = value;
+          else if (value && value.value !== undefined)
+            psetsData["Element Attributes"][key] = value.value;
         }
+      }
 
-        // Helper to process IFCPROPERTYSET entities (uses extractPropertyValueRecursive)
-        const processApiPset = async (
-          psetEntity: any, // This must be an IFCPROPERTYSET entity
-          targetPSetData: Record<string, any>,
-          psetNameForLogging: string
-        ) => {
+      // Helper to process IFCPROPERTYSET entities (Restored - ensure extractPropertyValueRecursive is correctly defined globally or passed if needed)
+      const processApiPset = async (
+        psetEntity: any,
+        targetPSetData: Record<string, any>,
+        psetNameForLogging: string
+      ) => {
+        if (
+          psetEntity.HasProperties &&
+          Array.isArray(psetEntity.HasProperties)
+        ) {
+          const processedCache = new Map<number, any>();
+          const recursionPath = new Set<number>();
+          for (const propRefOrObject of psetEntity.HasProperties) {
+            let propToProcess = null;
+            if (
+              propRefOrObject?.value !== undefined &&
+              typeof propRefOrObject.value === "number"
+            ) {
+              try {
+                propToProcess = await ifcApi.GetLine(
+                  currentModelID,
+                  propRefOrObject.value,
+                  true
+                );
+              } catch (e) {
+                console.warn(
+                  `[${psetNameForLogging}] Error fetching IfcProperty by ID ${propRefOrObject.value}:`,
+                  e
+                );
+                continue;
+              }
+            } else if (
+              propRefOrObject?.expressID !== undefined &&
+              propRefOrObject.Name?.value
+            ) {
+              propToProcess = propRefOrObject;
+            } else {
+              continue;
+            }
+            if (propToProcess) {
+              await extractPropertyValueRecursive(
+                ifcApi,
+                currentModelID,
+                propToProcess,
+                targetPSetData,
+                "",
+                psetNameForLogging,
+                processedCache,
+                recursionPath
+              );
+            }
+          }
+        }
+      };
+
+      // --- Step B: Get Instance PropertySets (Restored) ---
+      const instancePsets = await ifcApi.properties.getPropertySets(
+        currentModelID,
+        currentSelectedExpressID,
+        true,
+        false
+      );
+      if (instancePsets && instancePsets.length > 0) {
+        for (const pset of instancePsets) {
           if (
-            psetEntity.HasProperties &&
-            Array.isArray(psetEntity.HasProperties)
+            pset &&
+            pset.Name?.value &&
+            ifcApi.GetNameFromTypeCode(pset.type) === "IFCPROPERTYSET"
           ) {
-            const processedCache = new Map<number, any>();
-            const recursionPath = new Set<number>();
-            for (const propRefOrObject of psetEntity.HasProperties) {
-              let propToProcess = null;
+            const psetName = pset.Name.value;
+            if (!psetsData[psetName]) psetsData[psetName] = {};
+            await processApiPset(pset, psetsData[psetName], psetName);
+          }
+        }
+      }
+
+      // --- Step C: Get Type Information & Associated Property Definitions (Restored) ---
+      const typeObjects = await ifcApi.properties.getTypeProperties(
+        currentModelID,
+        currentSelectedExpressID,
+        true
+      );
+      if (typeObjects && typeObjects.length > 0) {
+        for (const typeObject of typeObjects) {
+          const typeObjectName =
+            typeObject?.Name?.value ||
+            `TypeObject_${
+              typeObject.expressID || typeObjects.indexOf(typeObject)
+            }`;
+          const typeAttributesPSetName = `Type Attributes: ${typeObjectName}`;
+          if (!psetsData[typeAttributesPSetName])
+            psetsData[typeAttributesPSetName] = {};
+          extractDirectAttributes(
+            typeObject,
+            psetsData[typeAttributesPSetName],
+            ["Name", "Description"]
+          );
+          if (Object.keys(psetsData[typeAttributesPSetName]).length === 0)
+            delete psetsData[typeAttributesPSetName];
+
+          if (
+            typeObject.HasPropertySets &&
+            Array.isArray(typeObject.HasPropertySets)
+          ) {
+            for (const propDefRefOrObject of typeObject.HasPropertySets) {
+              let propDefEntity = null;
               if (
-                propRefOrObject?.value !== undefined &&
-                typeof propRefOrObject.value === "number"
+                propDefRefOrObject?.value !== undefined &&
+                typeof propDefRefOrObject.value === "number"
               ) {
                 try {
-                  propToProcess = await ifcApi.GetLine(
+                  propDefEntity = await ifcApi.GetLine(
                     currentModelID,
-                    propRefOrObject.value,
+                    propDefRefOrObject.value,
                     true
                   );
                 } catch (e) {
                   console.warn(
-                    `[${psetNameForLogging}] Error fetching IfcProperty by reference (ID: ${propRefOrObject.value}):`,
+                    `Error fetching entity (ID: ${propDefRefOrObject.value}) for Type ${typeObjectName}:`,
                     e
                   );
                   continue;
                 }
-              } else if (
-                propRefOrObject?.expressID !== undefined &&
-                propRefOrObject.Name?.value
-              ) {
-                propToProcess = propRefOrObject; // Embedded IfcProperty
+              } else if (propDefRefOrObject?.expressID !== undefined) {
+                propDefEntity = propDefRefOrObject;
               } else {
-                console.warn(
-                  `[${psetNameForLogging}] Skipping item in HasProperties - not a valid reference or embedded IfcProperty:`,
-                  propRefOrObject
-                );
                 continue;
               }
-              if (propToProcess) {
-                await extractPropertyValueRecursive(
-                  ifcApi,
-                  currentModelID,
-                  propToProcess,
-                  targetPSetData,
-                  "",
-                  psetNameForLogging,
-                  processedCache,
-                  recursionPath
+
+              if (propDefEntity) {
+                const propDefEntityType = ifcApi.GetNameFromTypeCode(
+                  propDefEntity.type
                 );
+                const propDefInstanceName = propDefEntity.Name?.value;
+                if (propDefEntityType === "IFCPROPERTYSET") {
+                  const psetName = propDefInstanceName || "Unnamed PSet";
+                  const finalPsetName = `${psetName} (from Type: ${typeObjectName})`;
+                  if (!psetsData[finalPsetName]) psetsData[finalPsetName] = {};
+                  await processApiPset(
+                    propDefEntity,
+                    psetsData[finalPsetName],
+                    finalPsetName
+                  );
+                } else if (propDefEntityType) {
+                  const groupNameSuggestion =
+                    propDefInstanceName || propDefEntityType;
+                  const groupName = `${groupNameSuggestion} (from Type: ${typeObjectName})`;
+                  if (!psetsData[groupName]) psetsData[groupName] = {};
+                  extractDirectAttributes(propDefEntity, psetsData[groupName]);
+                  if (Object.keys(psetsData[groupName]).length === 0)
+                    delete psetsData[groupName];
+                }
               }
             }
           }
-        };
-
-        // --- Step A: Get Basic Element Attributes ---
-        const elementData = await ifcApi.GetLine(
-          currentModelID,
-          currentSelectedExpressID,
-          true
-        );
-        const elementType = ifcApi.GetNameFromTypeCode(elementData.type);
-        console.log(`Element type: ${elementType}`);
-        const psetsData: Record<string, Record<string, any>> = {};
-        psetsData["Element Attributes"] = {};
-        for (const key in elementData) {
-          if (Object.prototype.hasOwnProperty.call(elementData, key)) {
-            if (key === "expressID" || key === "type") continue;
-            const value = elementData[key];
-            if (typeof value !== "object" || value === null)
-              psetsData["Element Attributes"][key] = value;
-            else if (value && value.value !== undefined)
-              psetsData["Element Attributes"][key] = value.value;
-          }
         }
+      }
 
-        // --- Step B: Get Instance PropertySets ---
+      // --- Step D: Get Material Properties (with Fallback) ---
+      let materialsAndDefs = await ifcApi.properties.getMaterialsProperties(
+        currentModelID,
+        currentSelectedExpressID,
+        true,
+        true
+      );
+      console.log(
+        `IFCModel (${modelData.id}): getMaterialsProperties returned:`,
+        materialsAndDefs ? materialsAndDefs.length : "null/undefined"
+      );
+
+      if (!materialsAndDefs || materialsAndDefs.length === 0) {
         console.log(
-          "Step B: Fetching Instance Properties.getPropertySets(inclType=false)..."
+          `IFCModel (${modelData.id}): Attempting fallback for materials for element ${currentSelectedExpressID}`
         );
-        try {
-          const instancePsets = await ifcApi.properties.getPropertySets(
+        const relAssociatesMaterialIDs = await ifcApi.GetLineIDsWithType(
+          currentModelID,
+          IFCRELASSOCIATESMATERIAL
+        );
+        const foundMaterialsViaFallback: any[] = [];
+        for (let i = 0; i < relAssociatesMaterialIDs.size(); i++) {
+          const relID = relAssociatesMaterialIDs.get(i);
+          const relAssociatesMaterial = await ifcApi.GetLine(
             currentModelID,
-            currentSelectedExpressID,
-            true,
+            relID,
             false
           );
-          console.log(
-            `  Found ${instancePsets?.length || 0} instance PSet definitions.`
-          );
-          if (instancePsets && instancePsets.length > 0) {
-            for (const pset of instancePsets) {
-              if (
-                pset &&
-                pset.Name?.value &&
-                ifcApi.GetNameFromTypeCode(pset.type) === "IFCPROPERTYSET"
-              ) {
-                const psetName = pset.Name.value;
-                if (!psetsData[psetName]) psetsData[psetName] = {};
-                console.log(
-                  `  Processing Instance IFCPROPERTYSET: ${psetName}`
-                );
-                await processApiPset(pset, psetsData[psetName], psetName);
-              }
-            }
-          }
-        } catch (e) {
-          console.error("Error in Step B (Instance getPropertySets()):", e);
-        }
-
-        // --- Step C: Get Type Information & Associated Property Definitions ---
-        console.log(
-          "Step C: Fetching Type Info & Props with Properties.getTypeProperties()..."
-        );
-        try {
-          const typeObjects = await ifcApi.properties.getTypeProperties(
-            currentModelID,
-            currentSelectedExpressID,
-            true
-          );
-          console.log(`  Found ${typeObjects?.length || 0} Type definitions.`);
-          if (typeObjects && typeObjects.length > 0) {
-            for (const typeObject of typeObjects) {
-              const typeObjectName =
-                typeObject?.Name?.value ||
-                `TypeObject_${
-                  typeObject.expressID || typeObjects.indexOf(typeObject)
-                }`;
-              const typeAttributesPSetName = `Type Attributes: ${typeObjectName}`;
-              if (!psetsData[typeAttributesPSetName])
-                psetsData[typeAttributesPSetName] = {};
-              console.log(
-                `  Processing Type Object's direct attributes: ${typeObjectName}`
+          if (
+            relAssociatesMaterial.RelatedObjects &&
+            Array.isArray(relAssociatesMaterial.RelatedObjects)
+          ) {
+            const isElementAssociated =
+              relAssociatesMaterial.RelatedObjects.some(
+                (obj: any) => obj.value === currentSelectedExpressID
               );
-              // Extract direct attributes of the Type Object itself
-              extractDirectAttributes(
-                typeObject,
-                psetsData[typeAttributesPSetName],
-                ["Name", "Description"]
-              ); // Name/Desc used for group
-              if (Object.keys(psetsData[typeAttributesPSetName]).length === 0)
-                delete psetsData[typeAttributesPSetName];
-
-              if (
-                typeObject.HasPropertySets &&
-                Array.isArray(typeObject.HasPropertySets)
-              ) {
-                console.log(
-                  `    Type ${typeObjectName} has ${typeObject.HasPropertySets.length} associated property definition entities.`
+            if (
+              isElementAssociated &&
+              relAssociatesMaterial.RelatingMaterial?.value
+            ) {
+              try {
+                const materialEntity = await ifcApi.GetLine(
+                  currentModelID,
+                  relAssociatesMaterial.RelatingMaterial.value,
+                  true
                 );
-                for (const propDefRefOrObject of typeObject.HasPropertySets) {
-                  let propDefEntity = null;
-                  if (
-                    propDefRefOrObject?.value !== undefined &&
-                    typeof propDefRefOrObject.value === "number"
-                  ) {
-                    try {
-                      propDefEntity = await ifcApi.GetLine(
-                        currentModelID,
-                        propDefRefOrObject.value,
-                        true
-                      );
-                    } catch (e) {
-                      console.warn(
-                        `Error fetching entity (ID: ${propDefRefOrObject.value}) for Type ${typeObjectName}:`,
-                        e
-                      );
-                      continue;
-                    }
-                  } else if (propDefRefOrObject?.expressID !== undefined) {
-                    propDefEntity = propDefRefOrObject;
-                  } else {
-                    // If it's not a reference and not an embedded object with an expressID, skip it.
-                    console.warn(
-                      `    Skipping item in Type ${typeObjectName}'s HasPropertySets - not a valid reference or recognized embedded entity:`,
-                      propDefRefOrObject
-                    );
-                    continue;
-                  }
-
-                  if (propDefEntity) {
-                    const propDefEntityType = ifcApi.GetNameFromTypeCode(
-                      propDefEntity.type
-                    );
-                    const propDefInstanceName = propDefEntity.Name?.value;
-
-                    if (propDefEntityType === "IFCPROPERTYSET") {
-                      const psetName = propDefInstanceName || "Unnamed PSet";
-                      const finalPsetName = `${psetName} (from Type: ${typeObjectName})`;
-                      if (!psetsData[finalPsetName])
-                        psetsData[finalPsetName] = {};
-                      console.log(
-                        `    Processing IFCPROPERTYSET from Type ${typeObjectName}: ${psetName}`
-                      );
-                      await processApiPset(
-                        propDefEntity,
-                        psetsData[finalPsetName],
-                        finalPsetName
-                      );
-                    } else if (propDefEntityType) {
-                      // Handle other definitional entities
-                      const groupNameSuggestion =
-                        propDefInstanceName || propDefEntityType;
-                      const groupName = `${groupNameSuggestion} (from Type: ${typeObjectName})`;
-                      if (!psetsData[groupName]) psetsData[groupName] = {};
-                      console.log(
-                        `    Processing Entity ${groupNameSuggestion} (Type: ${propDefEntityType}) from Type ${typeObjectName} as property group`
-                      );
-                      // Extract direct attributes from this definitional entity
-                      extractDirectAttributes(
-                        propDefEntity,
-                        psetsData[groupName]
-                      );
-                      if (Object.keys(psetsData[groupName]).length === 0)
-                        delete psetsData[groupName];
-                    }
-                  }
-                }
+                if (materialEntity)
+                  foundMaterialsViaFallback.push(materialEntity);
+              } catch (e) {
+                console.warn(
+                  `Fallback error fetching material entity ID ${relAssociatesMaterial.RelatingMaterial.value}:`,
+                  e
+                );
               }
             }
           }
-        } catch (e) {
-          console.error("Error in Step C (Type Properties & Psets):", e);
         }
-
-        // --- Step D: Get Material Properties ---
-        console.log(
-          "Step D: Fetching Material Props with Properties.getMaterialsProperties()..."
-        );
-        try {
-          const materialsAndDefs =
-            await ifcApi.properties.getMaterialsProperties(
-              currentModelID,
-              currentSelectedExpressID,
-              true,
-              true
-            );
+        if (foundMaterialsViaFallback.length > 0) {
           console.log(
-            `  Found ${
-              materialsAndDefs?.length || 0
-            } Material definitions/associations.`
+            `IFCModel (${modelData.id}): Fallback found ${foundMaterialsViaFallback.length} material(s).`
           );
+          materialsAndDefs = foundMaterialsViaFallback;
+        } else {
+          console.log(
+            `IFCModel (${modelData.id}): Fallback also found no materials.`
+          );
+        }
+      }
 
-          if (materialsAndDefs && materialsAndDefs.length > 0) {
-            for (const matDef of materialsAndDefs) {
-              const matDefType = ifcApi.GetNameFromTypeCode(matDef.type);
-              const matDefNameFromIFC = matDef.Name?.value;
-
-              if (matDefType === "IFCMATERIALPROPERTIES") {
-                const psetName = matDefNameFromIFC || "Material Properties";
-                const finalGroupName = `Material Properties: ${psetName}`;
-                if (!psetsData[finalGroupName]) psetsData[finalGroupName] = {};
-                console.log(`  Processing IFCMATERIALPROPERTIES: ${psetName}`);
-                await processApiPset(
-                  matDef,
-                  psetsData[finalGroupName],
-                  finalGroupName
-                );
-                if (Object.keys(psetsData[finalGroupName]).length === 0)
-                  delete psetsData[finalGroupName];
-              } else if (matDefType === "IFCMATERIAL") {
-                const materialName =
-                  matDefNameFromIFC || `Material_${matDef.expressID}`;
-                const materialGroupName = `Material: ${materialName}`;
-                if (!psetsData[materialGroupName])
-                  psetsData[materialGroupName] = {};
-                console.log(`  Processing IFCMATERIAL: ${materialName}`);
-                // Extract direct attributes of IfcMaterial itself
-                extractDirectAttributes(matDef, psetsData[materialGroupName], [
-                  "Name",
-                  "Description",
-                ]);
-                if (Object.keys(psetsData[materialGroupName]).length === 0)
-                  delete psetsData[materialGroupName];
-              } else if (matDefType === "IFCMATERIALLAYERSET") {
-                const layerSetName =
-                  matDefNameFromIFC || `MatLayerSet_${matDef.expressID}`;
-                const layerSetGroupName = `LayerSet: ${layerSetName}`;
-                if (!psetsData[layerSetGroupName])
-                  psetsData[layerSetGroupName] = {};
-                console.log(
-                  `  Processing IFCMATERIALLAYERSET: ${layerSetName}`
-                );
-                if (matDef.TotalThickness?.value !== undefined) {
-                  psetsData[layerSetGroupName]["TotalThickness"] =
-                    matDef.TotalThickness.value;
-                }
-                if (
-                  matDef.MaterialLayers &&
-                  Array.isArray(matDef.MaterialLayers)
-                ) {
-                  console.log(
-                    `    ${layerSetName} has ${matDef.MaterialLayers.length} layers.`
-                  );
-                  for (const [
-                    index,
-                    layerEntity,
-                  ] of matDef.MaterialLayers.entries()) {
-                    const layerNumber = index + 1;
-                    let layerPrefix = `Layer_${layerNumber}`;
-                    try {
-                      if (
-                        !layerEntity ||
-                        typeof layerEntity.expressID !== "number"
-                      ) {
-                        console.warn(
-                          `    [${layerSetName}] Invalid IfcMaterialLayer object at index ${index}:`,
-                          layerEntity
-                        );
-                        continue;
-                      }
-
-                      if (layerEntity.Name?.value) {
-                        psetsData[layerSetGroupName][
-                          `${layerPrefix}_Identifier`
-                        ] = layerEntity.Name.value;
-                      }
-
-                      let layerMaterialName = `Material_Unknown`;
-                      const directMaterialEntity = layerEntity.Material; // This is often the resolved IfcMaterial entity
-
-                      if (
-                        directMaterialEntity &&
-                        typeof directMaterialEntity.expressID === "number"
-                      ) {
-                        // Assuming directMaterialEntity is the IfcMaterial object itself
-                        layerMaterialName =
-                          directMaterialEntity.Name?.value ||
-                          `UnnamedMaterial_${directMaterialEntity.expressID}`;
-                      } else if (
-                        directMaterialEntity &&
-                        typeof directMaterialEntity.value === "number"
-                      ) {
-                        // Fallback if Material is still a reference { value: X }
-                        console.warn(
-                          `    [${layerSetName}] ${layerPrefix} Material is a reference, attempting to resolve:`,
-                          directMaterialEntity
-                        );
-                        try {
-                          const actualLayerMaterial = await ifcApi.GetLine(
-                            currentModelID,
-                            directMaterialEntity.value,
-                            true
-                          );
-                          if (actualLayerMaterial) {
-                            layerMaterialName =
-                              actualLayerMaterial.Name?.value ||
-                              `UnnamedMaterial_${actualLayerMaterial.expressID}`;
-                          } else {
-                            console.warn(
-                              `    [${layerSetName}] Failed to retrieve IfcMaterial for ${layerPrefix} (Material ExpressID: ${directMaterialEntity.value}).`
-                            );
-                          }
-                        } catch (e) {
-                          console.warn(
-                            `    [${layerSetName}] Error resolving IfcMaterial for ${layerPrefix} (Material ExpressID: ${directMaterialEntity.value}):`,
-                            e
-                          );
-                        }
-                      } else if (directMaterialEntity) {
-                        console.warn(
-                          `    [${layerSetName}] ${layerPrefix} has an unexpected Material attribute structure:`,
-                          directMaterialEntity
-                        );
-                        layerMaterialName = `MaterialData_${layerEntity.expressID}`;
-                      }
-
-                      psetsData[layerSetGroupName][
-                        `${layerPrefix}_MaterialName`
-                      ] = layerMaterialName;
-
-                      const layerThickness = layerEntity.LayerThickness?.value;
-                      if (layerThickness !== undefined) {
-                        psetsData[layerSetGroupName][
-                          `${layerPrefix}_Thickness`
-                        ] = layerThickness;
-                      }
-
-                      if (layerEntity.Category?.value) {
-                        psetsData[layerSetGroupName][
-                          `${layerPrefix}_Category`
-                        ] = layerEntity.Category.value;
-                      }
-                      if (layerEntity.Priority?.value !== undefined) {
-                        psetsData[layerSetGroupName][
-                          `${layerPrefix}_Priority`
-                        ] = layerEntity.Priority.value;
-                      }
-                      if (layerEntity.IsVentilated?.value !== undefined) {
-                        psetsData[layerSetGroupName][
-                          `${layerPrefix}_IsVentilated`
-                        ] = layerEntity.IsVentilated.value;
-                      }
-                    } catch (e) {
-                      console.warn(
-                        `Error processing ${layerPrefix} for ${layerSetName} (LayerEntityExpressID: ${layerEntity?.expressID}):`,
-                        e
-                      );
-                    }
-                  }
-                }
-                // Cleanup logic for layerSetGroupName remains the same, ensuring TotalThickness isn't the ONLY prop if no layers exist
-                if (
-                  Object.keys(psetsData[layerSetGroupName]).length === 0 ||
-                  (Object.keys(psetsData[layerSetGroupName]).length === 1 &&
-                    psetsData[layerSetGroupName]["TotalThickness"] ===
-                      undefined) ||
-                  (psetsData[layerSetGroupName]["TotalThickness"] !==
-                    undefined &&
-                    Object.keys(psetsData[layerSetGroupName]).length === 1 &&
-                    Object.keys(psetsData[layerSetGroupName])[0] ===
-                      "TotalThickness" &&
-                    matDef.MaterialLayers &&
-                    matDef.MaterialLayers.length === 0)
-                ) {
-                  if (
-                    Object.keys(psetsData[layerSetGroupName]).length === 0 ||
-                    (Object.keys(psetsData[layerSetGroupName]).length === 1 &&
-                      psetsData[layerSetGroupName].hasOwnProperty(
-                        "TotalThickness"
-                      ) &&
-                      (psetsData[layerSetGroupName]["TotalThickness"] ===
-                        undefined ||
-                        (matDef.MaterialLayers &&
-                          matDef.MaterialLayers.length === 0)))
-                  ) {
-                    delete psetsData[layerSetGroupName];
-                  }
-                }
-              } else if (matDefType === "IFCMATERIALLIST") {
-                const listName =
-                  matDefNameFromIFC || `MatList_${matDef.expressID}`;
-                const listGroupName = `MaterialList: ${listName}`;
-                if (!psetsData[listGroupName]) psetsData[listGroupName] = {};
-                console.log(`  Processing IFCMATERIALLIST: ${listName}`);
-                if (matDef.Materials && Array.isArray(matDef.Materials)) {
-                  console.log(
-                    `    ${listName} has ${matDef.Materials.length} materials.`
-                  );
-                  for (const [
-                    index,
-                    materialRef,
-                  ] of matDef.Materials.entries()) {
-                    if (materialRef?.value) {
-                      try {
-                        const material = await ifcApi.GetLine(
-                          currentModelID,
-                          materialRef.value,
-                          true
-                        );
-                        psetsData[listGroupName][`Material_${index + 1}`] =
-                          material.Name?.value ||
-                          `UnnamedMaterial_${material.expressID}`;
-                      } catch (e) {
-                        console.warn(
-                          `Error processing material ${
-                            index + 1
-                          } in list ${listName}:`,
-                          e
-                        );
-                      }
-                    }
-                  }
-                }
-                if (Object.keys(psetsData[listGroupName]).length === 0)
-                  delete psetsData[listGroupName];
-              } else {
-                // Generic fallback for other material-related definitions returned by getMaterialsProperties
-                const groupNameSuggestion = matDefNameFromIFC || matDefType;
-                const fallbackGroupName = `MaterialInfo: ${groupNameSuggestion}`;
-                if (!psetsData[fallbackGroupName])
-                  psetsData[fallbackGroupName] = {};
-                console.log(
-                  `  Processing other Material Definition: ${groupNameSuggestion} (Type: ${matDefType})`
-                );
-                // Extract direct attributes from this other material definition entity
-                extractDirectAttributes(matDef, psetsData[fallbackGroupName], [
-                  "Name",
-                  "Description",
-                ]);
-                if (Object.keys(psetsData[fallbackGroupName]).length === 0)
-                  delete psetsData[fallbackGroupName];
+      if (materialsAndDefs && materialsAndDefs.length > 0) {
+        for (const matDef of materialsAndDefs) {
+          const matDefType = ifcApi.GetNameFromTypeCode(matDef.type);
+          const matDefNameFromIFC = matDef.Name?.value;
+          let groupName = "";
+          // Logic to create groupName based on matDefType and add to psetsData (as before)
+          // Example for IFCMATERIAL:
+          if (matDefType === "IFCMATERIAL") {
+            const materialName =
+              matDefNameFromIFC || `Material_${matDef.expressID}`;
+            groupName = `Material: ${materialName}`;
+            if (!psetsData[groupName]) psetsData[groupName] = {};
+            extractDirectAttributes(matDef, psetsData[groupName], [
+              "Name",
+              "Description",
+            ]);
+            if (Object.keys(psetsData[groupName]).length === 0)
+              delete psetsData[groupName];
+          } else if (matDefType === "IFCMATERIALLAYERSET") {
+            const layerSetName =
+              matDefNameFromIFC || `MatLayerSet_${matDef.expressID}`;
+            groupName = `LayerSet: ${layerSetName}`;
+            if (!psetsData[groupName]) psetsData[groupName] = {};
+            if (matDef.TotalThickness?.value !== undefined) {
+              psetsData[groupName]["TotalThickness"] =
+                matDef.TotalThickness.value;
+            }
+            if (matDef.MaterialLayers && Array.isArray(matDef.MaterialLayers)) {
+              for (const [
+                index,
+                layerEntity,
+              ] of matDef.MaterialLayers.entries()) {
+                psetsData[groupName][`Layer_${index + 1}_Thickness`] =
+                  layerEntity.LayerThickness?.value;
+                psetsData[groupName][`Layer_${index + 1}_Material`] =
+                  layerEntity.Material?.Name?.value ||
+                  layerEntity.Material?.value ||
+                  "Unknown Material";
               }
             }
+            if (
+              Object.keys(psetsData[groupName]).length === 0 &&
+              !psetsData[groupName]["TotalThickness"]
+            )
+              delete psetsData[groupName];
+            else if (
+              Object.keys(psetsData[groupName]).length === 1 &&
+              psetsData[groupName]["TotalThickness"] &&
+              (!matDef.MaterialLayers || matDef.MaterialLayers.length === 0)
+            )
+              delete psetsData[groupName]; //delete if only total thickness and no layers
+          } // Add other material type processing (IFCMATERIALPROPERTIES, IFCMATERIALLIST, generic) as it was originally
+          else if (matDefType === "IFCMATERIALPROPERTIES") {
+            const psetName = matDefNameFromIFC || "Material Properties";
+            groupName = `Material Properties: ${psetName}`;
+            if (!psetsData[groupName]) psetsData[groupName] = {};
+            await processApiPset(matDef, psetsData[groupName], groupName);
+            if (Object.keys(psetsData[groupName]).length === 0)
+              delete psetsData[groupName];
+          } else if (matDefType === "IFCMATERIALLIST") {
+            const listName = matDefNameFromIFC || `MatList_${matDef.expressID}`;
+            groupName = `MaterialList: ${listName}`;
+            if (!psetsData[groupName]) psetsData[groupName] = {};
+            if (matDef.Materials && Array.isArray(matDef.Materials)) {
+              for (const [index, materialRef] of matDef.Materials.entries()) {
+                if (materialRef?.value) {
+                  try {
+                    const material = await ifcApi.GetLine(
+                      currentModelID,
+                      materialRef.value,
+                      true
+                    );
+                    psetsData[groupName][`Material_${index + 1}`] =
+                      material.Name?.value ||
+                      `UnnamedMaterial_${material.expressID}`;
+                  } catch (e) {
+                    console.warn("Error processing material in list", e);
+                  }
+                }
+              }
+            }
+            if (Object.keys(psetsData[groupName]).length === 0)
+              delete psetsData[groupName];
+          } else {
+            const groupNameSuggestion = matDefNameFromIFC || matDefType;
+            groupName = `MaterialInfo: ${groupNameSuggestion}`;
+            if (!psetsData[groupName]) psetsData[groupName] = {};
+            extractDirectAttributes(matDef, psetsData[groupName], [
+              "Name",
+              "Description",
+            ]);
+            if (Object.keys(psetsData[groupName]).length === 0)
+              delete psetsData[groupName];
           }
-        } catch (e) {
-          console.error("Error in Step D (getMaterialsProperties()):", e);
         }
-
-        const allProperties = {
-          modelID: currentModelID,
-          expressID: currentSelectedExpressID,
-          ifcType: elementType,
-          attributes: elementData, // This remains the direct attributes from GetLine
-          propertySets: psetsData,
-        };
-
-        setElementProperties(allProperties);
-        console.log(
-          `IFCModel (${modelData.id}): Properties set (Full Approach) for ${currentSelectedExpressID}`,
-          allProperties
-        );
-      } catch (error) {
-        console.error(
-          `IFCModel (${modelData.id}): Error fetching props (Full Approach) for ${currentSelectedExpressID}:`,
-          error
-        );
-        setElementProperties(null);
       }
-      console.timeEnd(
-        `fetchProps-full-${currentSelectedExpressID}-m${currentModelID}`
-      );
-    };
 
-    fetchPropertiesForSelectedElement();
+      const allProperties = {
+        modelID: currentModelID,
+        expressID: currentSelectedExpressID,
+        ifcType: elementType,
+        attributes: elementDataFromServer,
+        propertySets: psetsData,
+      };
+      setElementProperties(allProperties);
+    } catch (error) {
+      console.error(
+        `IFCModel (${modelData.id}): Error fetching properties for element ${currentSelectedExpressID}:`,
+        error
+      );
+      setElementProperties({ error: "Failed to fetch properties" });
+    }
+  }, [
+    ifcApi,
+    selectedElement,
+    internalApiIdForEffects,
+    modelData.id,
+    setElementProperties,
+  ]);
+
+  // Fetch properties effect - This is the useEffect that calls the memoized callback
+  useEffect(() => {
+    if (
+      selectedElement &&
+      internalApiIdForEffects !== null &&
+      selectedElement.modelID === internalApiIdForEffects
+    ) {
+      fetchPropertiesForSelectedElement();
+    } else {
+      setElementProperties(null);
+    }
   }, [
     selectedElement,
-    ifcApi,
     internalApiIdForEffects,
-    setElementProperties,
-    modelData.id,
+    fetchPropertiesForSelectedElement,
+    modelData.id, // Added modelData.id here
+    setElementProperties, // Added setElementProperties here
   ]);
 
   return isLoading ? (

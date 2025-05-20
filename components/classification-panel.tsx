@@ -1,6 +1,12 @@
 "use client";
 
-import React, { useState, useEffect, useRef, useMemo } from "react";
+import React, {
+  useState,
+  useEffect,
+  useRef,
+  useMemo,
+  useCallback,
+} from "react";
 import { FixedSizeList as List } from "react-window"; // Import react-window
 import {
   useIFCContext,
@@ -336,7 +342,7 @@ export function ClassificationPanel() {
     }
   }, [sortedClassificationEntries.length]); // Re-observe if the list appears/disappears
 
-  const handleAddAllUniclassPr = () => {
+  const handleAddAllUniclassPr = useCallback(() => {
     if (!defaultUniclassPr || defaultUniclassPr.length === 0) return;
     let addedCount = 0;
     defaultUniclassPr.forEach((defClass) => {
@@ -346,9 +352,9 @@ export function ClassificationPanel() {
       }
     });
     console.log(`Added ${addedCount} Uniclass Pr classifications.`);
-  };
+  }, [defaultUniclassPr, classifications, addClassification]);
 
-  const handleAddAlleBKPH = () => {
+  const handleAddAlleBKPH = useCallback(() => {
     if (!defaultEBKPH || defaultEBKPH.length === 0) return;
     let addedCount = 0;
     defaultEBKPH.forEach((defClass) => {
@@ -358,9 +364,9 @@ export function ClassificationPanel() {
       }
     });
     console.log(`Added ${addedCount} eBKP-H classifications.`);
-  };
+  }, [defaultEBKPH, classifications, addClassification]);
 
-  const areAllUniclassAdded = () => {
+  const areAllUniclassAdded = useCallback(() => {
     if (
       isLoadingUniclass ||
       errorLoadingUniclass ||
@@ -370,13 +376,18 @@ export function ClassificationPanel() {
     return defaultUniclassPr.every(
       (defClass) => !!classifications[defClass.code]
     );
-  };
+  }, [
+    isLoadingUniclass,
+    errorLoadingUniclass,
+    defaultUniclassPr,
+    classifications,
+  ]);
 
-  const areAlleBKPHAdded = () => {
+  const areAlleBKPHAdded = useCallback(() => {
     if (isLoadingEBKPH || errorLoadingEBKPH || defaultEBKPH.length === 0)
       return false;
     return defaultEBKPH.every((defClass) => !!classifications[defClass.code]);
-  };
+  }, [isLoadingEBKPH, errorLoadingEBKPH, defaultEBKPH, classifications]);
 
   // Auto load default classifications based on stored settings
   useEffect(() => {
@@ -416,6 +427,10 @@ export function ClassificationPanel() {
     errorLoadingUniclass,
     errorLoadingEBKPH,
     hasAutoLoaded,
+    areAllUniclassAdded,
+    areAlleBKPHAdded,
+    handleAddAllUniclassPr,
+    handleAddAlleBKPH,
   ]);
 
   const handleAddClassification = () => {

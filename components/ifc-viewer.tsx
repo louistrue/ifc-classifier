@@ -9,6 +9,7 @@ import {
   Fragment,
   forwardRef,
   useImperativeHandle,
+  useCallback,
 } from "react";
 import { Canvas, useThree, useFrame } from "@react-three/fiber";
 import { OrbitControls, Environment } from "@react-three/drei";
@@ -78,7 +79,8 @@ function SpinningBox() {
 // GlobalInteractionHandler - re-enable
 function GlobalInteractionHandler() {
   const { scene, camera, gl, raycaster } = useThree();
-  const { selectElement, selectedElement, loadedModels, userHiddenElements } = useIFCContext();
+  const { selectElement, selectedElement, loadedModels, userHiddenElements } =
+    useIFCContext();
 
   const mouseDownPos = useRef<{ x: number; y: number } | null>(null);
   const DRAG_THRESHOLD = 5; // Pixels
@@ -149,7 +151,9 @@ function GlobalInteractionHandler() {
         const allIntersects = raycaster.intersectObjects(modelMeshGroups, true);
 
         // Filter out intersections with non-visible meshes
-        const visibleIntersects = allIntersects.filter(intersect => intersect.object.visible);
+        const visibleIntersects = allIntersects.filter(
+          (intersect) => intersect.object.visible
+        );
 
         console.log(
           `GlobalInteractionHandler: Raycast allIntersects: ${allIntersects.length}, visibleIntersects: ${visibleIntersects.length}`
@@ -263,7 +267,7 @@ function ViewToolbar({
     toggleUserHideElement,
     userHiddenElements,
     unhideLastElement,
-    unhideAllElements
+    unhideAllElements,
   } = useIFCContext();
 
   const handleHideSelected = () => {
@@ -297,7 +301,11 @@ function ViewToolbar({
           size="icon"
           onClick={handleHideSelected}
           disabled={!selectedElement}
-          title={selectedElement ? "Toggle Visibility of Selected (Spacebar)" : "Select an element to toggle visibility"}
+          title={
+            selectedElement
+              ? "Toggle Visibility of Selected (Spacebar)"
+              : "Select an element to toggle visibility"
+          }
         >
           <EyeOff className="w-5 h-5" />
         </Button>
@@ -569,8 +577,8 @@ const ResizeHandleHorizontal = ({
                 ? "left-full" // If left panel is collapsed, button is to the RIGHT of handle
                 : "right-full" // If left panel is expanded, button is to the LEFT of handle
               : collapsed
-                ? "right-full" // If right panel is collapsed, button is to the LEFT of handle
-                : "left-full" // If right panel is expanded, button is to the RIGHT of handle
+              ? "right-full" // If right panel is collapsed, button is to the LEFT of handle
+              : "left-full" // If right panel is expanded, button is to the RIGHT of handle
           )}
           title={collapsed ? "Expand panel" : "Collapse panel"}
         >
@@ -612,27 +620,36 @@ const ResizeHandleVertical = ({ className }: { className?: string }) => (
 );
 
 function ViewerContent() {
-  const { loadedModels, setIfcApi, ifcApi, selectedElement, selectElement, toggleUserHideElement, unhideLastElement, unhideAllElements, userHiddenElements } =
-    useIFCContext();
+  const {
+    loadedModels,
+    setIfcApi,
+    ifcApi,
+    selectedElement,
+    selectElement,
+    toggleUserHideElement,
+    unhideLastElement,
+    unhideAllElements,
+    userHiddenElements,
+  } = useIFCContext();
   const [ifcEngineReady, setIfcEngineReady] = useState(false);
   const [webGLContextLost, setWebGLContextLost] = useState(false);
 
   const leftPanelRef = useRef<ImperativePanelHandle>(null);
   const rightPanelRef = useRef<ImperativePanelHandle>(null);
 
-  const cameraActionsRef = useRef<CameraActions>(null); // Ref for CameraActionsController
+  const cameraActionsRef = useRef<CameraActions>(null);
 
   const SKIP_IFC_INITIALIZATION_FOR_TEST = false;
 
-  const handleZoomExtents = () => {
+  const handleZoomExtents = useCallback(() => {
     console.log("ViewerContent: handleZoomExtents called");
     cameraActionsRef.current?.zoomToExtents();
-  };
+  }, []);
 
-  const handleZoomSelected = () => {
+  const handleZoomSelected = useCallback(() => {
     console.log("ViewerContent: handleZoomSelected called");
     cameraActionsRef.current?.zoomToSelected(selectedElement);
-  };
+  }, [selectedElement]);
 
   const toggleLeftPanel = () => {
     if (leftPanelRef.current) {
@@ -708,40 +725,24 @@ function ViewerContent() {
 
   useEffect(() => {
     if (SKIP_IFC_INITIALIZATION_FOR_TEST) {
-      // This block will not run now
       return;
     }
-    // IFC API Initialization logic as before
     if (ifcApi) {
-      console.log(
-        "ViewerContent: IfcAPI already available, marking engine as ready."
-      );
       setIfcEngineReady(true);
       return;
     }
     let didCancel = false;
     const initializeWebIFC = async () => {
       try {
-        console.log("ViewerContent: Initializing IfcAPI...");
         const ifcAPIInstance = new IfcAPI();
-        console.log(
-          "ViewerContent: Setting IfcAPI WASM path (autoInitialize: true)..."
-        );
         ifcAPIInstance.SetWasmPath("/wasm/web-ifc/", true);
-        console.log("ViewerContent: Calling IfcAPI Init()...");
         await ifcAPIInstance.Init();
         if (!didCancel) {
-          console.log("ViewerContent: IfcAPI initialized successfully.");
-          // Initialize the Properties helper (important for property sets)
-          console.log("ViewerContent: Initializing Properties helper...");
           if (!ifcAPIInstance.properties) {
             ifcAPIInstance.properties = new Properties(ifcAPIInstance);
-            console.log("ViewerContent: Properties helper initialized.");
           }
           if (setIfcApi) setIfcApi(ifcAPIInstance);
           setIfcEngineReady(true);
-        } else {
-          console.log("ViewerContent: IfcAPI initialization cancelled.");
         }
       } catch (error) {
         if (!didCancel) {
@@ -752,10 +753,9 @@ function ViewerContent() {
     };
     initializeWebIFC();
     return () => {
-      console.log("ViewerContent: Cleanup from IfcAPI initialization effect.");
       didCancel = true;
     };
-  }, [ifcApi, setIfcApi]);
+  }, [ifcApi, setIfcApi, SKIP_IFC_INITIALIZATION_FOR_TEST]);
 
   // Re-enable selectedElement logging if desired, or keep it minimal
   useEffect(() => {
@@ -770,34 +770,37 @@ function ViewerContent() {
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       const target = event.target as HTMLElement;
-      const isTyping = target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable;
+      const isTyping =
+        target.tagName === "INPUT" ||
+        target.tagName === "TEXTAREA" ||
+        target.isContentEditable;
 
       if (isTyping) return; // Universal check for typing focus
 
       switch (event.code) {
-        case 'Space':
+        case "Space":
           if (selectedElement) {
             event.preventDefault();
             toggleUserHideElement(selectedElement);
           }
           break;
-        case 'KeyZ':
+        case "KeyZ":
           if (event.ctrlKey || event.metaKey) {
             event.preventDefault();
             if (userHiddenElements.length > 0) unhideLastElement(); // Check if there's something to unhide
           }
           break;
-        case 'KeyE': // E for Zoom to Extents
+        case "KeyE": // E for Zoom to Extents
           event.preventDefault();
           handleZoomExtents();
           break;
-        case 'KeyF': // F for Zoom to Selected (Focus)
+        case "KeyF": // F for Zoom to Selected (Focus)
           if (selectedElement) {
             event.preventDefault();
             handleZoomSelected();
           }
           break;
-        case 'KeyA': // A for Unhide All (with Shift)
+        case "KeyA": // A for Unhide All (with Shift)
           if (event.shiftKey) {
             event.preventDefault();
             if (userHiddenElements.length > 0) unhideAllElements(); // Check if there's something to unhide
@@ -808,9 +811,9 @@ function ViewerContent() {
       }
     };
 
-    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener("keydown", handleKeyDown);
     return () => {
-      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener("keydown", handleKeyDown);
     };
   }, [
     selectedElement,
@@ -819,7 +822,7 @@ function ViewerContent() {
     unhideAllElements,
     userHiddenElements, // Dependency for checks
     handleZoomExtents, // Add if it's memoized (useCallback)
-    handleZoomSelected // Add if it's memoized (useCallback)
+    handleZoomSelected, // Add if it's memoized (useCallback)
   ]);
 
   if (!ifcEngineReady && !SKIP_IFC_INITIALIZATION_FOR_TEST) {
@@ -949,7 +952,7 @@ function ViewerContent() {
           position: "relative",
           pointerEvents: "none",
           height: "calc(100% - 4rem)",
-          marginTop: "4rem"
+          marginTop: "4rem",
         }}
       >
         {/* Left sidebar */}
@@ -1048,15 +1051,24 @@ function ViewerContent() {
             className="flex flex-col h-full shadow-lg bg-gradient-to-l from-[hsl(var(--card))] to-transparent"
           >
             <TabsList className="w-full shrink-0 border-b border-border/50 p-1 bg-[hsl(var(--background))/85] backdrop-blur-sm">
-              <TabsTrigger value="classifications" className="flex-1 text-sm py-1.5 px-2 data-[state=active]:bg-accent data-[state=active]:text-accent-foreground rounded-sm">
+              <TabsTrigger
+                value="classifications"
+                className="flex-1 text-sm py-1.5 px-2 data-[state=active]:bg-accent data-[state=active]:text-accent-foreground rounded-sm"
+              >
                 <Layers className="w-4 h-4 mr-1.5" />
                 Classifications
               </TabsTrigger>
-              <TabsTrigger value="rules" className="flex-1 text-sm py-1.5 px-2 data-[state=active]:bg-accent data-[state=active]:text-accent-foreground rounded-sm">
+              <TabsTrigger
+                value="rules"
+                className="flex-1 text-sm py-1.5 px-2 data-[state=active]:bg-accent data-[state=active]:text-accent-foreground rounded-sm"
+              >
                 <Filter className="w-4 h-4 mr-1.5" />
                 Rules
               </TabsTrigger>
-              <TabsTrigger value="settings" className="flex-1 text-sm py-1.5 px-2 data-[state=active]:bg-accent data-[state=active]:text-accent-foreground rounded-sm">
+              <TabsTrigger
+                value="settings"
+                className="flex-1 text-sm py-1.5 px-2 data-[state=active]:bg-accent data-[state=active]:text-accent-foreground rounded-sm"
+              >
                 <Settings className="w-4 h-4 mr-1.5" />
                 Settings
               </TabsTrigger>
