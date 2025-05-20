@@ -18,6 +18,14 @@ import { ClassificationPanel } from "@/components/classification-panel";
 import { RulePanel } from "@/components/rule-panel";
 import { SettingsPanel } from "@/components/settings-panel";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Layers,
@@ -577,8 +585,8 @@ const ResizeHandleHorizontal = ({
                 ? "left-full" // If left panel is collapsed, button is to the RIGHT of handle
                 : "right-full" // If left panel is expanded, button is to the LEFT of handle
               : collapsed
-              ? "right-full" // If right panel is collapsed, button is to the LEFT of handle
-              : "left-full" // If right panel is expanded, button is to the RIGHT of handle
+                ? "right-full" // If right panel is collapsed, button is to the LEFT of handle
+                : "left-full" // If right panel is expanded, button is to the RIGHT of handle
           )}
           title={collapsed ? "Expand panel" : "Collapse panel"}
         >
@@ -630,6 +638,7 @@ function ViewerContent() {
     unhideLastElement,
     unhideAllElements,
     userHiddenElements,
+    addIFCModel,
   } = useIFCContext();
   const [ifcEngineReady, setIfcEngineReady] = useState(false);
   const [webGLContextLost, setWebGLContextLost] = useState(false);
@@ -640,6 +649,12 @@ function ViewerContent() {
   const cameraActionsRef = useRef<CameraActions>(null);
 
   const SKIP_IFC_INITIALIZATION_FOR_TEST = false;
+
+  // State to trigger re-render of FileUpload when settings change
+  const [settingsVersion, setSettingsVersion] = useState(0);
+  const handleSettingsChanged = useCallback(() => {
+    setSettingsVersion(v => v + 1);
+  }, []);
 
   const handleZoomExtents = useCallback(() => {
     console.log("ViewerContent: handleZoomExtents called");
@@ -756,6 +771,23 @@ function ViewerContent() {
       didCancel = true;
     };
   }, [ifcApi, setIfcApi, SKIP_IFC_INITIALIZATION_FOR_TEST]);
+
+  const [hasAutoLoadedModels, setHasAutoLoadedModels] = useState(false);
+
+  useEffect(() => {
+    if (!ifcEngineReady || hasAutoLoadedModels || loadedModels.length > 0)
+      return;
+    try {
+      const stored = localStorage.getItem("appSettings");
+      if (!stored) return;
+      const { modelUrls, alwaysLoad } = JSON.parse(stored);
+      if (!alwaysLoad || !Array.isArray(modelUrls)) return;
+      modelUrls.forEach((m: any) => addIFCModel(m.url, m.name));
+      setHasAutoLoadedModels(true);
+    } catch (err) {
+      console.error("Failed to autoload models", err);
+    }
+  }, [ifcEngineReady, hasAutoLoadedModels, loadedModels, addIFCModel]);
 
   // Re-enable selectedElement logging if desired, or keep it minimal
   useEffect(() => {
@@ -969,7 +1001,7 @@ function ViewerContent() {
           <div className="h-full flex flex-col shadow-lg bg-gradient-to-r from-[hsl(var(--card))]">
             <div className="p-2 border-b flex justify-between items-center shrink-0">
               <h3 className="text-sm font-semibold px-2">Model Explorer</h3>
-              <FileUpload isAdding={true} />
+              <FileUpload key={`file-upload-sidebar-${settingsVersion}`} isAdding={true} />
             </div>
 
             {/* Vertical panel group for model tree and properties */}
@@ -1015,7 +1047,7 @@ function ViewerContent() {
               ifcEngineReady &&
               !SKIP_IFC_INITIALIZATION_FOR_TEST && (
                 <div className="absolute inset-0 flex items-center justify-center bg-background/50 backdrop-blur-sm z-10 pointer-events-auto">
-                  <FileUpload isAdding={false} />
+                  <FileUpload key={`file-upload-main-${settingsVersion}`} isAdding={false} />
                 </div>
               )}
             {/* ViewToolbar (will show over global canvas) */}
@@ -1089,7 +1121,7 @@ function ViewerContent() {
               value="settings"
               className="p-4 flex-grow overflow-y-auto"
             >
-              <SettingsPanel />
+              <SettingsPanel onSettingsChanged={handleSettingsChanged} />
             </TabsContent>
           </Tabs>
         </Panel>
@@ -1099,12 +1131,40 @@ function ViewerContent() {
 }
 
 // Re-enable full FileUpload
+interface ModelSource {
+  name: string;
+  url: string;
+}
 interface FileUploadProps {
   isAdding?: boolean;
 }
 function FileUpload({ isAdding = false }: FileUploadProps) {
   const { replaceIFCModel, addIFCModel } = useIFCContext();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [demoModels, setDemoModels] = useState<ModelSource[]>([]);
+  const [savedModels, setSavedModels] = useState<ModelSource[]>([]);
+
+  useEffect(() => {
+    const fetchDemo = async () => {
+      try {
+        const res = await fetch("/data/demo_models.json");
+        if (res.ok) setDemoModels(await res.json());
+      } catch (err) {
+        console.error("Failed to load demo models", err);
+      }
+    };
+    fetchDemo();
+    const stored = localStorage.getItem("appSettings");
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored);
+        setSavedModels(parsed.modelUrls || []);
+      } catch (e) {
+        console.error("Failed to parse stored model urls", e);
+      }
+    }
+  }, []);
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
@@ -1114,60 +1174,193 @@ function FileUpload({ isAdding = false }: FileUploadProps) {
     }
   };
 
+  const handleLoadModel = (model: ModelSource) => {
+    if (isAdding) addIFCModel(model.url, model.name);
+    else replaceIFCModel(model.url, model.name);
+  };
+
   const buttonStyle = isAdding ? "h-8 w-8" : "";
-  const buttonContent = isAdding ? (
+  const commonButtonContent = isAdding ? (
     <PlusSquare className="w-4 h-4" />
   ) : (
     <>
       <UploadCloud className="w-4 h-4 mr-2" /> Load IFC File
     </>
   );
-  const buttonTitle = isAdding
+  const commonButtonTitle = isAdding
     ? "Add another IFC model"
     : "Load initial IFC model";
 
+  const hasSavedModels = savedModels.length > 0;
+  const savedModelUrls = new Set(savedModels.map(m => m.url));
+  const uniqueDemoModels = demoModels.filter(dm => !savedModelUrls.has(dm.url));
+  const hasUniqueDemoModels = uniqueDemoModels.length > 0;
+
   if (isAdding) {
-    return (
-      <>
-        <input
-          type="file"
-          accept=".ifc"
-          className="hidden"
-          ref={fileInputRef}
-          onChange={handleFileChange}
-        />
+    // Sidebar "Add" button
+    if (hasSavedModels) {
+      // If there are user-saved models, show a dropdown.
+      const addButton = (
         <Button
           variant="ghost"
           size="icon"
-          onClick={() => fileInputRef.current?.click()}
-          title={buttonTitle}
+          // No onClick here; DropdownMenuTrigger handles opening.
+          title={commonButtonTitle}
           className={buttonStyle}
         >
-          {buttonContent}
+          {commonButtonContent}
         </Button>
-      </>
-    );
+      );
+      const addMenu = (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>{addButton}</DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onSelect={() => fileInputRef.current?.click()}>
+              Upload IFC File
+            </DropdownMenuItem>
+            {/* hasSavedModels is true here */}
+            <DropdownMenuSeparator />
+            <DropdownMenuLabel className="text-xs">My Models</DropdownMenuLabel>
+            {savedModels.map((m) => (
+              <DropdownMenuItem key={m.url} onSelect={() => handleLoadModel(m)}>
+                {m.name}
+              </DropdownMenuItem>
+            ))}
+            {hasUniqueDemoModels && (
+              <>
+                <DropdownMenuSeparator />
+                <DropdownMenuLabel className="text-xs">Demo Models</DropdownMenuLabel>
+                {uniqueDemoModels.map((m) => (
+                  <DropdownMenuItem key={m.url} onSelect={() => handleLoadModel(m)}>
+                    {m.name}
+                  </DropdownMenuItem>
+                ))}
+              </>
+            )}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      );
+      return (
+        <>
+          <input
+            type="file"
+            accept=".ifc"
+            className="hidden"
+            ref={fileInputRef}
+            onChange={handleFileChange}
+          />
+          {addMenu}
+        </>
+      );
+    } else {
+      // No user-saved models: direct file upload button for sidebar.
+      return (
+        <>
+          <input
+            type="file"
+            accept=".ifc"
+            className="hidden"
+            ref={fileInputRef}
+            onChange={handleFileChange}
+          />
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => fileInputRef.current?.click()} // Direct action
+            title={commonButtonTitle}
+            className={buttonStyle}
+          >
+            {commonButtonContent}
+          </Button>
+        </>
+      );
+    }
+  } else {
+    // Main canvas prompt (isAdding=false)
+    if (hasSavedModels) {
+      // USER has configured models: use the dropdown menu
+      const mainPromptButton = (
+        <Button
+          variant="default"
+          size="default"
+          // No onClick here; DropdownMenuTrigger handles opening.
+          title={commonButtonTitle}
+        >
+          {commonButtonContent}
+        </Button>
+      );
+      const mainPromptMenu = (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>{mainPromptButton}</DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onSelect={() => fileInputRef.current?.click()}>
+              Upload IFC File
+            </DropdownMenuItem>
+            {/* hasSavedModels is true here */}
+            <DropdownMenuSeparator />
+            <DropdownMenuLabel className="text-xs">My Models</DropdownMenuLabel>
+            {savedModels.map((m) => (
+              <DropdownMenuItem key={m.url} onSelect={() => handleLoadModel(m)}>
+                {m.name}
+              </DropdownMenuItem>
+            ))}
+            {hasUniqueDemoModels && (
+              <>
+                <DropdownMenuSeparator />
+                <DropdownMenuLabel className="text-xs">Demo Models</DropdownMenuLabel>
+                {uniqueDemoModels.map((m) => (
+                  <DropdownMenuItem key={m.url} onSelect={() => handleLoadModel(m)}>
+                    {m.name}
+                  </DropdownMenuItem>
+                ))}
+              </>
+            )}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      );
+      return (
+        <div className="text-center p-8 bg-muted/50 rounded-lg backdrop-blur-sm">
+          <h2 className="text-2xl font-bold mb-4">IFC Model Viewer</h2>
+          <p className="mb-6 text-muted-foreground">
+            Upload an IFC file to get started or choose a demo model
+          </p>
+          <input
+            type="file"
+            accept=".ifc"
+            className="hidden"
+            ref={fileInputRef}
+            onChange={handleFileChange}
+          />
+          {mainPromptMenu}
+        </div>
+      );
+    } else {
+      // No USER configured models: simple direct upload button
+      return (
+        <div className="text-center p-8 bg-muted/50 rounded-lg backdrop-blur-sm">
+          <h2 className="text-2xl font-bold mb-4">IFC Model Viewer</h2>
+          <p className="mb-6 text-muted-foreground">
+            Upload an IFC file to get started
+          </p>
+          <input
+            type="file"
+            accept=".ifc"
+            className="hidden"
+            ref={fileInputRef}
+            onChange={handleFileChange}
+          />
+          <Button
+            variant="default"
+            size="default"
+            onClick={() => fileInputRef.current?.click()} // Direct action
+            title={commonButtonTitle}
+          >
+            {commonButtonContent}
+          </Button>
+        </div>
+      );
+    }
   }
-
-  // Restore original styling for the initial load prompt
-  return (
-    <div className="text-center p-8 bg-muted/50 rounded-lg backdrop-blur-sm">
-      <h2 className="text-2xl font-bold mb-4">IFC Model Viewer</h2>
-      <p className="mb-6 text-muted-foreground">
-        Upload an IFC file to get started
-      </p>
-      <input
-        type="file"
-        accept=".ifc"
-        className="hidden"
-        ref={fileInputRef}
-        onChange={handleFileChange}
-      />
-      <Button onClick={() => fileInputRef.current?.click()} title={buttonTitle}>
-        {buttonContent}
-      </Button>
-    </div>
-  );
 }
 
 export default function IFCViewer() {
