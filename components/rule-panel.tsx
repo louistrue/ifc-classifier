@@ -90,6 +90,9 @@ export function RulePanel() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isConfirmRemoveAllOpen, setIsConfirmRemoveAllOpen] = useState(false);
 
+  const [isConfirmRemoveRuleOpen, setIsConfirmRemoveRuleOpen] = useState(false);
+  const [ruleToRemove, setRuleToRemove] = useState<Rule | null>(null);
+
   const propertyOptions =
     availableProperties && availableProperties.length > 0
       ? availableProperties.map((p) => ({ value: p, label: p }))
@@ -101,14 +104,13 @@ export function RulePanel() {
       id: `rule-${Date.now()}`,
       name: base ? `${base.name} Copy` : "",
       description: base?.description || "",
-      conditions:
-        base?.conditions?.map((c) => ({ ...c })) || [
-          {
-            property: propertyOptions[0].value,
-            operator: "equals",
-            value: "",
-          },
-        ],
+      conditions: base?.conditions?.map((c) => ({ ...c })) || [
+        {
+          property: propertyOptions[0].value,
+          operator: "equals",
+          value: "",
+        },
+      ],
       classificationCode:
         base?.classificationCode || Object.keys(classifications)[0] || "",
       active: base?.active ?? true,
@@ -196,14 +198,16 @@ export function RulePanel() {
     }
   };
 
+  const confirmRemoveRule = (rule: Rule) => {
+    setRuleToRemove(rule);
+    setIsConfirmRemoveRuleOpen(true);
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h3 className="text-lg font-medium">Rules Engine</h3>
         <div className="flex items-center gap-2">
-          <Button size="sm" onClick={() => openNewRuleDialog()}>
-            <Plus className="mr-2" /> Add Rule
-          </Button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="sm" className="p-1.5 h-auto">
@@ -233,7 +237,12 @@ export function RulePanel() {
               <DropdownMenuSeparator />
               <DropdownMenuItem
                 className="text-destructive focus:bg-destructive/10 focus:text-destructive"
-                onSelect={() => setIsConfirmRemoveAllOpen(true)}
+                onSelect={() => {
+                  if (rules.length > 0) {
+                    setIsConfirmRemoveAllOpen(true);
+                  }
+                }}
+                disabled={rules.length === 0}
               >
                 <Trash2 className="mr-2 h-4 w-4" /> Remove All Rules
               </DropdownMenuItem>
@@ -332,7 +341,7 @@ export function RulePanel() {
                       variant="ghost"
                       size="icon"
                       className="h-8 w-8 text-red-500 hover:text-red-600 hover:bg-red-500/10"
-                      onClick={() => removeRule(rule.id)}
+                      onClick={() => confirmRemoveRule(rule)}
                       title="Delete Rule"
                     >
                       <Trash2 className="h-5 w-5" />
@@ -377,7 +386,11 @@ export function RulePanel() {
       )}
 
       <div className="flex justify-center mt-4">
-        <Button variant="outline" size="icon" onClick={() => openNewRuleDialog()}>
+        <Button
+          variant="outline"
+          size="icon"
+          onClick={() => openNewRuleDialog()}
+        >
           <Plus className="h-5 w-5" />
         </Button>
       </div>
@@ -570,7 +583,8 @@ export function RulePanel() {
               </div>
             </DialogHeader>
             <DialogDescription className="mt-2 text-sm text-muted-foreground">
-              Are you sure you want to remove all rules? This action cannot be undone.
+              Are you sure you want to remove all rules? This action cannot be
+              undone.
             </DialogDescription>
             <DialogFooter className="mt-6 sm:justify-end gap-2">
               <Button
@@ -589,6 +603,53 @@ export function RulePanel() {
                 className="sm:w-auto w-full"
               >
                 Remove All
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
+      {ruleToRemove && isConfirmRemoveRuleOpen && (
+        <Dialog
+          open={isConfirmRemoveRuleOpen}
+          onOpenChange={setIsConfirmRemoveRuleOpen}
+        >
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <div className="flex items-center space-x-2">
+                <AlertTriangle className="h-6 w-6 text-destructive" />
+                <DialogTitle className="text-lg font-medium">
+                  Confirm Rule Removal
+                </DialogTitle>
+              </div>
+            </DialogHeader>
+            <DialogDescription className="mt-2 text-sm text-muted-foreground">
+              Are you sure you want to remove the rule "
+              <span className="font-semibold text-foreground">
+                {ruleToRemove.name || ruleToRemove.id}
+              </span>
+              "? This action cannot be undone.
+            </DialogDescription>
+            <DialogFooter className="mt-6 sm:justify-end gap-2">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setIsConfirmRemoveRuleOpen(false);
+                  setRuleToRemove(null);
+                }}
+                className="sm:w-auto w-full"
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={() => {
+                  removeRule(ruleToRemove.id);
+                  setIsConfirmRemoveRuleOpen(false);
+                  setRuleToRemove(null);
+                }}
+                className="sm:w-auto w-full"
+              >
+                Remove Rule
               </Button>
             </DialogFooter>
           </DialogContent>

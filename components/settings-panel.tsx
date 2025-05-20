@@ -60,36 +60,40 @@ export function SettingsPanel() {
 
   return (
     <div className="space-y-6">
-      <h3 className="text-lg font-medium">Application Settings</h3>
-      <div className="grid gap-4">
-        <div className="grid grid-cols-4 items-center gap-4">
-          <Label htmlFor="default-classification" className="text-right">
-            Default Classification
-          </Label>
-          <Select
-            value={defaultClassification}
-            onValueChange={setDefaultClassification}
-          >
-            <SelectTrigger id="default-classification" className="col-span-3">
-              <SelectValue placeholder="None" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="none_placeholder_value">None</SelectItem>
-              <SelectItem value="uniclass">Uniclass Pr</SelectItem>
-              <SelectItem value="ebkph">eBKP-H</SelectItem>
-            </SelectContent>
-          </Select>
+      <h3 className="text-lg font-medium mb-6">Application Settings</h3>
+      <div className="space-y-4">
+        <div className="p-4 rounded-lg bg-muted/30">
+          <div className="grid grid-cols-3 items-center gap-4">
+            <Label htmlFor="default-classification" className="col-span-1">
+              Default Classification
+            </Label>
+            <Select
+              value={defaultClassification}
+              onValueChange={setDefaultClassification}
+            >
+              <SelectTrigger id="default-classification" className="col-span-2">
+                <SelectValue placeholder="None" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">None</SelectItem>
+                <SelectItem value="uniclass">Uniclass Pr</SelectItem>
+                <SelectItem value="ebkph">eBKP-H</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
-        <div className="grid grid-cols-4 items-center gap-4">
-          <Label htmlFor="autoload" className="text-right">
-            Always load on start
-          </Label>
-          <div className="col-span-3">
-            <Switch
-              id="autoload"
-              checked={alwaysLoad}
-              onCheckedChange={setAlwaysLoad}
-            />
+        <div className="p-4 rounded-lg bg-muted/30">
+          <div className="grid grid-cols-3 items-center gap-4">
+            <Label htmlFor="autoload" className="col-span-1">
+              Always load on start
+            </Label>
+            <div className="col-span-2">
+              <Switch
+                id="autoload"
+                checked={alwaysLoad}
+                onCheckedChange={setAlwaysLoad}
+              />
+            </div>
           </div>
         </div>
       </div>
