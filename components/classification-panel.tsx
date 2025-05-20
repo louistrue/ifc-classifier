@@ -1,8 +1,13 @@
 "use client"
 
-import { useState, useEffect, useRef, useMemo } from "react"
+import React, { useState, useEffect, useRef, useMemo } from "react"
 import { FixedSizeList as List } from "react-window"; // Import react-window
-import { useIFCContext, type SelectedElementInfo, type LoadedModelData } from "@/context/ifc-context"
+import {
+  useIFCContext,
+  type SelectedElementInfo,
+  type LoadedModelData,
+  type ClassificationItem,
+} from "@/context/ifc-context"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -30,14 +35,6 @@ import {
   type ExportClassificationData
 } from "@/services/ifc-export-service"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-
-// Define an interface for our classification structure
-interface ClassificationItem {
-  code: string;
-  name: string;
-  color: string;
-  elements: SelectedElementInfo[]; // Use SelectedElementInfo for stricter typing
-}
 
 // Helper function to compare two arrays of SelectedElementInfo (order-independent)
 function areElementArraysEqual(arr1: any[], arr2: any[]): boolean {
@@ -69,6 +66,8 @@ export function ClassificationPanel() {
     assignClassificationToElement,
     unassignClassificationFromElement,
     unassignElementFromAllClassifications,
+    exportClassificationsAsJson,
+    importClassificationsFromJson,
   } = useIFCContext()
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
   const [newClassification, setNewClassification] = useState({
@@ -109,6 +108,29 @@ export function ClassificationPanel() {
   const exportableModels = useMemo(() => {
     return loadedModels.filter(model => model.rawBuffer && model.modelID !== null)
   }, [loadedModels])
+
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const handleExportJson = () => {
+    const json = exportClassificationsAsJson()
+    downloadFile(json, 'classifications.json', 'application/json')
+  }
+
+  const triggerImport = () => fileInputRef.current?.click()
+
+  const handleImportJson = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = ev => {
+      const text = ev.target?.result
+      if (typeof text === 'string') {
+        importClassificationsFromJson(text)
+      }
+    }
+    reader.readAsText(file)
+    e.target.value = ''
+  }
 
   // Effect to manage the default selected model for export
   useEffect(() => {
@@ -464,8 +486,9 @@ export function ClassificationPanel() {
       <div className="shrink-0 space-y-2">
         <div className="flex justify-between items-center gap-2">
           <h3 className="text-lg font-medium whitespace-nowrap">Classifications</h3>
-          <TooltipProvider delayDuration={300}>
-            <div className="flex items-center p-0.5 bg-muted rounded-full">
+          <div className="flex items-center gap-2">
+            <TooltipProvider delayDuration={300}>
+              <div className="flex items-center p-0.5 bg-muted rounded-full">
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button
@@ -504,11 +527,48 @@ export function ClassificationPanel() {
                   <p>Apply all classification colors to the model.</p>
                 </TooltipContent>
               </Tooltip>
-            </div>
-          </TooltipProvider>
+              </div>
+            </TooltipProvider>
+
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button size="icon" variant="ghost">
+                  <MoreHorizontal className="w-5 h-5" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuLabel className="text-xs text-muted-foreground">Default Classification Sets</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                {isLoadingUniclass && <DropdownMenuItem disabled>Loading Uniclass Pr...</DropdownMenuItem>}
+                {errorLoadingUniclass && <DropdownMenuItem disabled className="text-destructive">Uniclass Pr Error: {errorLoadingUniclass}</DropdownMenuItem>}
+                {!isLoadingUniclass && !errorLoadingUniclass && defaultUniclassPr.length > 0 && (
+                  <DropdownMenuItem onClick={handleAddAllUniclassPr} disabled={areAllUniclassAdded()}>
+                    Load Uniclass Pr ({defaultUniclassPr.length} items)
+                  </DropdownMenuItem>
+                )}
+                {!isLoadingUniclass && !errorLoadingUniclass && defaultUniclassPr.length === 0 && (
+                  <DropdownMenuItem disabled>No Uniclass Pr items found.</DropdownMenuItem>
+                )}
+                {isLoadingEBKPH && <DropdownMenuItem disabled>Loading eBKP-H...</DropdownMenuItem>}
+                {errorLoadingEBKPH && <DropdownMenuItem disabled className="text-destructive">eBKP-H Error: {errorLoadingEBKPH}</DropdownMenuItem>}
+                {!isLoadingEBKPH && !errorLoadingEBKPH && defaultEBKPH.length > 0 && (
+                  <DropdownMenuItem onClick={handleAddAlleBKPH} disabled={areAlleBKPHAdded()}>
+                    Load eBKP-H ({defaultEBKPH.length} items)
+                  </DropdownMenuItem>
+                )}
+                {!isLoadingEBKPH && !errorLoadingEBKPH && defaultEBKPH.length === 0 && (
+                  <DropdownMenuItem disabled>No eBKP-H items found.</DropdownMenuItem>
+                )}
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleExportJson}>Export Classifications</DropdownMenuItem>
+                <DropdownMenuItem onSelect={(e) => { e.preventDefault(); triggerImport(); }}>Import Classifications</DropdownMenuItem>
+              </DropdownMenuContent>
+              <input type="file" accept="application/json" ref={fileInputRef} onChange={handleImportJson} className="hidden" />
+            </DropdownMenu>
+          </div>
         </div>
 
-        {/* Row 2: Action Buttons (Add New, Add Default) - Aligned to the center */}
+        {/* Action Button: Add New Classification */}
         <div className="flex justify-center items-center gap-2 flex-wrap sm:flex-nowrap">
           <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
             <DialogTrigger asChild>
@@ -562,38 +622,6 @@ export function ClassificationPanel() {
             </DialogContent>
           </Dialog>
 
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button size="sm" variant="outline" className="whitespace-nowrap">
-                Add Default
-                <ChevronDown className="w-4 h-4 ml-2 flex-shrink-0" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuLabel>Default Classification Sets</DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              {isLoadingUniclass && <DropdownMenuItem disabled>Loading Uniclass Pr...</DropdownMenuItem>}
-              {errorLoadingUniclass && <DropdownMenuItem disabled className="text-destructive">Uniclass Pr Error: {errorLoadingUniclass}</DropdownMenuItem>}
-              {!isLoadingUniclass && !errorLoadingUniclass && defaultUniclassPr.length > 0 && (
-                <DropdownMenuItem onClick={handleAddAllUniclassPr} disabled={areAllUniclassAdded()}>
-                  Load Uniclass Pr ({defaultUniclassPr.length} items)
-                </DropdownMenuItem>
-              )}
-              {!isLoadingUniclass && !errorLoadingUniclass && defaultUniclassPr.length === 0 && (
-                <DropdownMenuItem disabled>No Uniclass Pr items found.</DropdownMenuItem>
-              )}
-              {isLoadingEBKPH && <DropdownMenuItem disabled>Loading eBKP-H...</DropdownMenuItem>}
-              {errorLoadingEBKPH && <DropdownMenuItem disabled className="text-destructive">eBKP-H Error: {errorLoadingEBKPH}</DropdownMenuItem>}
-              {!isLoadingEBKPH && !errorLoadingEBKPH && defaultEBKPH.length > 0 && (
-                <DropdownMenuItem onClick={handleAddAlleBKPH} disabled={areAlleBKPHAdded()}>
-                  Load eBKP-H ({defaultEBKPH.length} items)
-                </DropdownMenuItem>
-              )}
-              {!isLoadingEBKPH && !errorLoadingEBKPH && defaultEBKPH.length === 0 && (
-                <DropdownMenuItem disabled>No eBKP-H items found.</DropdownMenuItem>
-              )}
-            </DropdownMenuContent>
-          </DropdownMenu>
         </div>
       </div>
 
