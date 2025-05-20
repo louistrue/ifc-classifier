@@ -18,23 +18,39 @@ interface AppSettings {
 
 const SETTINGS_KEY = "appSettings";
 
-export function SettingsPanel() {
-  const [defaultClassification, setDefaultClassification] = useState<string>("");
-  const [alwaysLoad, setAlwaysLoad] = useState<boolean>(false);
-
-  // Load settings from localStorage on mount
-  useEffect(() => {
+// Helper function to safely get settings from localStorage for initialization
+const getInitialSettings = (): AppSettings => {
+  if (typeof window !== "undefined") {
+    // Ensure running in browser
     const stored = localStorage.getItem(SETTINGS_KEY);
     if (stored) {
       try {
-        const parsed: AppSettings = JSON.parse(stored);
-        setDefaultClassification(parsed.defaultClassification || "");
-        setAlwaysLoad(parsed.alwaysLoad || false);
+        const parsed = JSON.parse(stored) as AppSettings;
+        // Ensure structure is what we expect, provide defaults if not
+        return {
+          defaultClassification: parsed.defaultClassification || "",
+          alwaysLoad: parsed.alwaysLoad || false,
+        };
       } catch (err) {
-        console.error("Failed to parse stored settings", err);
+        console.error(
+          "Failed to parse stored settings for initial state:",
+          err
+        );
       }
     }
-  }, []);
+  }
+  // Default settings if nothing in localStorage or if parsing failed
+  return { defaultClassification: "", alwaysLoad: false };
+};
+
+export function SettingsPanel() {
+  // Initialize state directly from localStorage
+  const [defaultClassification, setDefaultClassification] = useState<string>(
+    () => getInitialSettings().defaultClassification
+  );
+  const [alwaysLoad, setAlwaysLoad] = useState<boolean>(
+    () => getInitialSettings().alwaysLoad
+  );
 
   // Persist settings whenever they change
   useEffect(() => {
@@ -58,7 +74,7 @@ export function SettingsPanel() {
               <SelectValue placeholder="None" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">None</SelectItem>
+              <SelectItem value="none_placeholder_value">None</SelectItem>
               <SelectItem value="uniclass">Uniclass Pr</SelectItem>
               <SelectItem value="ebkph">eBKP-H</SelectItem>
             </SelectContent>

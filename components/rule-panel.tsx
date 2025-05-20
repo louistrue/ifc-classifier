@@ -425,13 +425,13 @@ export function RulePanel() {
                       <SelectValue placeholder="Select classification to apply" />
                     </SelectTrigger>
                     <SelectContent>
-                      {Object.entries(classifications).map(
-                        ([code, classification]) => (
+                      {Object.entries(classifications)
+                        .filter(([code]) => code !== "")
+                        .map(([code, classification]) => (
                           <SelectItem key={code} value={code}>
                             {classification.name} ({code})
                           </SelectItem>
-                        )
-                      )}
+                        ))}
                     </SelectContent>
                   </Select>
                 </div>
