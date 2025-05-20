@@ -12,6 +12,7 @@ import React, {
 import type { IfcAPI } from "web-ifc"; // Import IfcAPI type
 import { Properties } from "web-ifc"; // Ensure Properties is imported
 import { parseRulesFromExcel } from "@/services/rule-import-service";
+import { exportRulesToExcel } from "@/services/rule-export-service";
 
 // Define types for Rules
 export interface RuleCondition {
@@ -132,6 +133,7 @@ interface IFCContextType {
   exportClassificationsAsJson: () => string;
   importClassificationsFromJson: (json: string) => void;
   exportRulesAsJson: () => string;
+  exportRulesAsExcel: () => ArrayBuffer;
   importRulesFromJson: (json: string) => void;
   importRulesFromExcel: (file: File) => Promise<void>;
   removeAllRules: () => void;
@@ -1444,6 +1446,10 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
     return JSON.stringify(rules, null, 2);
   }, [rules]);
 
+  const exportRulesAsExcel = useCallback((): ArrayBuffer => {
+    return exportRulesToExcel(rules);
+  }, [rules]);
+
   const importRulesFromJson = useCallback(
     (json: string) => {
       try {
@@ -1631,6 +1637,7 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
         exportClassificationsAsJson,
         importClassificationsFromJson,
         exportRulesAsJson,
+        exportRulesAsExcel,
         importRulesFromJson,
         importRulesFromExcel,
         removeAllRules,
