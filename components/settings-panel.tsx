@@ -16,6 +16,9 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Trash2, Check, Plus, Library } from "lucide-react";
 
 interface ModelSource {
   name: string;
@@ -154,103 +157,95 @@ export function SettingsPanel({ onSettingsChanged }: SettingsPanelProps) {
             </div>
           </div>
           <div className="p-4 rounded-lg bg-muted/30 space-y-4">
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Label className="block mb-2 cursor-help">Model URLs</Label>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Manage a list of IFC model URLs. You can add custom URLs or use the demo models.</p>
-              </TooltipContent>
-            </Tooltip>
-            {modelUrls.length > 0 && (
-              <ul className="space-y-1">
-                {modelUrls.map((m, idx) => (
-                  <li key={idx} className="flex items-center justify-between">
-                    <span className="truncate mr-2" title={m.url}>
-                      {m.name}
-                    </span>
-                    <button
-                      onClick={() =>
-                        setModelUrls(modelUrls.filter((_, i) => i !== idx))
-                      }
-                      className="text-destructive hover:underline text-sm"
-                    >
-                      remove
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            )}
-            <div className="grid grid-cols-3 gap-2">
+            <div className="flex justify-between items-center mb-2">
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <input
-                    className="col-span-1 border rounded px-2 py-1 text-sm cursor-help"
-                    placeholder="Name"
-                    value={newModelName}
-                    onChange={(e) => setNewModelName(e.target.value)}
-                  />
+                  <Label className="cursor-help">Model URLs</Label>
                 </TooltipTrigger>
                 <TooltipContent>
-                  <p>Enter a descriptive name for the model URL.</p>
-                </TooltipContent>
-              </Tooltip>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <input
-                    className="col-span-2 border rounded px-2 py-1 text-sm cursor-help"
-                    placeholder="URL"
-                    value={newModelUrl}
-                    onChange={(e) => setNewModelUrl(e.target.value)}
-                  />
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Enter the direct URL to an IFC model file (.ifc).</p>
-                </TooltipContent>
-              </Tooltip>
-            </div>
-            <div className="flex gap-2 justify-end">
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <button
-                    className="text-sm underline cursor-help"
-                    onClick={() => {
-                      if (!newModelName || !newModelUrl) return;
-                      setModelUrls([...modelUrls, { name: newModelName, url: newModelUrl }]);
-                      setNewModelName("");
-                      setNewModelUrl("");
-                    }}
-                  >
-                    add
-                  </button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Add the specified name and URL to your list of models.</p>
+                  <p>Manage a list of IFC model URLs. You can add custom URLs or use the demo models.</p>
                 </TooltipContent>
               </Tooltip>
               {demoModels.length > 0 && (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <button
-                      className="text-sm underline cursor-help"
-                      onClick={() => {
-                        const combined = [...modelUrls];
-                        demoModels.forEach((d) => {
-                          if (!combined.find((m) => m.url === d.url)) {
-                            combined.push(d);
-                          }
-                        });
-                        setModelUrls(combined);
-                      }}
-                    >
-                      add demo models
-                    </button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>Add a predefined set of demo models to your list. Duplicates will be ignored.</p>
-                  </TooltipContent>
-                </Tooltip>
+                <Button
+                  variant="link"
+                  size="sm"
+                  className="p-0 h-auto text-muted-foreground hover:text-primary"
+                  onClick={() => {
+                    const combined = [...modelUrls];
+                    demoModels.forEach((d) => {
+                      if (!combined.find((mU) => mU.url === d.url && mU.name === d.name)) {
+                        combined.push(d);
+                      }
+                    });
+                    setModelUrls(combined);
+                  }}
+                >
+                  <Library className="h-4 w-4 mr-1" />
+                  Demo Models
+                </Button>
               )}
+            </div>
+            {modelUrls.length > 0 && (
+              <ul className="space-y-2">
+                {modelUrls.map((m, idx) => {
+                  const isCustom = !demoModels.some(dm => dm.url === m.url && dm.name === m.name);
+                  return (
+                    <li key={idx} className="flex items-center justify-between p-2.5 rounded-md bg-background/50 hover:bg-muted/40 transition-colors shadow-sm border">
+                      <div className="flex items-center overflow-hidden">
+                        {isCustom && <Check className="h-5 w-5 mr-2 text-green-500 flex-shrink-0" />}
+                        {!isCustom && <Library className="h-5 w-5 mr-2 text-blue-500 flex-shrink-0" />}
+                        <div className="flex flex-col overflow-hidden">
+                          <span className="font-medium truncate" title={m.name}>{m.name}</span>
+                          <span className="text-xs text-muted-foreground truncate" title={m.url}>{m.url}</span>
+                        </div>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="text-destructive hover:text-destructive/80 ml-2 flex-shrink-0"
+                        onClick={() =>
+                          setModelUrls(modelUrls.filter((_, i) => i !== idx))
+                        }
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+            {/* Inputs for adding a new URL - combined with inline add button */}
+            <div className="grid grid-cols-3 items-end gap-2 pt-2">
+              <Input
+                placeholder="Name"
+                value={newModelName}
+                onChange={(e) => setNewModelName(e.target.value)}
+                className="col-span-1"
+              />
+              {/* Wrapper for URL input and inline Add button */}
+              <div className="col-span-2 flex items-center gap-2">
+                <Input
+                  placeholder="URL"
+                  value={newModelUrl}
+                  onChange={(e) => setNewModelUrl(e.target.value)}
+                  className="flex-grow" // Input takes available space
+                />
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => {
+                    if (!newModelName || !newModelUrl) return;
+                    setModelUrls([...modelUrls, { name: newModelName, url: newModelUrl }]);
+                    setNewModelName("");
+                    setNewModelUrl("");
+                  }}
+                  disabled={!newModelName || !newModelUrl} // Disable if inputs are empty
+                  title="Add this URL"
+                >
+                  <Check className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
           </div>
         </div>
