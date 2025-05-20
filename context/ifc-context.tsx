@@ -128,6 +128,9 @@ interface IFCContextType {
 
   exportClassificationsAsJson: () => string;
   importClassificationsFromJson: (json: string) => void;
+  exportRulesAsJson: () => string;
+  importRulesFromJson: (json: string) => void;
+  removeAllRules: () => void;
 
   assignClassificationToElement: (
     classificationCode: string,
@@ -1416,6 +1419,30 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
     [setClassifications]
   );
 
+  const exportRulesAsJson = useCallback((): string => {
+    return JSON.stringify(rules, null, 2);
+  }, [rules]);
+
+  const importRulesFromJson = useCallback(
+    (json: string) => {
+      try {
+        const parsed = JSON.parse(json) as Rule[];
+        if (!Array.isArray(parsed)) {
+          console.error("Rules JSON is not an array");
+          return;
+        }
+        setRules(parsed);
+      } catch (e) {
+        console.error("Failed to import rules", e);
+      }
+    },
+    [setRules]
+  );
+
+  const removeAllRules = useCallback(() => {
+    setRules([]);
+  }, [setRules]);
+
   const toggleUserHideElement = useCallback(
     (elementToToggle: SelectedElementInfo) => {
       console.log(
@@ -1528,6 +1555,9 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
         previewRuleHighlight,
         exportClassificationsAsJson,
         importClassificationsFromJson,
+        exportRulesAsJson,
+        importRulesFromJson,
+        removeAllRules,
         toggleUserHideElement,
         unhideLastElement,
         unhideAllElements,

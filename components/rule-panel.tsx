@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Rule, RuleCondition, useIFCContext } from "@/context/ifc-context";
 import { Button } from "@/components/ui/button";
 import {
@@ -46,7 +46,21 @@ import {
   CheckCircle2,
   XCircle,
   Tag,
+  MoreHorizontal,
+  FileOutput,
+  ArchiveRestore,
+  AlertTriangle,
+  CopyPlus,
 } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { downloadFile } from "@/services/ifc-export-service";
 
 const availableOperators = [
   { value: "equals", label: "Equals" },
@@ -66,30 +80,38 @@ export function RulePanel() {
     previewRuleHighlight,
     previewingRuleId,
     availableProperties,
+    exportRulesAsJson,
+    importRulesFromJson,
+    removeAllRules,
   } = useIFCContext();
   const [isRuleDialogOpen, setIsRuleDialogOpen] = useState(false);
   const [currentRule, setCurrentRule] = useState<Rule | null>(null);
   const [editingRule, setEditingRule] = useState<Partial<Rule> | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isConfirmRemoveAllOpen, setIsConfirmRemoveAllOpen] = useState(false);
 
   const propertyOptions =
     availableProperties && availableProperties.length > 0
       ? availableProperties.map((p) => ({ value: p, label: p }))
       : [{ value: "ifcType", label: "ifcType" }];
 
-  const openNewRuleDialog = () => {
+  const openNewRuleDialog = (base?: Rule) => {
+    setCurrentRule(null);
     setEditingRule({
       id: `rule-${Date.now()}`,
-      name: "",
-      description: "",
-      conditions: [
-        {
-          property: propertyOptions[0].value,
-          operator: "equals",
-          value: "",
-        },
-      ],
-      classificationCode: Object.keys(classifications)[0] || "", // Default to first classification
-      active: true,
+      name: base ? `${base.name} Copy` : "",
+      description: base?.description || "",
+      conditions:
+        base?.conditions?.map((c) => ({ ...c })) || [
+          {
+            property: propertyOptions[0].value,
+            operator: "equals",
+            value: "",
+          },
+        ],
+      classificationCode:
+        base?.classificationCode || Object.keys(classifications)[0] || "",
+      active: base?.active ?? true,
     });
     setIsRuleDialogOpen(true);
   };
@@ -98,6 +120,27 @@ export function RulePanel() {
     setCurrentRule(rule);
     setEditingRule({ ...rule });
     setIsRuleDialogOpen(true);
+  };
+
+  const handleExportJson = () => {
+    const json = exportRulesAsJson();
+    downloadFile(json, "rules.json", "application/json");
+  };
+
+  const triggerImport = () => fileInputRef.current?.click();
+
+  const handleImportJson = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const text = ev.target?.result;
+      if (typeof text === "string") {
+        importRulesFromJson(text);
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = "";
   };
 
   const handleSaveRule = () => {
@@ -157,9 +200,46 @@ export function RulePanel() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h3 className="text-lg font-medium">Rules Engine</h3>
-        <Button size="sm" onClick={openNewRuleDialog}>
-          <Plus className="mr-2" /> Add Rule
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button size="sm" onClick={() => openNewRuleDialog()}>
+            <Plus className="mr-2" /> Add Rule
+          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="sm" className="p-1.5 h-auto">
+                <MoreHorizontal className="w-5 h-5 text-muted-foreground" />
+                <span className="sr-only">Manage Rules</span>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onSelect={() => openNewRuleDialog()}>
+                <Plus className="mr-2 h-4 w-4" /> Add New Rule
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuLabel className="text-xs font-semibold text-muted-foreground px-2 py-1.5">
+                Manage Data
+              </DropdownMenuLabel>
+              <DropdownMenuItem onClick={handleExportJson}>
+                <FileOutput className="mr-2 h-4 w-4" /> Export Rules
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onSelect={(e) => {
+                  e.preventDefault();
+                  triggerImport();
+                }}
+              >
+                <ArchiveRestore className="mr-2 h-4 w-4" /> Load Rules
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                className="text-destructive focus:bg-destructive/10 focus:text-destructive"
+                onSelect={() => setIsConfirmRemoveAllOpen(true)}
+              >
+                <Trash2 className="mr-2 h-4 w-4" /> Remove All Rules
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       </div>
 
       {rules.length === 0 ? (
@@ -242,6 +322,15 @@ export function RulePanel() {
                     <Button
                       variant="ghost"
                       size="icon"
+                      className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-accent"
+                      onClick={() => openNewRuleDialog(rule)}
+                      title="Copy Rule"
+                    >
+                      <CopyPlus className="h-5 w-5" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
                       className="h-8 w-8 text-red-500 hover:text-red-600 hover:bg-red-500/10"
                       onClick={() => removeRule(rule.id)}
                       title="Delete Rule"
@@ -286,6 +375,12 @@ export function RulePanel() {
           })}
         </div>
       )}
+
+      <div className="flex justify-center mt-4">
+        <Button variant="outline" size="icon" onClick={() => openNewRuleDialog()}>
+          <Plus className="h-5 w-5" />
+        </Button>
+      </div>
 
       {editingRule && (
         <Dialog open={isRuleDialogOpen} onOpenChange={setIsRuleDialogOpen}>
@@ -460,6 +555,52 @@ export function RulePanel() {
           </DialogContent>
         </Dialog>
       )}
+      {isConfirmRemoveAllOpen && (
+        <Dialog
+          open={isConfirmRemoveAllOpen}
+          onOpenChange={setIsConfirmRemoveAllOpen}
+        >
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <div className="flex items-center space-x-2">
+                <AlertTriangle className="h-6 w-6 text-destructive" />
+                <DialogTitle className="text-lg font-medium">
+                  Confirm Removal
+                </DialogTitle>
+              </div>
+            </DialogHeader>
+            <DialogDescription className="mt-2 text-sm text-muted-foreground">
+              Are you sure you want to remove all rules? This action cannot be undone.
+            </DialogDescription>
+            <DialogFooter className="mt-6 sm:justify-end gap-2">
+              <Button
+                variant="outline"
+                onClick={() => setIsConfirmRemoveAllOpen(false)}
+                className="sm:w-auto w-full"
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={() => {
+                  removeAllRules();
+                  setIsConfirmRemoveAllOpen(false);
+                }}
+                className="sm:w-auto w-full"
+              >
+                Remove All
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
+      <input
+        type="file"
+        accept="application/json"
+        ref={fileInputRef}
+        onChange={handleImportJson}
+        className="hidden"
+      />
     </div>
   );
 }
