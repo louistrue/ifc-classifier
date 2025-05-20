@@ -48,6 +48,7 @@ IFC Classifier helps you classify IFC elements without needing expert knowledge 
   - Example: "Put all external, non-load bearing walls (except basement) into category C02.01"
   - See rule results live on your model
   - Import rules from JSON or Excel for easy setup
+  - Export rules to JSON or Excel for sharing
 
 - **✍️ Export Your Work:**
 
@@ -74,6 +75,7 @@ IFC Classifier helps you classify IFC elements without needing expert knowledge 
 **May 21, 2025:**
 
 - Added ability to import rule definitions from Excel (.xlsx) files.
+- Added ability to export rules to Excel for easier sharing.
 
 **May 19, 2025:**
 

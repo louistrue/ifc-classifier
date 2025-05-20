@@ -287,7 +287,7 @@ export async function exportIfcWithClassificationsService(
 }
 
 // --- Helper function for downloading ---
-export function downloadFile(content: string, fileName: string, contentType: string) {
+export function downloadFile(content: BlobPart, fileName: string, contentType: string) {
     const a = document.createElement("a");
     const file = new Blob([content], { type: contentType });
     a.href = URL.createObjectURL(file);
@@ -296,4 +296,4 @@ export function downloadFile(content: string, fileName: string, contentType: str
     a.click();
     URL.revokeObjectURL(a.href);
     document.body.removeChild(a);
-} 
+}

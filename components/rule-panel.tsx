@@ -48,6 +48,7 @@ import {
   Tag,
   MoreHorizontal,
   FileOutput,
+  FileSpreadsheet,
   ArchiveRestore,
   AlertTriangle,
   CopyPlus,
@@ -81,6 +82,7 @@ export function RulePanel() {
     previewingRuleId,
     availableProperties,
     exportRulesAsJson,
+    exportRulesAsExcel,
     importRulesFromJson,
     importRulesFromExcel,
     removeAllRules,
@@ -158,6 +160,15 @@ export function RulePanel() {
   const handleExportJson = () => {
     const json = exportRulesAsJson();
     downloadFile(json, "rules.json", "application/json");
+  };
+
+  const handleExportExcel = () => {
+    const wbData = exportRulesAsExcel();
+    downloadFile(
+      wbData,
+      "rules.xlsx",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    );
   };
 
   const triggerImport = () => fileInputRef.current?.click();
@@ -319,6 +330,9 @@ export function RulePanel() {
               </DropdownMenuLabel>
               <DropdownMenuItem onClick={handleExportJson}>
                 <FileOutput className="mr-2 h-4 w-4" /> Export Rules
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleExportExcel}>
+                <FileSpreadsheet className="mr-2 h-4 w-4" /> Export to Excel
               </DropdownMenuItem>
               <DropdownMenuItem
                 onSelect={(e) => {
