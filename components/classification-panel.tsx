@@ -1,8 +1,13 @@
 "use client"
 
-import { useState, useEffect, useRef, useMemo } from "react"
+import React, { useState, useEffect, useRef, useMemo } from "react"
 import { FixedSizeList as List } from "react-window"; // Import react-window
-import { useIFCContext, type SelectedElementInfo, type LoadedModelData } from "@/context/ifc-context"
+import {
+  useIFCContext,
+  type SelectedElementInfo,
+  type LoadedModelData,
+  type ClassificationItem,
+} from "@/context/ifc-context"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -30,14 +35,6 @@ import {
   type ExportClassificationData
 } from "@/services/ifc-export-service"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-
-// Define an interface for our classification structure
-interface ClassificationItem {
-  code: string;
-  name: string;
-  color: string;
-  elements: SelectedElementInfo[]; // Use SelectedElementInfo for stricter typing
-}
 
 // Helper function to compare two arrays of SelectedElementInfo (order-independent)
 function areElementArraysEqual(arr1: any[], arr2: any[]): boolean {
@@ -69,6 +66,8 @@ export function ClassificationPanel() {
     assignClassificationToElement,
     unassignClassificationFromElement,
     unassignElementFromAllClassifications,
+    exportClassificationsAsJson,
+    importClassificationsFromJson,
   } = useIFCContext()
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
   const [newClassification, setNewClassification] = useState({
@@ -109,6 +108,29 @@ export function ClassificationPanel() {
   const exportableModels = useMemo(() => {
     return loadedModels.filter(model => model.rawBuffer && model.modelID !== null)
   }, [loadedModels])
+
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const handleExportJson = () => {
+    const json = exportClassificationsAsJson()
+    downloadFile(json, 'classifications.json', 'application/json')
+  }
+
+  const triggerImport = () => fileInputRef.current?.click()
+
+  const handleImportJson = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = ev => {
+      const text = ev.target?.result
+      if (typeof text === 'string') {
+        importClassificationsFromJson(text)
+      }
+    }
+    reader.readAsText(file)
+    e.target.value = ''
+  }
 
   // Effect to manage the default selected model for export
   useEffect(() => {
@@ -565,7 +587,7 @@ export function ClassificationPanel() {
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button size="sm" variant="outline" className="whitespace-nowrap">
-                Add Default
+                Manage
                 <ChevronDown className="w-4 h-4 ml-2 flex-shrink-0" />
               </Button>
             </DropdownMenuTrigger>
@@ -592,7 +614,11 @@ export function ClassificationPanel() {
               {!isLoadingEBKPH && !errorLoadingEBKPH && defaultEBKPH.length === 0 && (
                 <DropdownMenuItem disabled>No eBKP-H items found.</DropdownMenuItem>
               )}
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={handleExportJson}>Export Classifications</DropdownMenuItem>
+              <DropdownMenuItem onSelect={(e) => { e.preventDefault(); triggerImport(); }}>Import Classifications</DropdownMenuItem>
             </DropdownMenuContent>
+            <input type="file" accept="application/json" ref={fileInputRef} onChange={handleImportJson} className="hidden" />
           </DropdownMenu>
         </div>
       </div>
