@@ -40,6 +40,9 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
   Plus,
@@ -58,6 +61,7 @@ import {
   Upload,
   FileOutput,
   FileInput,
+  FileSpreadsheet,
   ArchiveRestore,
   Star,
 } from "lucide-react";
@@ -120,7 +124,9 @@ export function ClassificationPanel() {
     unassignElementFromAllClassifications,
     removeAllClassifications,
     exportClassificationsAsJson,
+    exportClassificationsAsExcel,
     importClassificationsFromJson,
+    importClassificationsFromExcel,
   } = useIFCContext();
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [newClassification, setNewClassification] = useState({
@@ -187,13 +193,24 @@ export function ClassificationPanel() {
   }, [loadedModels]);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const excelInputRef = useRef<HTMLInputElement>(null);
 
   const handleExportJson = () => {
     const json = exportClassificationsAsJson();
     downloadFile(json, "classifications.json", "application/json");
   };
 
+  const handleExportExcel = () => {
+    const wbData = exportClassificationsAsExcel();
+    downloadFile(
+      wbData,
+      "classifications.xlsx",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    );
+  };
+
   const triggerImport = () => fileInputRef.current?.click();
+  const triggerExcelImport = () => excelInputRef.current?.click();
 
   const handleImportJson = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -206,6 +223,13 @@ export function ClassificationPanel() {
       }
     };
     reader.readAsText(file);
+    e.target.value = "";
+  };
+
+  const handleImportExcel = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    importClassificationsFromExcel(file);
     e.target.value = "";
   };
 
@@ -889,19 +913,42 @@ export function ClassificationPanel() {
                 <DropdownMenuLabel className="text-xs font-semibold text-muted-foreground px-2 py-1.5">
                   Manage Data
                 </DropdownMenuLabel>
-                <DropdownMenuItem onClick={handleExportJson}>
-                  <FileOutput className="mr-2 h-4 w-4" />
-                  Export Classifications
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onSelect={(e) => {
-                    e.preventDefault();
-                    triggerImport();
-                  }}
-                >
-                  <ArchiveRestore className="mr-2 h-4 w-4" />
-                  Load Classifications
-                </DropdownMenuItem>
+                <DropdownMenuSub>
+                  <DropdownMenuSubTrigger>
+                    <FileOutput className="mr-2 h-4 w-4" /> Export
+                  </DropdownMenuSubTrigger>
+                  <DropdownMenuSubContent>
+                    <DropdownMenuItem onClick={handleExportJson}>
+                      JSON
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={handleExportExcel}>
+                      Excel
+                    </DropdownMenuItem>
+                  </DropdownMenuSubContent>
+                </DropdownMenuSub>
+                <DropdownMenuSub>
+                  <DropdownMenuSubTrigger>
+                    <ArchiveRestore className="mr-2 h-4 w-4" /> Load
+                  </DropdownMenuSubTrigger>
+                  <DropdownMenuSubContent>
+                    <DropdownMenuItem
+                      onSelect={(e) => {
+                        e.preventDefault();
+                        triggerImport();
+                      }}
+                    >
+                      JSON
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      onSelect={(e) => {
+                        e.preventDefault();
+                        triggerExcelImport();
+                      }}
+                    >
+                      Excel
+                    </DropdownMenuItem>
+                  </DropdownMenuSubContent>
+                </DropdownMenuSub>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
                   className="text-destructive focus:bg-destructive/10 focus:text-destructive"
@@ -1387,6 +1434,13 @@ export function ClassificationPanel() {
         accept="application/json"
         ref={fileInputRef}
         onChange={handleImportJson}
+        className="hidden"
+      />
+      <input
+        type="file"
+        accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        ref={excelInputRef}
+        onChange={handleImportExcel}
         className="hidden"
       />
     </div>
