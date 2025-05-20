@@ -47,6 +47,7 @@ IFC Classifier helps you classify IFC elements without needing expert knowledge 
   - Based on properties like: `IsExternal`, `LoadBearing`, etc.
   - Example: "Put all external, non-load bearing walls (except basement) into category C02.01"
   - See rule results live on your model
+  - Import rules from JSON or Excel for easy setup
 
 - **✍️ Export Your Work:**
 
@@ -69,6 +70,10 @@ IFC Classifier helps you classify IFC elements without needing expert knowledge 
 - Added functionality to import and export classifications as JSON files.
 - Added favicons for better cross-browser compatibility.
 - Enhanced property extraction and rendering from IFC models.
+
+**May 21, 2025:**
+
+- Added ability to import rule definitions from Excel (.xlsx) files.
 
 **May 19, 2025:**
 

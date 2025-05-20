@@ -82,12 +82,14 @@ export function RulePanel() {
     availableProperties,
     exportRulesAsJson,
     importRulesFromJson,
+    importRulesFromExcel,
     removeAllRules,
   } = useIFCContext();
   const [isRuleDialogOpen, setIsRuleDialogOpen] = useState(false);
   const [currentRule, setCurrentRule] = useState<Rule | null>(null);
   const [editingRule, setEditingRule] = useState<Partial<Rule> | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const excelInputRef = useRef<HTMLInputElement>(null);
   const [isConfirmRemoveAllOpen, setIsConfirmRemoveAllOpen] = useState(false);
 
   const [isConfirmRemoveRuleOpen, setIsConfirmRemoveRuleOpen] = useState(false);
@@ -130,6 +132,7 @@ export function RulePanel() {
   };
 
   const triggerImport = () => fileInputRef.current?.click();
+  const triggerExcelImport = () => excelInputRef.current?.click();
 
   const handleImportJson = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -142,6 +145,13 @@ export function RulePanel() {
       }
     };
     reader.readAsText(file);
+    e.target.value = "";
+  };
+
+  const handleImportExcel = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    importRulesFromExcel(file);
     e.target.value = "";
   };
 
@@ -232,7 +242,15 @@ export function RulePanel() {
                   triggerImport();
                 }}
               >
-                <ArchiveRestore className="mr-2 h-4 w-4" /> Load Rules
+                <ArchiveRestore className="mr-2 h-4 w-4" /> Load Rules (JSON)
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onSelect={(e) => {
+                  e.preventDefault();
+                  triggerExcelImport();
+                }}
+              >
+                <ArchiveRestore className="mr-2 h-4 w-4" /> Load from Excel
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem
@@ -660,6 +678,13 @@ export function RulePanel() {
         accept="application/json"
         ref={fileInputRef}
         onChange={handleImportJson}
+        className="hidden"
+      />
+      <input
+        type="file"
+        accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        ref={excelInputRef}
+        onChange={handleImportExcel}
         className="hidden"
       />
     </div>

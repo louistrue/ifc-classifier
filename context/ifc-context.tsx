@@ -11,6 +11,7 @@ import React, {
 } from "react";
 import type { IfcAPI } from "web-ifc"; // Import IfcAPI type
 import { Properties } from "web-ifc"; // Ensure Properties is imported
+import { parseRulesFromExcel } from "@/services/rule-import-service";
 
 // Define types for Rules
 export interface RuleCondition {
@@ -132,6 +133,7 @@ interface IFCContextType {
   importClassificationsFromJson: (json: string) => void;
   exportRulesAsJson: () => string;
   importRulesFromJson: (json: string) => void;
+  importRulesFromExcel: (file: File) => Promise<void>;
   removeAllRules: () => void;
 
   assignClassificationToElement: (
@@ -1458,6 +1460,18 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
     [setRules]
   );
 
+  const importRulesFromExcel = useCallback(
+    async (file: File) => {
+      try {
+        const parsed = await parseRulesFromExcel(file);
+        setRules(parsed);
+      } catch (e) {
+        console.error("Failed to import rules from Excel", e);
+      }
+    },
+    [setRules]
+  );
+
   const removeAllRules = useCallback(() => {
     setRules([]);
   }, [setRules]);
@@ -1618,6 +1632,7 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
         importClassificationsFromJson,
         exportRulesAsJson,
         importRulesFromJson,
+        importRulesFromExcel,
         removeAllRules,
         toggleUserHideElement,
         hideElements,
