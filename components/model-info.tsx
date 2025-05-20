@@ -182,6 +182,8 @@ interface CollapsibleSectionProps {
   icon?: React.ReactNode;
   propertyCount?: number;
   isSubSection?: boolean;
+  countUnitSingular?: string;
+  countUnitPlural?: string;
 }
 
 const CollapsibleSection: React.FC<CollapsibleSectionProps> = ({
@@ -191,6 +193,8 @@ const CollapsibleSection: React.FC<CollapsibleSectionProps> = ({
   icon,
   propertyCount,
   isSubSection = false,
+  countUnitSingular,
+  countUnitPlural,
 }) => {
   const [isOpen, setIsOpen] = useState(defaultOpen);
 
@@ -217,7 +221,10 @@ const CollapsibleSection: React.FC<CollapsibleSectionProps> = ({
           <span>{title}</span>
           {propertyCount !== undefined && propertyCount > 0 && (
             <Badge variant="secondary" className="ml-2 text-xs font-normal">
-              {propertyCount} {propertyCount === 1 ? "prop" : "props"}
+              {propertyCount}{" "}
+              {propertyCount === 1
+                ? countUnitSingular || "prop"
+                : countUnitPlural || "props"}
             </Badge>
           )}
         </div>
@@ -372,45 +379,58 @@ export function ModelInfo() {
   }
   const typeInformationGroups: Record<string, TypeInfoGroup> = {}; // Keyed by typeObjectName for initial grouping
 
+  console.log(
+    "Available PSet Names from elementProperties:",
+    Object.keys(propertySets || {})
+  ); // Log all incoming PSet names
+
   for (const setName in propertySets) {
     if (Object.prototype.hasOwnProperty.call(propertySets, setName)) {
       const props = propertySets[setName];
+      // Log each PSet name and the number of properties it contains before categorization
+      console.log(
+        `Processing PSet: '${setName}', Property Count: ${
+          props ? Object.keys(props).length : 0
+        }`
+      );
+
       if (props && Object.keys(props).length > 0) {
+        const lowerSetName = setName.toLowerCase();
         if (
-          setName.startsWith("Material:") ||
-          setName.startsWith("Material Properties:") ||
-          setName.startsWith("LayerSet:") ||
-          setName.startsWith("MaterialList:") ||
-          setName.startsWith("MaterialInfo:")
+          lowerSetName.startsWith("material:") ||
+          lowerSetName.startsWith("material properties:") ||
+          lowerSetName.startsWith("layerset:") ||
+          lowerSetName.startsWith("materiallist:") ||
+          lowerSetName.startsWith("materialinfo:")
         ) {
+          console.log(`  -> Identified as Material Group: '${setName}'`); // Log when identified
           materialPropertyGroups.push({
             setName,
             properties: props,
-            isLayerSet: setName.startsWith("LayerSet:"),
+            isLayerSet: lowerSetName.startsWith("layerset:"),
           });
-        } else if (setName.startsWith("Type Attributes:")) {
+        } else if (lowerSetName.startsWith("type attributes:")) {
           const typeNameForGroup = setName
             .substring("Type Attributes:".length)
             .trim();
           if (!typeInformationGroups[setName]) {
             typeInformationGroups[setName] = {
-              typeName: typeNameForGroup, // Store the cleaned type name
-              typeObjectName: setName, // Keep original key for matching Psets
+              typeName: typeNameForGroup,
+              typeObjectName: setName,
               directAttributes: {},
               propertySetsFromType: [],
             };
           }
           typeInformationGroups[setName].directAttributes = props;
         } else if (setName.includes("(from Type:")) {
-          // Find which TypeInfoGroup this PSet belongs to
-          // The typeNameInPset will be like "Basic Wall: Holz tragende..."
+          // Keep original case for .includes as it might be part of a formatted string
+          // ... (psets from type logic)
           const typeNameInPset = setName
             .substring(
               setName.indexOf("(from Type:") + "(from Type:".length,
               setName.lastIndexOf(")")
             )
             .trim();
-          // We need to match this with a typeObjectName (which includes "Type Attributes: " prefix)
           let foundGroup = false;
           for (const key in typeInformationGroups) {
             if (typeInformationGroups[key].typeName === typeNameInPset) {
@@ -423,15 +443,19 @@ export function ModelInfo() {
             }
           }
           if (!foundGroup) {
-            // Should not happen if Type Attributes are processed first
-            otherPropertySets[setName] = props; // Fallback if no matching type group found
+            otherPropertySets[setName] = props;
           }
-        } else if (setName !== "Element Attributes") {
+        } else if (lowerSetName !== "element attributes") {
           otherPropertySets[setName] = props;
         }
       }
     }
   }
+  console.log(
+    "Final materialPropertyGroups found:",
+    materialPropertyGroups.length,
+    materialPropertyGroups
+  );
 
   materialPropertyGroups.sort((a, b) => {
     if (a.isLayerSet && !b.isLayerSet) return -1;
@@ -541,59 +565,69 @@ export function ModelInfo() {
         {/* Display Material Sections Consolidated */}
         {materialPropertyGroups.length > 0 &&
           (() => {
-            let title = "Materials"; // Default to plural
-            let totalDisplayablePropsCount = 0; // For the badge
+            let title: string;
+            let badgeCount: number;
+            let unitSingular: string;
+            let unitPlural: string;
 
             if (materialPropertyGroups.length === 1) {
               const singleGroup = materialPropertyGroups[0];
-              totalDisplayablePropsCount = Object.keys(
-                singleGroup.properties
-              ).length;
               if (singleGroup.isLayerSet) {
-                // Count unique layers for LayerSet to decide singular/plural title
-                const layerNumbers = new Set();
-                for (const key in singleGroup.properties) {
-                }
-                if (
-                  layerNumbers.size <= 1 &&
-                  Object.hasOwn(singleGroup.properties, "TotalThickness") &&
-                  Object.keys(singleGroup.properties).length === 1
-                ) {
-                  // Only TotalThickness and no actual layers, or only one layer
-                  title = "Material";
-                } else if (
-                  layerNumbers.size <= 1 &&
-                  Object.keys(singleGroup.properties).length > 1 &&
-                  !Object.keys(singleGroup.properties).hasOwnProperty(
-                    "TotalThickness"
-                  )
-                ) {
-                  title = "Material";
-                } else if (layerNumbers.size <= 1) {
-                  title = "Material";
+                // Title for a single LayerSet
+                if (singleGroup.setName.startsWith("LayerSet: ")) {
+                  title = singleGroup.setName.substring("LayerSet: ".length);
+                } else if (singleGroup.setName.startsWith("MatLayerSet_")) {
+                  title = "Material Layers";
                 } else {
-                  title = "Materials";
+                  title = singleGroup.setName || "Material Layers"; // Fallback to name or generic
                 }
+                if (!title || title.trim() === "") title = "Material Layers";
+
+                // Count actual layers for the badge
+                const layerSetProps = singleGroup.properties;
+                const layerIndexes = new Set<string>();
+                for (const key in layerSetProps) {
+                  const match = key.match(/^Layer_(\d+)_/);
+                  if (match && match[1]) {
+                    layerIndexes.add(match[1]);
+                  }
+                }
+                badgeCount = layerIndexes.size > 0 ? layerIndexes.size : 1; // Min 1 if LayerSet exists
+                unitSingular = "layer";
+                unitPlural = "layers";
               } else {
-                // Single material group that is not a LayerSet
-                title = "Material";
+                // Single, non-layerset material group
+                if (singleGroup.setName.startsWith("Material: ")) {
+                  title = singleGroup.setName.substring("Material: ".length);
+                } else if (
+                  singleGroup.setName.startsWith("Material Properties: ")
+                ) {
+                  title = singleGroup.setName.substring(
+                    "Material Properties: ".length
+                  );
+                } else if (singleGroup.setName.startsWith("MaterialInfo: ")) {
+                  title = singleGroup.setName.substring(
+                    "MaterialInfo: ".length
+                  );
+                } else if (singleGroup.setName.startsWith("MaterialList: ")) {
+                  title = singleGroup.setName.substring(
+                    "MaterialList: ".length
+                  );
+                } else {
+                  title = singleGroup.setName;
+                }
+                if (!title || title.trim() === "") title = "Material";
+                badgeCount = 1;
+                unitSingular = "material";
+                unitPlural = "materials";
               }
             } else {
-              // Multiple material groups, definitely plural title
+              // Multiple material groups
               title = "Materials";
-              totalDisplayablePropsCount = materialPropertyGroups.reduce(
-                (acc, group) => acc + Object.keys(group.properties).length,
-                0
-              );
+              badgeCount = materialPropertyGroups.length; // Count of groups
+              unitSingular = "item"; // Generic unit for mixed groups
+              unitPlural = "items";
             }
-
-            // Ensure the section is not rendered if, after all, no properties are to be shown.
-            // This re-calculates total for safety, especially if a single group had no props.
-            const finalPropCountForBadge = materialPropertyGroups.reduce(
-              (acc, group) => acc + Object.keys(group.properties).length,
-              0
-            );
-            if (finalPropCountForBadge === 0) return null;
 
             return (
               <CollapsibleSection
@@ -601,7 +635,9 @@ export function ModelInfo() {
                 title={title}
                 defaultOpen={false}
                 icon={<Palette className="w-4 h-4" />}
-                propertyCount={finalPropCountForBadge}
+                propertyCount={badgeCount}
+                countUnitSingular={unitSingular}
+                countUnitPlural={unitPlural}
               >
                 <MaterialSectionDisplay
                   materialPropertyGroups={materialPropertyGroups}
