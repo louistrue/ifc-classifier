@@ -609,7 +609,6 @@ export function IFCModel({ modelData, outlineLayer }: IFCModelProps) {
       }
       group.applyMatrix4(modelTransformRef.current);
       scene.add(group); // Add this model's group to the main scene
-master
     } catch (error) {
       console.error(
         `IFCModel (${modelData.id}): Error creating meshes:`,
