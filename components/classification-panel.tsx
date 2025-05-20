@@ -131,6 +131,7 @@ export function ClassificationPanel() {
   const [errorLoadingEBKPH, setErrorLoadingEBKPH] = useState<string | null>(
     null
   );
+  const [hasAutoLoaded, setHasAutoLoaded] = useState(false);
 
   const [sortConfig, setSortConfig] = useState<{
     key: SortableKey;
@@ -366,6 +367,46 @@ export function ClassificationPanel() {
       return false;
     return defaultEBKPH.every((defClass) => !!classifications[defClass.code]);
   };
+
+  // Auto load default classifications based on stored settings
+  useEffect(() => {
+    if (hasAutoLoaded) return;
+    const stored = localStorage.getItem("appSettings");
+    if (!stored) return;
+    try {
+      const { defaultClassification, alwaysLoad } = JSON.parse(stored);
+      if (!alwaysLoad) return;
+      if (
+        defaultClassification === "uniclass" &&
+        !isLoadingUniclass &&
+        !errorLoadingUniclass &&
+        defaultUniclassPr.length > 0 &&
+        !areAllUniclassAdded()
+      ) {
+        handleAddAllUniclassPr();
+        setHasAutoLoaded(true);
+      } else if (
+        defaultClassification === "ebkph" &&
+        !isLoadingEBKPH &&
+        !errorLoadingEBKPH &&
+        defaultEBKPH.length > 0 &&
+        !areAlleBKPHAdded()
+      ) {
+        handleAddAlleBKPH();
+        setHasAutoLoaded(true);
+      }
+    } catch (err) {
+      console.error("Failed to auto load classifications", err);
+    }
+  }, [
+    isLoadingUniclass,
+    isLoadingEBKPH,
+    defaultUniclassPr,
+    defaultEBKPH,
+    errorLoadingUniclass,
+    errorLoadingEBKPH,
+    hasAutoLoaded,
+  ]);
 
   const handleAddClassification = () => {
     if (newClassification.code && newClassification.name) {
