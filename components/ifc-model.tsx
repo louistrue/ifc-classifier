@@ -560,7 +560,7 @@ export function IFCModel({ modelData, outlineLayer }: IFCModelProps) {
     [ifcApi]
   );
 
-  const createMeshes = useCallback(() => {
+  const createMeshes = useCallback(async () => {
     if (!ifcApi || ownModelID.current === null) return;
     if (meshesRef.current) {
       scene.remove(meshesRef.current);
@@ -575,14 +575,14 @@ export function IFCModel({ modelData, outlineLayer }: IFCModelProps) {
     }
     const group = new THREE.Group();
     group.name = `IFCModelGroup_${modelData.id}_${ownModelID.current}`;
+    group.applyMatrix4(modelTransformRef.current);
     meshesRef.current = group;
+    scene.add(group); // Add group early so meshes appear incrementally
     try {
-      const flatMeshes = ifcApi.LoadAllGeometry(ownModelID.current!);
-      for (let i = 0; i < flatMeshes.size(); i++) {
-        const flatMesh = flatMeshes.get(i);
+      const processFlatMesh = (flatMesh: any) => {
         const elementExpressID = flatMesh.expressID;
         const placedGeometries = flatMesh.geometries;
-      for (let j = 0; j < placedGeometries.size(); j++) {
+        for (let j = 0; j < placedGeometries.size(); j++) {
           const placedGeometry = placedGeometries.get(j);
           const ifcGeometryData = ifcApi.GetGeometry(
             ownModelID.current!,
@@ -607,9 +607,29 @@ export function IFCModel({ modelData, outlineLayer }: IFCModelProps) {
           };
           group.add(mesh);
         }
+      };
+
+      const types = ifcApi.GetIfcEntityList(ownModelID.current!);
+      for (const typeId of types) {
+        if (!ifcApi.IsIfcElement(typeId)) continue;
+        const ids = ifcApi.GetLineIDsWithType(
+          ownModelID.current!,
+          typeId,
+          true
+        );
+        for (let i = 0; i < ids.size(); i++) {
+          const expressID = ids.get(i);
+          const flatMesh = ifcApi.GetFlatMesh(
+            ownModelID.current!,
+            expressID
+          );
+          if (flatMesh && flatMesh.geometries.size() > 0) {
+            processFlatMesh(flatMesh);
+          }
+        }
+        // Yield to event loop so geometry appears incrementally
+        await new Promise((r) => setTimeout(r, 0));
       }
-      group.applyMatrix4(modelTransformRef.current);
-      scene.add(group); // Add this model's group to the main scene
     } catch (error) {
       console.error(
         `IFCModel (${modelData.id}): Error creating meshes:`,
@@ -706,7 +726,7 @@ export function IFCModel({ modelData, outlineLayer }: IFCModelProps) {
         modelTransformRef.current.copy(relativeMatrix);
         ifcApi.SetGeometryTransformation(newIfcModelID, Array.from(relativeMatrix.elements));
 
-        createMeshes(); // This populates meshesRef.current
+        await createMeshes(); // This populates meshesRef.current incrementally
         // Note: setModelMeshesProcessedForInitialView is NOT set here directly,
         // it will be handled by the new useEffect that depends on meshesRef.current becoming available.
 
