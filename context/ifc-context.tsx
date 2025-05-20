@@ -13,6 +13,8 @@ import type { IfcAPI } from "web-ifc"; // Import IfcAPI type
 import { Properties } from "web-ifc"; // Ensure Properties is imported
 import { parseRulesFromExcel } from "@/services/rule-import-service";
 import { exportRulesToExcel } from "@/services/rule-export-service";
+import { parseClassificationsFromExcel } from "@/services/classification-import-service";
+import { exportClassificationsToExcel } from "@/services/classification-export-service";
 
 // Define types for Rules
 export interface RuleCondition {
@@ -132,6 +134,8 @@ interface IFCContextType {
 
   exportClassificationsAsJson: () => string;
   importClassificationsFromJson: (json: string) => void;
+  exportClassificationsAsExcel: () => ArrayBuffer;
+  importClassificationsFromExcel: (file: File) => Promise<void>;
   exportRulesAsJson: () => string;
   exportRulesAsExcel: () => ArrayBuffer;
   importRulesFromJson: (json: string) => void;
@@ -1442,6 +1446,33 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
     [setClassifications]
   );
 
+  const exportClassificationsAsExcel = useCallback((): ArrayBuffer => {
+    return exportClassificationsToExcel(Object.values(classifications));
+  }, [classifications]);
+
+  const importClassificationsFromExcel = useCallback(
+    async (file: File) => {
+      try {
+        const parsed = await parseClassificationsFromExcel(file);
+        setClassifications((prev) => {
+          const updated = { ...prev };
+          parsed.forEach((item) => {
+            if (item.code) {
+              updated[item.code] = {
+                ...item,
+                elements: item.elements || [],
+              };
+            }
+          });
+          return updated;
+        });
+      } catch (e) {
+        console.error("Failed to import classifications from Excel", e);
+      }
+    },
+    [setClassifications]
+  );
+
   const exportRulesAsJson = useCallback((): string => {
     return JSON.stringify(rules, null, 2);
   }, [rules]);
@@ -1635,7 +1666,9 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
         updateRule,
         previewRuleHighlight,
         exportClassificationsAsJson,
+        exportClassificationsAsExcel,
         importClassificationsFromJson,
+        importClassificationsFromExcel,
         exportRulesAsJson,
         exportRulesAsExcel,
         importRulesFromJson,

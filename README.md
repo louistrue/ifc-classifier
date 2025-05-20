@@ -40,6 +40,8 @@ IFC Classifier helps you classify IFC elements without needing expert knowledge 
     - 🇬🇧 Uniclass
   - Or create your own custom system
   - Assign colors to visualize different classifications
+  - Import classifications from JSON or Excel
+  - Export classifications to JSON or Excel
 
 - **⚙️ Rule-Based Sorting:**
 
@@ -68,7 +70,7 @@ IFC Classifier helps you classify IFC elements without needing expert knowledge 
 - Major refactor of classification and IFC model components for better performance and readability.
 - Fixed an issue to preserve model coordinates when loading new IFC files.
 - Improved layout and introduced a rule management menu for easier access.
-- Added functionality to import and export classifications as JSON files.
+- Added functionality to import and export classifications as JSON or Excel files.
 - Added favicons for better cross-browser compatibility.
 - Enhanced property extraction and rendering from IFC models.
 
