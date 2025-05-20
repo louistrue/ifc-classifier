@@ -441,6 +441,7 @@ export function IFCModel({ modelData, outlineLayer }: IFCModelProps) {
     classifications,
     showAllClassificationColors,
     userHiddenElements,
+    hiddenModelIds,
     setRawBufferForModel,
     baseCoordinationMatrix,
     setBaseCoordinationMatrix,
@@ -827,6 +828,12 @@ export function IFCModel({ modelData, outlineLayer }: IFCModelProps) {
       return;
     }
 
+    const modelHidden = hiddenModelIds.includes(modelData.id);
+    meshesRef.current.visible = !modelHidden;
+    if (modelHidden) {
+      return;
+    }
+
     const currentModelID = internalApiIdForEffects;
     console.log(
       `IFCModel (${modelData.id}) - Highlighting Effect: currentModelID = ${currentModelID}`
@@ -1028,6 +1035,7 @@ export function IFCModel({ modelData, outlineLayer }: IFCModelProps) {
     highlightMaterial,
     selectionMaterial,
     userHiddenElements,
+    hiddenModelIds,
   ]);
 
   // Renamed to avoid conflict if a global findMeshByExpressID is ever introduced

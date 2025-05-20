@@ -147,6 +147,10 @@ interface IFCContextType {
   toggleUserHideElement: (element: SelectedElementInfo) => void; // New function
   unhideLastElement: () => void; // New function
   unhideAllElements: () => void; // New function
+  hiddenModelIds: string[];
+  toggleModelVisibility: (modelId: string) => void;
+  hideElements: (elements: SelectedElementInfo[]) => void;
+  showElements: (elements: SelectedElementInfo[]) => void;
 }
 
 const IFCContext = createContext<IFCContextType | undefined>(undefined);
@@ -172,6 +176,7 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
   const [userHiddenElements, setUserHiddenElements] = useState<
     SelectedElementInfo[]
   >([]); // New state
+  const [hiddenModelIds, setHiddenModelIds] = useState<string[]>([]);
   const [availableProperties, setAvailablePropertiesInternal] = useState<
     string[]
   >([]);
@@ -1527,6 +1532,45 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
     console.log("IFCContext: All elements unhidden.");
   }, []);
 
+  const toggleModelVisibility = useCallback((modelId: string) => {
+    setHiddenModelIds((prev) =>
+      prev.includes(modelId)
+        ? prev.filter((id) => id !== modelId)
+        : [...prev, modelId]
+    );
+  }, []);
+
+  const hideElements = useCallback(
+    (elements: SelectedElementInfo[]) => {
+      setUserHiddenElements((prev) => {
+        const newHidden = [...prev];
+        elements.forEach((el) => {
+          if (!newHidden.some((h) => h.modelID === el.modelID && h.expressID === el.expressID)) {
+            if (
+              selectedElement &&
+              selectedElement.modelID === el.modelID &&
+              selectedElement.expressID === el.expressID
+            ) {
+              setSelectedElement(null);
+              setElementPropertiesInternal(null);
+            }
+            newHidden.push(el);
+          }
+        });
+        return newHidden;
+      });
+    },
+    [selectedElement]
+  );
+
+  const showElements = useCallback((elements: SelectedElementInfo[]) => {
+    setUserHiddenElements((prev) =>
+      prev.filter(
+        (el) => !elements.some((e) => e.modelID === el.modelID && e.expressID === el.expressID)
+      )
+    );
+  }, []);
+
   return (
     <IFCContext.Provider
       value={{
@@ -1542,6 +1586,7 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
         showAllClassificationColors,
         previewingRuleId,
         userHiddenElements,
+        hiddenModelIds,
         availableProperties,
         replaceIFCModel,
         addIFCModel,
@@ -1575,8 +1620,11 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
         importRulesFromJson,
         removeAllRules,
         toggleUserHideElement,
+        hideElements,
+        showElements,
         unhideLastElement,
         unhideAllElements,
+        toggleModelVisibility,
         naturalIfcClassNames,
         getNaturalIfcClassName,
       }}

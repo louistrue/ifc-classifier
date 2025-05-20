@@ -23,6 +23,8 @@ import {
   HelpCircle,
   FileText,
   XCircle,
+  Eye,
+  EyeOff,
   AlertTriangle,
   ExternalLink,
 } from "lucide-react";
@@ -56,6 +58,16 @@ const getNodeKey = (
   if (modelID === null || modelID === undefined)
     return `node-${node.expressID}`;
   return `${modelID}-${node.expressID}`;
+};
+
+const gatherDescendantIds = (node: SpatialStructureNode): number[] => {
+  let ids: number[] = [node.expressID];
+  if (node.children && node.children.length > 0) {
+    node.children.forEach((child) => {
+      ids = ids.concat(gatherDescendantIds(child));
+    });
+  }
+  return ids;
 };
 
 interface PathFindingResult {
@@ -93,7 +105,14 @@ const TreeNode: React.FC<TreeNodeProps> = ({
   selectedNodeActualRef,
   modelID,
 }) => {
-  const { getNaturalIfcClassName } = useIFCContext();
+  const {
+    getNaturalIfcClassName,
+    toggleModelVisibility,
+    hiddenModelIds,
+    hideElements,
+    showElements,
+    userHiddenElements,
+  } = useIFCContext();
   const memoizedChildren = useMemo(() => node.children || [], [node.children]);
 
   const currentModelIDForNode = isRootModelNode
@@ -101,6 +120,26 @@ const TreeNode: React.FC<TreeNodeProps> = ({
     : modelFileInfo?.modelID ?? null;
   const nodeKey = getNodeKey(node, currentModelIDForNode, isRootModelNode);
   const isExpanded = expandedNodeKeys.has(nodeKey);
+
+  const isModelHidden = isRootModelNode
+    ? hiddenModelIds.includes(modelFileInfo.id)
+    : false;
+
+  const storeyDescendantIds = useMemo(() => {
+    if (node.type.includes("STOREY")) {
+      return gatherDescendantIds(node);
+    }
+    return [] as number[];
+  }, [node]);
+
+  const isStoreyHidden = useMemo(() => {
+    if (!node.type.includes("STOREY") || modelFileInfo.modelID === null) return false;
+    return storeyDescendantIds.every((id) =>
+      userHiddenElements.some(
+        (el) => el.modelID === modelFileInfo.modelID && el.expressID === id
+      )
+    );
+  }, [userHiddenElements, storeyDescendantIds, node.type, modelFileInfo.modelID]);
 
   const getIcon = (type: string) => {
     if (isRootModelNode)
@@ -156,6 +195,29 @@ const TreeNode: React.FC<TreeNodeProps> = ({
     e.stopPropagation();
     if (onAttemptRemoveModel && modelFileInfo) {
       onAttemptRemoveModel(modelFileInfo.id, modelFileInfo.name);
+    }
+  };
+
+  const handleToggleModelVisibility = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (modelFileInfo) {
+      toggleModelVisibility(modelFileInfo.id);
+    }
+  };
+
+  const handleToggleStoreyVisibility = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (modelFileInfo.modelID === null || !node.type.includes("STOREY")) return;
+
+    const elements = storeyDescendantIds.map((id) => ({
+      modelID: modelFileInfo.modelID as number,
+      expressID: id,
+    }));
+
+    if (isStoreyHidden) {
+      showElements(elements);
+    } else {
+      hideElements(elements);
     }
   };
 
@@ -247,6 +309,21 @@ const TreeNode: React.FC<TreeNodeProps> = ({
           </Tooltip>
         </TooltipProvider>
         {!memoizedChildren.length && <div className="w-4 mr-1 flex-shrink-0" />}
+        {isRootModelNode && (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="w-6 h-6 ml-1 opacity-0 group-hover:opacity-100 transition-opacity"
+            title={isModelHidden ? `Show ${modelFileInfo.name}` : `Hide ${modelFileInfo.name}`}
+            onClick={handleToggleModelVisibility}
+          >
+            {isModelHidden ? (
+              <EyeOff className="w-4 h-4" />
+            ) : (
+              <Eye className="w-4 h-4" />
+            )}
+          </Button>
+        )}
         {isRootModelNode && onAttemptRemoveModel && (
           <Button
             variant="ghost"
@@ -256,6 +333,21 @@ const TreeNode: React.FC<TreeNodeProps> = ({
             onClick={handleRemoveClick}
           >
             <XCircle className="w-4 h-4 text-destructive" />
+          </Button>
+        )}
+        {!isRootModelNode && node.type.includes("STOREY") && (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="w-6 h-6 ml-1 opacity-0 group-hover:opacity-100 transition-opacity"
+            title={isStoreyHidden ? `Show Storey` : `Hide Storey`}
+            onClick={handleToggleStoreyVisibility}
+          >
+            {isStoreyHidden ? (
+              <EyeOff className="w-4 h-4" />
+            ) : (
+              <Eye className="w-4 h-4" />
+            )}
           </Button>
         )}
       </div>
