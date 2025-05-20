@@ -1,13 +1,18 @@
 "use client"
 
-import { useState, useEffect, useRef, useMemo } from "react"
+import React, { useState, useEffect, useRef, useMemo } from "react"
 import { FixedSizeList as List } from "react-window"; // Import react-window
-import { useIFCContext, type SelectedElementInfo, type LoadedModelData } from "@/context/ifc-context"
+import {
+  useIFCContext,
+  type SelectedElementInfo,
+  type LoadedModelData,
+  type ClassificationItem,
+} from "@/context/ifc-context"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -16,7 +21,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Plus, Trash2, Edit, Eye, Palette, Eraser, CircleOff, ChevronDown, MoreHorizontal, ChevronUp, X, Download } from "lucide-react"
+import { Plus, Trash2, Edit, Eye, Palette, Eraser, CircleOff, ChevronDown, MoreHorizontal, ChevronUp, X, Download, AlertTriangle } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import {
   Tooltip,
@@ -30,14 +35,6 @@ import {
   type ExportClassificationData
 } from "@/services/ifc-export-service"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-
-// Define an interface for our classification structure
-interface ClassificationItem {
-  code: string;
-  name: string;
-  color: string;
-  elements: SelectedElementInfo[]; // Use SelectedElementInfo for stricter typing
-}
 
 // Helper function to compare two arrays of SelectedElementInfo (order-independent)
 function areElementArraysEqual(arr1: any[], arr2: any[]): boolean {
@@ -69,6 +66,9 @@ export function ClassificationPanel() {
     assignClassificationToElement,
     unassignClassificationFromElement,
     unassignElementFromAllClassifications,
+    removeAllClassifications,
+    exportClassificationsAsJson,
+    importClassificationsFromJson,
   } = useIFCContext()
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
   const [newClassification, setNewClassification] = useState({
@@ -89,6 +89,9 @@ export function ClassificationPanel() {
 
   const [sortConfig, setSortConfig] = useState<{ key: SortableKey; direction: 'ascending' | 'descending' }>({ key: 'code', direction: 'ascending' })
   const [isSpeedDialOpen, setIsSpeedDialOpen] = useState(false)
+  const [classificationCodeToRemove, setClassificationCodeToRemove] = useState<string | null>(null)
+  const [isConfirmRemoveOpen, setIsConfirmRemoveOpen] = useState(false)
+  const [isConfirmRemoveAllOpen, setIsConfirmRemoveAllOpen] = useState(false)
 
   const classificationEntries = Object.entries(classifications) // Get entries once
 
@@ -109,6 +112,29 @@ export function ClassificationPanel() {
   const exportableModels = useMemo(() => {
     return loadedModels.filter(model => model.rawBuffer && model.modelID !== null)
   }, [loadedModels])
+
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const handleExportJson = () => {
+    const json = exportClassificationsAsJson()
+    downloadFile(json, 'classifications.json', 'application/json')
+  }
+
+  const triggerImport = () => fileInputRef.current?.click()
+
+  const handleImportJson = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = ev => {
+      const text = ev.target?.result
+      if (typeof text === 'string') {
+        importClassificationsFromJson(text)
+      }
+    }
+    reader.readAsText(file)
+    e.target.value = ''
+  }
 
   // Effect to manage the default selected model for export
   useEffect(() => {
@@ -508,15 +534,9 @@ export function ClassificationPanel() {
           </TooltipProvider>
         </div>
 
-        {/* Row 2: Action Buttons (Add New, Add Default) - Aligned to the center */}
+        {/* Row 2: Management Dropdown */}
         <div className="flex justify-center items-center gap-2 flex-wrap sm:flex-nowrap">
           <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
-            <DialogTrigger asChild>
-              <Button size="sm" variant="outline" className="whitespace-nowrap">
-                <Plus className="w-4 h-4 mr-2 flex-shrink-0" />
-                Add New
-              </Button>
-            </DialogTrigger>
             <DialogContent>
               <DialogHeader>
                 <DialogTitle>Add New Classification</DialogTitle>
@@ -565,11 +585,15 @@ export function ClassificationPanel() {
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button size="sm" variant="outline" className="whitespace-nowrap">
-                Add Default
+                Manage
                 <ChevronDown className="w-4 h-4 ml-2 flex-shrink-0" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
+              <DropdownMenuItem onSelect={() => setIsAddDialogOpen(true)}>
+                Add New Classification
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
               <DropdownMenuLabel>Default Classification Sets</DropdownMenuLabel>
               <DropdownMenuSeparator />
               {isLoadingUniclass && <DropdownMenuItem disabled>Loading Uniclass Pr...</DropdownMenuItem>}
@@ -592,7 +616,15 @@ export function ClassificationPanel() {
               {!isLoadingEBKPH && !errorLoadingEBKPH && defaultEBKPH.length === 0 && (
                 <DropdownMenuItem disabled>No eBKP-H items found.</DropdownMenuItem>
               )}
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={handleExportJson}>Export Classifications</DropdownMenuItem>
+              <DropdownMenuItem onSelect={(e) => { e.preventDefault(); triggerImport(); }}>Import Classifications</DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem className="text-destructive" onSelect={() => setIsConfirmRemoveAllOpen(true)}>
+                Remove All Classifications
+              </DropdownMenuItem>
             </DropdownMenuContent>
+            <input type="file" accept="application/json" ref={fileInputRef} onChange={handleImportJson} className="hidden" />
           </DropdownMenu>
         </div>
       </div>
@@ -716,7 +748,16 @@ export function ClassificationPanel() {
                     <TooltipProvider>
                       <Tooltip>
                         <TooltipTrigger asChild>
-                          <Button variant="outline" size="icon" className="rounded-full w-10 h-10 shadow-lg text-destructive border-destructive hover:bg-destructive/10 hover:text-destructive bg-background" onClick={() => { removeClassification(highlightedClassificationCode!); setIsSpeedDialOpen(false); }}>
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            className="rounded-full w-10 h-10 shadow-lg text-destructive border-destructive hover:bg-destructive/10 hover:text-destructive bg-background"
+                            onClick={() => {
+                              setClassificationCodeToRemove(highlightedClassificationCode!);
+                              setIsConfirmRemoveOpen(true);
+                              setIsSpeedDialOpen(false);
+                            }}
+                          >
                             <Trash2 className="w-4 h-4" />
                           </Button>
                         </TooltipTrigger>
@@ -784,6 +825,70 @@ export function ClassificationPanel() {
             </span>
           </Button>
         </div>
+      )}
+      {classificationCodeToRemove && (
+        <Dialog open={isConfirmRemoveOpen} onOpenChange={setIsConfirmRemoveOpen}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <div className="flex items-center space-x-2">
+                <AlertTriangle className="h-6 w-6 text-destructive" />
+                <DialogTitle className="text-lg font-medium">Confirm Removal</DialogTitle>
+              </div>
+            </DialogHeader>
+            <DialogDescription className="mt-2 text-sm text-muted-foreground">
+              Are you sure you want to remove the classification
+              &nbsp;
+              <span className="font-semibold text-foreground">{classificationCodeToRemove}</span>
+              ? This action cannot be undone.
+            </DialogDescription>
+            <DialogFooter className="mt-6 sm:justify-end gap-2">
+              <Button variant="outline" onClick={() => setIsConfirmRemoveOpen(false)} className="sm:w-auto w-full">
+                Cancel
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={() => {
+                  removeClassification(classificationCodeToRemove!);
+                  setIsConfirmRemoveOpen(false);
+                  setClassificationCodeToRemove(null);
+                }}
+                className="sm:w-auto w-full"
+              >
+                Remove Classification
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
+      {isConfirmRemoveAllOpen && (
+        <Dialog open={isConfirmRemoveAllOpen} onOpenChange={setIsConfirmRemoveAllOpen}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <div className="flex items-center space-x-2">
+                <AlertTriangle className="h-6 w-6 text-destructive" />
+                <DialogTitle className="text-lg font-medium">Confirm Removal</DialogTitle>
+              </div>
+            </DialogHeader>
+            <DialogDescription className="mt-2 text-sm text-muted-foreground">
+              Are you sure you want to remove all classifications? This action cannot be undone.
+            </DialogDescription>
+            <DialogFooter className="mt-6 sm:justify-end gap-2">
+              <Button variant="outline" onClick={() => setIsConfirmRemoveAllOpen(false)} className="sm:w-auto w-full">
+                Cancel
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={() => {
+                  removeAllClassifications();
+                  setIsConfirmRemoveAllOpen(false);
+                }}
+                className="sm:w-auto w-full"
+              >
+                Remove All
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       )}
     </div>
   )

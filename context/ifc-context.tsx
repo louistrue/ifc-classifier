@@ -57,6 +57,13 @@ export interface SelectedElementInfo {
   expressID: number;
 }
 
+export interface ClassificationItem {
+  code: string;
+  name: string;
+  color: string;
+  elements?: SelectedElementInfo[];
+}
+
 interface IFCContextType {
   loadedModels: LoadedModelData[]; // Array of loaded models
   selectedElement: SelectedElementInfo | null;
@@ -112,11 +119,15 @@ interface IFCContextType {
   // Classification and Rule methods (can remain global or be refactored later if needed per model)
   addClassification: (classification: any) => void;
   removeClassification: (code: string) => void;
+  removeAllClassifications: () => void;
   updateClassification: (code: string, classification: any) => void;
   addRule: (rule: Rule) => void;
   removeRule: (id: string) => void;
   updateRule: (rule: Rule) => void;
   previewRuleHighlight: (ruleId: string) => Promise<void>;
+
+  exportClassificationsAsJson: () => string;
+  importClassificationsFromJson: (json: string) => void;
 
   assignClassificationToElement: (
     classificationCode: string,
@@ -1273,6 +1284,10 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
     [setClassifications]
   );
 
+  const removeAllClassifications = useCallback(() => {
+    setClassifications({});
+  }, [setClassifications]);
+
   const updateClassification = useCallback(
     (code: string, classificationItem: any) => {
       setClassifications((prev) => ({ ...prev, [code]: classificationItem }));
@@ -1370,6 +1385,35 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
       );
     },
     [setRules]
+  );
+
+  const exportClassificationsAsJson = useCallback((): string => {
+    const arr = Object.values(classifications);
+    return JSON.stringify(arr, null, 2);
+  }, [classifications]);
+
+  const importClassificationsFromJson = useCallback(
+    (json: string) => {
+      try {
+        const parsed = JSON.parse(json) as ClassificationItem[];
+        if (!Array.isArray(parsed)) {
+          console.error("Classification JSON is not an array");
+          return;
+        }
+        setClassifications((prev) => {
+          const updated = { ...prev };
+          parsed.forEach((item) => {
+            if (item.code) {
+              updated[item.code] = { ...item, elements: item.elements || [] };
+            }
+          });
+          return updated;
+        });
+      } catch (e) {
+        console.error("Failed to import classifications", e);
+      }
+    },
+    [setClassifications]
   );
 
   const toggleUserHideElement = useCallback(
@@ -1473,6 +1517,7 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
         toggleShowAllClassificationColors,
         addClassification,
         removeClassification,
+        removeAllClassifications,
         updateClassification,
         assignClassificationToElement,
         unassignClassificationFromElement,
@@ -1481,6 +1526,8 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
         removeRule,
         updateRule,
         previewRuleHighlight,
+        exportClassificationsAsJson,
+        importClassificationsFromJson,
         toggleUserHideElement,
         unhideLastElement,
         unhideAllElements,
