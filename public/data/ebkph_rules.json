@@ -1,0 +1,32 @@
+[
+  {
+    "id": "ebkph-rule-1",
+    "name": "Exterior Walls",
+    "description": "Classify all IfcWall elements as exterior walls.",
+    "classificationCode": "C02.01",
+    "active": true,
+    "conditions": [
+      { "property": "Ifc Class", "operator": "equals", "value": "IFCWALL" }
+    ]
+  },
+  {
+    "id": "ebkph-rule-2",
+    "name": "Foundations",
+    "description": "Classify footings as foundation elements.",
+    "classificationCode": "C01.02",
+    "active": true,
+    "conditions": [
+      { "property": "Ifc Class", "operator": "equals", "value": "IFCFOOTING" }
+    ]
+  },
+  {
+    "id": "ebkph-rule-3",
+    "name": "Foundation Slab",
+    "description": "Classify base slabs as foundation slabs.",
+    "classificationCode": "C01.03",
+    "active": true,
+    "conditions": [
+      { "property": "Ifc Class", "operator": "equals", "value": "IFCSLAB" }
+    ]
+  }
+]

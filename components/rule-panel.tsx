@@ -95,10 +95,43 @@ export function RulePanel() {
   const [isConfirmRemoveRuleOpen, setIsConfirmRemoveRuleOpen] = useState(false);
   const [ruleToRemove, setRuleToRemove] = useState<Rule | null>(null);
 
+  // Default eBKP-H rules state
+  const [defaultEBKPHRules, setDefaultEBKPHRules] = useState<Rule[]>([]);
+  const [isLoadingEBKPHRules, setIsLoadingEBKPHRules] = useState(true);
+  const [errorLoadingEBKPHRules, setErrorLoadingEBKPHRules] = useState<string | null>(
+    null
+  );
+
   const propertyOptions =
     availableProperties && availableProperties.length > 0
       ? availableProperties.map((p) => ({ value: p, label: p }))
       : [{ value: "ifcType", label: "ifcType" }];
+
+  useEffect(() => {
+    const fetchDefaultRules = async () => {
+      setIsLoadingEBKPHRules(true);
+      setErrorLoadingEBKPHRules(null);
+      try {
+        const response = await fetch("/data/ebkph_rules.json");
+        if (!response.ok) {
+          throw new Error(
+            `Failed to fetch eBKP-H rules: ${response.statusText}`
+          );
+        }
+        const data: Rule[] = await response.json();
+        setDefaultEBKPHRules(data);
+      } catch (err) {
+        console.error("Error loading eBKP-H rules:", err);
+        setErrorLoadingEBKPHRules(
+          err instanceof Error ? err.message : "Unknown error"
+        );
+      } finally {
+        setIsLoadingEBKPHRules(false);
+      }
+    };
+
+    fetchDefaultRules();
+  }, []);
 
   const openNewRuleDialog = (base?: Rule) => {
     setCurrentRule(null);
@@ -213,6 +246,30 @@ export function RulePanel() {
     setIsConfirmRemoveRuleOpen(true);
   };
 
+  const handleAddDefaultEBKPHRules = () => {
+    if (!defaultEBKPHRules || defaultEBKPHRules.length === 0) return;
+    let addedCount = 0;
+    defaultEBKPHRules.forEach((defRule) => {
+      if (!rules.find((r) => r.id === defRule.id)) {
+        addRule(defRule);
+        addedCount++;
+      }
+    });
+    console.log(`Added ${addedCount} eBKP-H rules.`);
+  };
+
+  const areAllEBKPHRulesAdded = () => {
+    if (
+      isLoadingEBKPHRules ||
+      errorLoadingEBKPHRules ||
+      defaultEBKPHRules.length === 0
+    )
+      return false;
+    return defaultEBKPHRules.every((defRule) =>
+      rules.some((r) => r.id === defRule.id)
+    );
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -229,6 +286,37 @@ export function RulePanel() {
               <DropdownMenuItem onSelect={() => openNewRuleDialog()}>
                 <Plus className="mr-2 h-4 w-4" /> Add New Rule
               </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuLabel className="text-xs font-semibold text-muted-foreground px-2 py-1.5">
+                Default Sets
+              </DropdownMenuLabel>
+              {isLoadingEBKPHRules && (
+                <DropdownMenuItem disabled>
+                  Loading eBKP-H Rules...
+                </DropdownMenuItem>
+              )}
+              {errorLoadingEBKPHRules && (
+                <DropdownMenuItem disabled className="text-destructive">
+                  eBKP-H Rules Error: {errorLoadingEBKPHRules}
+                </DropdownMenuItem>
+              )}
+              {!isLoadingEBKPHRules &&
+                !errorLoadingEBKPHRules &&
+                defaultEBKPHRules.length > 0 && (
+                  <DropdownMenuItem
+                    onClick={handleAddDefaultEBKPHRules}
+                    disabled={areAllEBKPHRulesAdded()}
+                  >
+                    Load eBKP-H Rules ({defaultEBKPHRules.length})
+                  </DropdownMenuItem>
+                )}
+              {!isLoadingEBKPHRules &&
+                !errorLoadingEBKPHRules &&
+                defaultEBKPHRules.length === 0 && (
+                  <DropdownMenuItem disabled>
+                    No eBKP-H rules found.
+                  </DropdownMenuItem>
+                )}
               <DropdownMenuSeparator />
               <DropdownMenuLabel className="text-xs font-semibold text-muted-foreground px-2 py-1.5">
                 Manage Data
