@@ -427,6 +427,7 @@ export function IFCModel({ modelData, outlineLayer }: IFCModelProps) {
   const { scene, camera, controls } = useThree(); // Get controls directly
   const ownModelID = useRef<number | null>(null);
   const meshesRef = useRef<THREE.Group | null>(null);
+  const modelTransformRef = useRef<THREE.Matrix4>(new THREE.Matrix4());
 
   const {
     ifcApi,
@@ -441,6 +442,8 @@ export function IFCModel({ modelData, outlineLayer }: IFCModelProps) {
     showAllClassificationColors,
     userHiddenElements,
     setRawBufferForModel,
+    baseCoordinationMatrix,
+    setBaseCoordinationMatrix,
   } = useIFCContext();
 
   const [isLoading, setIsLoading] = useState(true);
@@ -578,7 +581,7 @@ export function IFCModel({ modelData, outlineLayer }: IFCModelProps) {
         const flatMesh = flatMeshes.get(i);
         const elementExpressID = flatMesh.expressID;
         const placedGeometries = flatMesh.geometries;
-        for (let j = 0; j < placedGeometries.size(); j++) {
+      for (let j = 0; j < placedGeometries.size(); j++) {
           const placedGeometry = placedGeometries.get(j);
           const ifcGeometryData = ifcApi.GetGeometry(
             ownModelID.current!,
@@ -604,7 +607,9 @@ export function IFCModel({ modelData, outlineLayer }: IFCModelProps) {
           group.add(mesh);
         }
       }
-      scene.add(group);
+      group.applyMatrix4(modelTransformRef.current);
+      scene.add(group); // Add this model's group to the main scene
+master
     } catch (error) {
       console.error(
         `IFCModel (${modelData.id}): Error creating meshes:`,
@@ -666,7 +671,8 @@ export function IFCModel({ modelData, outlineLayer }: IFCModelProps) {
         }
 
         const uint8Array = new Uint8Array(data);
-        const settings = { COORDINATE_TO_ORIGIN: true, USE_FAST_BOOLS: true };
+        // Keep original global coordinates so multiple models align correctly
+        const settings = { COORDINATE_TO_ORIGIN: false, USE_FAST_BOOLS: true };
 
         if (!ifcApi) {
           console.error(
@@ -685,6 +691,20 @@ export function IFCModel({ modelData, outlineLayer }: IFCModelProps) {
         ownModelID.current = newIfcModelID;
         setModelIDForLoadedModel(modelData.id, newIfcModelID);
         setInternalApiIdForEffects(newIfcModelID);
+
+        const modelCoordMatrix = ifcApi.GetCoordinationMatrix(newIfcModelID);
+        let relativeMatrix = new THREE.Matrix4();
+        if (!baseCoordinationMatrix) {
+          setBaseCoordinationMatrix(modelCoordMatrix);
+          relativeMatrix.identity();
+        } else {
+          const baseMat = new THREE.Matrix4().fromArray(baseCoordinationMatrix);
+          const currentMat = new THREE.Matrix4().fromArray(modelCoordMatrix);
+          const baseInv = baseMat.clone().invert();
+          relativeMatrix.multiplyMatrices(baseInv, currentMat);
+        }
+        modelTransformRef.current.copy(relativeMatrix);
+        ifcApi.SetGeometryTransformation(newIfcModelID, Array.from(relativeMatrix.elements));
 
         createMeshes(); // This populates meshesRef.current
         // Note: setModelMeshesProcessedForInitialView is NOT set here directly,
