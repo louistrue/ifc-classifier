@@ -31,6 +31,36 @@ import {
 const renderPropertyValue = (value: any, keyHint?: string): React.ReactNode => {
   const lowerKeyHint = keyHint?.toLowerCase();
 
+  // Handle new structures with units first
+  if (value && typeof value === "object") {
+    if (value.value !== undefined && value.unit !== undefined) {
+      // Handles { value: X, unit: Y }
+      const displayValue = renderPropertyValue(value.value, keyHint); // Recursively render the actual value part
+      return (
+        <>
+          {displayValue}{" "}
+          <span className="text-muted-foreground/80">({value.unit})</span>
+        </>
+      );
+    }
+    if (Array.isArray(value.values) && value.unit !== undefined) {
+      // Handles { values: [...], unit: Y }
+      const displayValues = value.values
+        .map((v: any) => renderPropertyValue(v, keyHint)) // Recursively render each value in the array
+        .join(", ");
+      return (
+        <>
+          {displayValues}{" "}
+          <span className="text-muted-foreground/80">({value.unit})</span>
+        </>
+      );
+    }
+    // For IFC's typical { type: X, value: Y } structure (already existing)
+    if (value.value !== undefined && value.type !== undefined) {
+      return renderPropertyValue(value.value, keyHint);
+    }
+  }
+
   if (typeof value === "boolean") {
     return value ? (
       <span className="text-green-600 dark:text-green-400">Yes</span>
@@ -74,16 +104,6 @@ const renderPropertyValue = (value: any, keyHint?: string): React.ReactNode => {
     }
     return value;
   }
-  if (
-    value &&
-    typeof value === "object" &&
-    value.value !== undefined &&
-    value.type !== undefined
-  ) {
-    // For IFC's typical { type: X, value: Y } structure
-    // We can be smarter here based on value.type if it's an IFC defined type ID
-    return renderPropertyValue(value.value, keyHint);
-  }
   if (value === null || value === undefined) {
     return <span className="text-muted-foreground italic">Not set</span>;
   }
@@ -92,11 +112,17 @@ const renderPropertyValue = (value: any, keyHint?: string): React.ReactNode => {
   if (Array.isArray(value)) {
     if (value.length === 0)
       return <span className="text-muted-foreground italic">Empty list</span>;
+    // Check if items are simple enough to join, or if they might be objects from a previous (but not unit-wrapped) step
     if (
-      value.length <= 3 &&
-      value.every((v) => typeof v === "string" || typeof v === "number")
+      value.length <= 5 && // Allow slightly longer lists if they are simple
+      value.every(
+        (v) =>
+          typeof v === "string" ||
+          typeof v === "number" ||
+          typeof v === "boolean"
+      )
     ) {
-      return value.join(", ");
+      return value.map((v) => renderPropertyValue(v, keyHint)).join(", "); // Render each item
     }
     return (
       <span className="text-muted-foreground italic">{`List (${value.length} items)`}</span>

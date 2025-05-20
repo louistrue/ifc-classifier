@@ -175,7 +175,9 @@ async function extractPropertyValueRecursive(
   propertyEntity: any, // This is an IfcProperty (Simple, Complex, etc.)
   targetObject: Record<string, any>,
   namePrefix: string = "",
-  logContext: string // For detailed logging, pass psetName or similar
+  logContext: string, // For detailed logging, pass psetName or similar
+  processedCache: Map<number, any>,
+  recursionPath: Set<number>
 ) {
   if (!propertyEntity || !propertyEntity.Name?.value) {
     // console.warn(
@@ -183,6 +185,45 @@ async function extractPropertyValueRecursive(
     //   propertyEntity ? JSON.parse(JSON.stringify(propertyEntity)) : null
     // );
     return;
+  }
+
+  const propExpressID = propertyEntity.expressID;
+
+  if (propExpressID !== undefined) {
+    if (recursionPath.has(propExpressID)) {
+      console.warn(
+        `[${logContext}] Cycle detected for property expressID: ${propExpressID}. Prefix: ${namePrefix}, Name: ${propertyEntity.Name.value}`
+      );
+      targetObject[
+        namePrefix
+          ? `${namePrefix}.${propertyEntity.Name.value}`
+          : propertyEntity.Name.value
+      ] = "[Cycle Detected]";
+      return;
+    }
+    if (processedCache.has(propExpressID)) {
+      // If a property structure was already processed, reuse it.
+      // This is more relevant if properties can be shared across different PSets or complex props.
+      // For now, we'll assume if it's in cache, its specific value within the current parent was handled.
+      // A more sophisticated cache might store the *resolved value* for a given parent context.
+      // For simplicity, if seen, we assume it's been handled at its first encounter for this recursive path.
+      // This primarily prevents re-processing of the same IfcProperty object if it appears multiple times
+      // *within the same higher-level PSet processing operation*.
+      // The value might need to be added to targetObject based on the cache,
+      // but the current structure adds directly to targetObject upon resolution.
+      // Let's add a log to see if this cache hit is useful or needs refinement.
+      console.log(
+        `[${logContext}] Cache hit for property expressID: ${propExpressID}. Prefix: ${namePrefix}, Name: ${propertyEntity.Name.value}. Value was:`,
+        processedCache.get(propExpressID)
+      );
+      // If we cache the final resolved value, we could assign it here:
+      // targetObject[namePrefix ? `${namePrefix}.${propertyEntity.Name.value}` : propertyEntity.Name.value] = processedCache.get(propExpressID);
+      // However, the current logic adds to targetObject at the end of processing.
+      // The main benefit here is avoiding re-parsing the *structure* of the cached property.
+      // For now, let's return to avoid re-processing, assuming the first processing populated targetObject correctly.
+      return;
+    }
+    recursionPath.add(propExpressID);
   }
 
   const propName = propertyEntity.Name.value;
@@ -241,7 +282,9 @@ async function extractPropertyValueRecursive(
             subPropertyEntity,
             targetObject,
             fullPropName,
-            logContext
+            logContext,
+            processedCache,
+            recursionPath
           );
         } else {
           console.warn(
@@ -252,25 +295,43 @@ async function extractPropertyValueRecursive(
     }
   } else {
     let extractedValue: any = `(Unhandled ${propIfcType})`;
-    if (propertyEntity.NominalValue?.value !== undefined)
+    const unit = propertyEntity.Unit?.value;
+
+    if (propertyEntity.NominalValue?.value !== undefined) {
       extractedValue = propertyEntity.NominalValue.value;
-    else if (propertyEntity.Value?.value !== undefined)
+      if (unit) {
+        extractedValue = { value: extractedValue, unit: unit };
+      }
+    } else if (propertyEntity.Value?.value !== undefined) {
       extractedValue = propertyEntity.Value.value;
-    else if (
+      if (unit) {
+        extractedValue = { value: extractedValue, unit: unit };
+      }
+    } else if (
       propertyEntity.ListValues?.value !== undefined &&
       Array.isArray(propertyEntity.ListValues.value)
-    )
-      extractedValue = propertyEntity.ListValues.value.map((item: any) =>
+    ) {
+      const listVals = propertyEntity.ListValues.value.map((item: any) =>
         item.value !== undefined ? item.value : item
       );
-    else if (
+      if (unit) {
+        extractedValue = { values: listVals, unit: unit };
+      } else {
+        extractedValue = listVals;
+      }
+    } else if (
       propertyEntity.EnumerationValues?.value !== undefined &&
       Array.isArray(propertyEntity.EnumerationValues.value)
-    )
-      extractedValue = propertyEntity.EnumerationValues.value.map((item: any) =>
+    ) {
+      const enumVals = propertyEntity.EnumerationValues.value.map((item: any) =>
         item.value !== undefined ? item.value : item
       );
-    else if (
+      if (unit) {
+        extractedValue = { values: enumVals, unit: unit };
+      } else {
+        extractedValue = enumVals;
+      }
+    } else if (
       propertyEntity.LowerBoundValue?.value !== undefined ||
       propertyEntity.UpperBoundValue?.value !== undefined
     ) {
@@ -279,13 +340,29 @@ async function extractPropertyValueRecursive(
         extractedValue.LowerBound = propertyEntity.LowerBoundValue.value;
       if (propertyEntity.UpperBoundValue?.value !== undefined)
         extractedValue.UpperBound = propertyEntity.UpperBoundValue.value;
-      if (propertyEntity.Unit?.value !== undefined)
-        extractedValue.Unit = propertyEntity.Unit.value;
-    } else if (propertyEntity.NominalValue === null)
+      // Unit is already handled here if present with Lower/Upper bounds.
+      if (unit) extractedValue.Unit = unit;
+    } else if (propertyEntity.NominalValue === null) {
+      // NominalValue is explicitly null, not just undefined
       extractedValue = `(${ifcApi.GetNameFromTypeCode(
         propertyEntity.type as number
       )})`;
+      // It's unlikely to have a unit if the value itself is null, but to be safe:
+      // if (unit) {
+      //   extractedValue = { value: extractedValue, unit: unit };
+      // }
+      // Decided against adding unit here as it's less common for a null value to have a unit.
+    }
     targetObject[fullPropName] = extractedValue;
+  }
+
+  if (propExpressID !== undefined) {
+    // Cache the fact that this property entity was processed.
+    // We could cache the `extractedValue` if it makes sense, or just a marker.
+    // For complex properties, `extractedValue` isn't a single thing.
+    // Caching `true` marks it as "visited and processed its structure".
+    processedCache.set(propExpressID, true); // Mark as processed
+    recursionPath.delete(propExpressID);
   }
 }
 
@@ -1007,6 +1084,8 @@ export function IFCModel({ modelData, outlineLayer }: IFCModelProps) {
             psetEntity.HasProperties &&
             Array.isArray(psetEntity.HasProperties)
           ) {
+            const processedCache = new Map<number, any>();
+            const recursionPath = new Set<number>();
             for (const propRefOrObject of psetEntity.HasProperties) {
               let propToProcess = null;
               if (
@@ -1045,7 +1124,9 @@ export function IFCModel({ modelData, outlineLayer }: IFCModelProps) {
                   propToProcess,
                   targetPSetData,
                   "",
-                  psetNameForLogging
+                  psetNameForLogging,
+                  processedCache,
+                  recursionPath
                 );
               }
             }
