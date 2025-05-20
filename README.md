@@ -1,4 +1,4 @@
-# IFC Classifier 🧐
+# IFC Classifier △●▢●◯
 
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL%20v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
 [![Work in Progress](https://img.shields.io/badge/Status-WIP-orange.svg)]()
@@ -55,6 +55,31 @@ IFC Classifier helps you classify IFC elements without needing expert knowledge 
 
 - **🔮 Coming Soon:**
   - Support for property-based classification (where codes are stored in Psets instead of IfcClassificationReference)
+
+## 🚀 Recent Updates
+
+**May 20, 2025:**
+
+- Enhanced user interface with footer improvements.
+- Added settings for managing rules and default classifications.
+- Implemented IFC GUID display with a copy-to-clipboard feature in the properties panel.
+- Major refactor of classification and IFC model components for better performance and readability.
+- Fixed an issue to preserve model coordinates when loading new IFC files.
+- Improved layout and introduced a rule management menu for easier access.
+- Added functionality to import and export classifications as JSON files.
+- Added favicons for better cross-browser compatibility.
+- Enhanced property extraction and rendering from IFC models.
+
+**May 19, 2025:**
+
+- Introduced 3D selection-based classification, allowing manual assignment of classifications to selected elements.
+- Refactored and cleaned up code in ModelInfo and SpatialTreePanel components.
+- Fixed a bug related to null values for IFC class names in the spatial tree.
+- Added display for material sections and improved IFC model property extraction.
+
+**May 18, 2025:**
+
+- Initial project setup and README creation.
 
 ## 💡 Goal
 
