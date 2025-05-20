@@ -2,6 +2,7 @@
 
 import { useIFCContext } from "@/context/ifc-context";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   Info,
   ChevronDown,
@@ -15,6 +16,7 @@ import {
   ToggleLeft,
   ALargeSmall,
   List,
+  Copy,
   ExternalLink,
 } from "lucide-react";
 import React, { useState, useMemo } from "react";
@@ -514,6 +516,36 @@ export function ModelInfo() {
               Model: {modelDisplayName}
             </span>
           </div>
+          {rawAttributes?.GlobalId?.value && (
+            <div className="flex items-center">
+              <Hash className="w-3 h-3 mr-1.5 opacity-70" />
+              <span
+                className="truncate"
+                title={rawAttributes.GlobalId.value}
+              >
+                GUID: {rawAttributes.GlobalId.value}
+              </span>
+              <TooltipProvider delayDuration={200}>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="ml-1"
+                      onClick={() =>
+                        navigator.clipboard.writeText(
+                          rawAttributes.GlobalId.value
+                        )
+                      }
+                    >
+                      <Copy className="w-3 h-3" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Copy IFC GUID</TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
+          )}
         </div>
       </div>
 
