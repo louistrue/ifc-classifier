@@ -53,6 +53,7 @@ import {
   FileOutput,
   FileInput,
   ArchiveRestore,
+  Star,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -88,6 +89,13 @@ function areElementArraysEqual(arr1: any[], arr2: any[]): boolean {
 
 // Define sortable keys
 type SortableKey = "code" | "name" | "elementsCount";
+
+// Define AppSettings interface locally or import if available globally
+interface AppSettings {
+  defaultClassification: string;
+  alwaysLoad: boolean;
+}
+const SETTINGS_KEY = "appSettings";
 
 export function ClassificationPanel() {
   const {
@@ -131,6 +139,7 @@ export function ClassificationPanel() {
   const [errorLoadingEBKPH, setErrorLoadingEBKPH] = useState<string | null>(
     null
   );
+  const [hasAutoLoaded, setHasAutoLoaded] = useState(false);
 
   const [sortConfig, setSortConfig] = useState<{
     key: SortableKey;
@@ -142,6 +151,8 @@ export function ClassificationPanel() {
   >(null);
   const [isConfirmRemoveOpen, setIsConfirmRemoveOpen] = useState(false);
   const [isConfirmRemoveAllOpen, setIsConfirmRemoveAllOpen] = useState(false);
+  const [currentDefaultClassification, setCurrentDefaultClassification] =
+    useState<string>("");
 
   const classificationEntries = Object.entries(classifications); // Get entries once
 
@@ -366,6 +377,46 @@ export function ClassificationPanel() {
       return false;
     return defaultEBKPH.every((defClass) => !!classifications[defClass.code]);
   };
+
+  // Auto load default classifications based on stored settings
+  useEffect(() => {
+    if (hasAutoLoaded) return;
+    const stored = localStorage.getItem("appSettings");
+    if (!stored) return;
+    try {
+      const { defaultClassification, alwaysLoad } = JSON.parse(stored);
+      if (!alwaysLoad) return;
+      if (
+        defaultClassification === "uniclass" &&
+        !isLoadingUniclass &&
+        !errorLoadingUniclass &&
+        defaultUniclassPr.length > 0 &&
+        !areAllUniclassAdded()
+      ) {
+        handleAddAllUniclassPr();
+        setHasAutoLoaded(true);
+      } else if (
+        defaultClassification === "ebkph" &&
+        !isLoadingEBKPH &&
+        !errorLoadingEBKPH &&
+        defaultEBKPH.length > 0 &&
+        !areAlleBKPHAdded()
+      ) {
+        handleAddAlleBKPH();
+        setHasAutoLoaded(true);
+      }
+    } catch (err) {
+      console.error("Failed to auto load classifications", err);
+    }
+  }, [
+    isLoadingUniclass,
+    isLoadingEBKPH,
+    defaultUniclassPr,
+    defaultEBKPH,
+    errorLoadingUniclass,
+    errorLoadingEBKPH,
+    hasAutoLoaded,
+  ]);
 
   const handleAddClassification = () => {
     if (newClassification.code && newClassification.name) {
@@ -623,6 +674,29 @@ export function ClassificationPanel() {
   const showExportSection =
     hasClassifiedElements && exportableModels.length > 0;
 
+  useEffect(() => {
+    // Load default classification setting from localStorage on mount
+    if (typeof window !== "undefined") {
+      const storedSettings = localStorage.getItem(SETTINGS_KEY);
+      if (storedSettings) {
+        try {
+          const parsedSettings: AppSettings = JSON.parse(storedSettings);
+          setCurrentDefaultClassification(
+            parsedSettings.defaultClassification || ""
+          );
+        } catch (err) {
+          console.error(
+            "Failed to parse stored settings in ClassificationPanel:",
+            err
+          );
+          setCurrentDefaultClassification("");
+        }
+      } else {
+        setCurrentDefaultClassification("");
+      }
+    }
+  }, []);
+
   return (
     <div className="space-y-4 h-full flex flex-col">
       <div className="shrink-0 space-y-2">
@@ -754,6 +828,9 @@ export function ClassificationPanel() {
                       disabled={areAllUniclassAdded()}
                     >
                       Load Uniclass Pr ({defaultUniclassPr.length})
+                      {currentDefaultClassification === "uniclass" && (
+                        <Star className="ml-2 h-4 w-4 text-yellow-400 fill-yellow-400" />
+                      )}
                     </DropdownMenuItem>
                   )}
                 {!isLoadingUniclass &&
@@ -781,6 +858,9 @@ export function ClassificationPanel() {
                       disabled={areAlleBKPHAdded()}
                     >
                       Load eBKP-H ({defaultEBKPH.length})
+                      {currentDefaultClassification === "ebkph" && (
+                        <Star className="ml-2 h-4 w-4 text-yellow-400 fill-yellow-400" />
+                      )}
                     </DropdownMenuItem>
                   )}
                 {!isLoadingEBKPH &&

@@ -15,6 +15,7 @@ import { OrbitControls, Environment } from "@react-three/drei";
 import { IFCModel } from "@/components/ifc-model";
 import { ClassificationPanel } from "@/components/classification-panel";
 import { RulePanel } from "@/components/rule-panel";
+import { SettingsPanel } from "@/components/settings-panel";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -1076,10 +1077,7 @@ function ViewerContent() {
               value="settings"
               className="p-4 flex-grow overflow-y-auto"
             >
-              <h3 className="text-lg font-medium">Settings</h3>
-              <p className="text-sm text-muted-foreground">
-                Settings for the application will go here.
-              </p>
+              <SettingsPanel />
             </TabsContent>
           </Tabs>
         </Panel>
