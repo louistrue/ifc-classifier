@@ -21,9 +21,16 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning className="h-full overflow-hidden">
       <head>
-        {/* You can keep existing meta tags or use the metadata object above */}
-        {/* <title>IFC Viewer with Classification System</title> */}
-        {/* <meta name="description" content="Web-based IFC viewer with rule-based classification system"/> */}
+        {/* Metadata handled via the metadata object above */}
+        <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+        <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
+        <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
+        <link rel="manifest" href="/site.webmanifest" />
+        <link rel="mask-icon" href="/safari-pinned-tab.svg" color="#ffffff" />
+        <link rel="shortcut icon" href="/favicon.ico" />
+        <meta name="msapplication-TileColor" content="#ffffff" />
+        <meta name="msapplication-config" content="/browserconfig.xml" />
+        <meta name="theme-color" content="#ffffff" />
       </head>
       <body className={`${inter.className} h-full flex flex-col overflow-hidden`}>
         <IFCContextProvider>
