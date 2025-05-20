@@ -1,0 +1,54 @@
+[
+  {
+    "id": "rule-external-wall",
+    "name": "External Walls",
+    "description": "Classify external walls",
+    "classificationCode": "C02.01",
+    "active": true,
+    "conditions": [
+      { "property": "Ifc Class", "operator": "equals", "value": "IFCWALL" },
+      { "property": "Pset_WallCommon.IsExternal", "operator": "equals", "value": "true" }
+    ]
+  },
+  {
+    "id": "rule-internal-wall",
+    "name": "Internal Walls",
+    "description": "Classify internal walls",
+    "classificationCode": "C02.02",
+    "active": true,
+    "conditions": [
+      { "property": "Ifc Class", "operator": "equals", "value": "IFCWALL" },
+      { "property": "Pset_WallCommon.IsExternal", "operator": "notEquals", "value": "true" }
+    ]
+  },
+  {
+    "id": "rule-windows",
+    "name": "Windows",
+    "description": "Classify windows",
+    "classificationCode": "E03.01",
+    "active": true,
+    "conditions": [
+      { "property": "Ifc Class", "operator": "equals", "value": "IFCWINDOW" }
+    ]
+  },
+  {
+    "id": "rule-doors",
+    "name": "Doors",
+    "description": "Classify doors",
+    "classificationCode": "E03.02",
+    "active": true,
+    "conditions": [
+      { "property": "Ifc Class", "operator": "equals", "value": "IFCDOOR" }
+    ]
+  },
+  {
+    "id": "rule-roofs",
+    "name": "Roofs",
+    "description": "Classify roof elements",
+    "classificationCode": "F01.03",
+    "active": true,
+    "conditions": [
+      { "property": "Ifc Class", "operator": "equals", "value": "IFCROOF" }
+    ]
+  }
+]
