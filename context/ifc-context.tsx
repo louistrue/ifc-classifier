@@ -57,6 +57,13 @@ export interface SelectedElementInfo {
   expressID: number;
 }
 
+export interface ClassificationItem {
+  code: string;
+  name: string;
+  color: string;
+  elements?: SelectedElementInfo[];
+}
+
 interface IFCContextType {
   loadedModels: LoadedModelData[]; // Array of loaded models
   selectedElement: SelectedElementInfo | null;
@@ -127,6 +134,9 @@ interface IFCContextType {
     element: SelectedElementInfo
   ) => void;
   unassignElementFromAllClassifications: (element: SelectedElementInfo) => void;
+
+  exportClassificationsAsJson: () => string;
+  importClassificationsFromJson: (json: string) => void;
 
   toggleUserHideElement: (element: SelectedElementInfo) => void; // New function
   unhideLastElement: () => void; // New function
@@ -1372,6 +1382,35 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
     [setRules]
   );
 
+  const exportClassificationsAsJson = useCallback((): string => {
+    const arr = Object.values(classifications);
+    return JSON.stringify(arr, null, 2);
+  }, [classifications]);
+
+  const importClassificationsFromJson = useCallback(
+    (json: string) => {
+      try {
+        const parsed = JSON.parse(json) as ClassificationItem[];
+        if (!Array.isArray(parsed)) {
+          console.error("Classification JSON is not an array");
+          return;
+        }
+        setClassifications((prev) => {
+          const updated = { ...prev };
+          parsed.forEach((item) => {
+            if (item.code) {
+              updated[item.code] = { ...item, elements: item.elements || [] };
+            }
+          });
+          return updated;
+        });
+      } catch (e) {
+        console.error("Failed to import classifications", e);
+      }
+    },
+    [setClassifications]
+  );
+
   const toggleUserHideElement = useCallback(
     (elementToToggle: SelectedElementInfo) => {
       console.log(
@@ -1481,6 +1520,8 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
         removeRule,
         updateRule,
         previewRuleHighlight,
+        exportClassificationsAsJson,
+        importClassificationsFromJson,
         toggleUserHideElement,
         unhideLastElement,
         unhideAllElements,
