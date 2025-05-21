@@ -151,6 +151,7 @@ interface IFCContextType {
     element: SelectedElementInfo,
   ) => void;
   unassignElementFromAllClassifications: (element: SelectedElementInfo) => void;
+  mapClassificationsFromModel: (pset: string, property: string) => Promise<void>;
 
   toggleUserHideElement: (element: SelectedElementInfo) => void; // New function
   unhideLastElement: () => void; // New function
@@ -1400,10 +1401,152 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
             updated[code] = item;
           }
         }
-        return changed ? updated : prev;
+      return changed ? updated : prev;
+    });
+  },
+  [setClassifications],
+);
+
+  const mapClassificationsFromModel = useCallback(
+    async (pset: string, property: string) => {
+      if (!ifcApiInternal) return;
+
+      if (!ifcApiInternal.properties) {
+        try {
+          ifcApiInternal.properties = new Properties(ifcApiInternal);
+        } catch (e) {
+          console.error(
+            "IFCContext: Failed to init properties in mapClassificationsFromModel",
+            e,
+          );
+          return;
+        }
+      }
+
+      const newElementsPerClassification: Record<string, SelectedElementInfo[]> = {};
+      for (const code in classifications) {
+        newElementsPerClassification[code] = [];
+      }
+
+      const fetchValue = async (
+        modelID: number,
+        expressID: number,
+      ): Promise<any> => {
+        let itemProps: any = null;
+        try {
+          itemProps = await ifcApiInternal!.properties!.getItemProperties(
+            modelID,
+            expressID,
+            true,
+          );
+        } catch (e) {
+          return null;
+        }
+
+        if (pset) {
+          let psetObject: any = undefined;
+          if (itemProps[pset]) {
+            psetObject = itemProps[pset];
+          } else if (Array.isArray(itemProps.PropertySets)) {
+            psetObject = itemProps.PropertySets.find(
+              (ps: any) => ps.Name?.value === pset,
+            );
+          } else {
+            for (const key in itemProps) {
+              if (
+                typeof itemProps[key] === "object" &&
+                itemProps[key] !== null &&
+                itemProps[key].Name?.value === pset &&
+                itemProps[key].HasProperties
+              ) {
+                psetObject = itemProps[key];
+                break;
+              }
+            }
+          }
+
+          if (!psetObject) {
+            try {
+              const typeObjects = await ifcApiInternal!.properties!.getTypeProperties(
+                modelID,
+                expressID,
+                true,
+              );
+              for (const typeObj of typeObjects) {
+                if (typeObj.HasPropertySets) {
+                  const found = typeObj.HasPropertySets.find(
+                    (ps: any) => ps.Name?.value === pset,
+                  );
+                  if (found) {
+                    psetObject = found;
+                    break;
+                  }
+                }
+              }
+            } catch (e) {
+              // ignore
+            }
+          }
+
+          if (psetObject && psetObject.HasProperties) {
+            const propObj = psetObject.HasProperties.find(
+              (p: any) => p.Name?.value === property,
+            );
+            if (propObj) {
+              if (propObj.NominalValue?.value !== undefined)
+                return propObj.NominalValue.value;
+              if (propObj.NominalValue !== undefined) return propObj.NominalValue;
+              if (propObj.Value?.value !== undefined) return propObj.Value.value;
+              if (propObj.Value !== undefined) return propObj.Value;
+            }
+          }
+        } else {
+          const direct = itemProps[property];
+          if (direct !== undefined) {
+            if (direct?.value !== undefined) return direct.value;
+            return direct;
+          }
+        }
+        return null;
+      };
+
+      for (const model of loadedModels) {
+        if (!model.modelID || !model.spatialTree) continue;
+        const allElements = getAllElementsFromSpatialTreeNodesRecursive([
+          model.spatialTree,
+        ]);
+        for (const node of allElements) {
+          if (node.expressID === undefined) continue;
+          const val = await fetchValue(model.modelID, node.expressID);
+          if (val === null || val === undefined) continue;
+          const raw = String(val);
+          const codes = raw.split(/[,;]+/).map((c) => c.trim()).filter((c) => c);
+          for (const code of codes) {
+            if (newElementsPerClassification[code]) {
+              const arr = newElementsPerClassification[code];
+              if (!arr.some((el) => el.modelID === model.modelID && el.expressID === node.expressID)) {
+                arr.push({ modelID: model.modelID, expressID: node.expressID });
+              }
+            }
+          }
+        }
+      }
+
+      setClassifications((prev) => {
+        const updated = { ...prev };
+        for (const code in updated) {
+          const els = newElementsPerClassification[code] || [];
+          updated[code] = { ...updated[code], elements: els };
+        }
+        return updated;
       });
     },
-    [setClassifications],
+    [
+      ifcApiInternal,
+      classifications,
+      loadedModels,
+      getAllElementsFromSpatialTreeNodesRecursive,
+    ],
   );
 
   const getClassificationsForElement = useCallback(
@@ -1709,6 +1852,7 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
         removeClassification,
         removeAllClassifications,
         updateClassification,
+        mapClassificationsFromModel,
         assignClassificationToElement,
         unassignClassificationFromElement,
         unassignElementFromAllClassifications,

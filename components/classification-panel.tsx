@@ -34,6 +34,10 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import {
+  CreatableCombobox,
+  ComboboxOption,
+} from "@/components/ui/creatable-combobox";
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -125,10 +129,12 @@ export function ClassificationPanel() {
     unassignClassificationFromElement,
     unassignElementFromAllClassifications,
     removeAllClassifications,
+    mapClassificationsFromModel,
     exportClassificationsAsJson,
     exportClassificationsAsExcel,
     importClassificationsFromJson,
     importClassificationsFromExcel,
+    availableProperties,
   } = useIFCContext();
   const { t } = useTranslation();
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
@@ -166,6 +172,9 @@ export function ClassificationPanel() {
   >(null);
   const [isConfirmRemoveOpen, setIsConfirmRemoveOpen] = useState(false);
   const [isConfirmRemoveAllOpen, setIsConfirmRemoveAllOpen] = useState(false);
+  const [isFromModelDialogOpen, setIsFromModelDialogOpen] = useState(false);
+  const [selectedPset, setSelectedPset] = useState("");
+  const [selectedProperty, setSelectedProperty] = useState("");
   const [currentDefaultClassification, setCurrentDefaultClassification] =
     useState<string>("");
   const [searchQuery, setSearchQuery] = useState("");
@@ -194,6 +203,23 @@ export function ClassificationPanel() {
   const [selectedModelIdForExport, setSelectedModelIdForExport] = useState<
     string | undefined
   >(undefined);
+
+  const psetOptions = useMemo(() => {
+    const sets = new Set<string>();
+    availableProperties.forEach((p) => {
+      const parts = p.split(".");
+      if (parts.length === 2) sets.add(parts[0]);
+    });
+    return Array.from(sets).sort().map((s) => ({ value: s, label: s }));
+  }, [availableProperties]);
+
+  const propertyOptions = useMemo(() => {
+    if (!selectedPset) return [] as ComboboxOption[];
+    return availableProperties
+      .filter((p) => p.startsWith(selectedPset + "."))
+      .map((p) => ({ value: p.split(".")[1], label: p.split(".")[1] }))
+      .sort((a, b) => a.label.localeCompare(b.label));
+  }, [availableProperties, selectedPset]);
 
   // Determine if any classifications have elements assigned
   const hasClassifiedElements = useMemo(() => {
@@ -552,6 +578,12 @@ export function ClassificationPanel() {
     }
   };
 
+  const handleMapFromModelConfirm = async () => {
+    if (!selectedPset || !selectedProperty) return;
+    await mapClassificationsFromModel(selectedPset, selectedProperty);
+    setIsFromModelDialogOpen(false);
+  };
+
   // Component to render each row in the virtualized list
   const ClassificationRow = ({
     index,
@@ -854,6 +886,10 @@ export function ClassificationPanel() {
                 <DropdownMenuItem onSelect={() => setIsAddDialogOpen(true)}>
                   <Plus className="mr-2 h-4 w-4" />
                   Add New Classification
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => setIsFromModelDialogOpen(true)}>
+                  <FileInput className="mr-2 h-4 w-4" />
+                  Map From Model
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuLabel className="text-xs font-semibold text-muted-foreground px-2 py-1.5">
@@ -1456,6 +1492,41 @@ export function ClassificationPanel() {
           </DialogContent>
         </Dialog>
       )}
+      <Dialog open={isFromModelDialogOpen} onOpenChange={setIsFromModelDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Map From Model</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label className="text-right">PSet</Label>
+              <CreatableCombobox
+                options={psetOptions}
+                value={selectedPset}
+                onChange={setSelectedPset}
+                className="col-span-3"
+                popoverClassName="w-full max-w-[300px]"
+              />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label className="text-right">Property</Label>
+              <CreatableCombobox
+                options={propertyOptions}
+                value={selectedProperty}
+                onChange={setSelectedProperty}
+                className="col-span-3"
+                popoverClassName="w-full max-w-[300px]"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsFromModelDialogOpen(false)}>
+              {t('buttons.cancel')}
+            </Button>
+            <Button onClick={handleMapFromModelConfirm}>{t('buttons.apply')}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       {/* Input for file import, remains hidden and functional */}
       <input
         type="file"
