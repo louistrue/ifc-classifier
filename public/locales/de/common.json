@@ -193,5 +193,9 @@
         "contains": "Enthält",
         "greaterThan": "Größer als",
         "lessThan": "Kleiner als"
+    },
+    "modelTree": {
+        "searchPlaceholder": "Modellstruktur durchsuchen...",
+        "noSearchResults": "Keine Elemente entsprechen der Suche."
     }
 }

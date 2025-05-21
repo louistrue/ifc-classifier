@@ -45,6 +45,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import { useTranslation } from "react-i18next";
 
 // Helper function to generate a unique key for a node
@@ -402,6 +403,7 @@ export function SpatialTreePanel() {
   const [selectedNodeKeyForScroll, setSelectedNodeKeyForScroll] = useState<
     string | null
   >(null);
+  const [searchQuery, setSearchQuery] = useState("");
 
   const toggleNodeExpansion = useCallback((nodeKeyToToggle: string) => {
     setExpandedNodeKeys((prevKeys) => {
@@ -456,6 +458,32 @@ export function SpatialTreePanel() {
       return null;
     },
     []
+  );
+
+  const filterTreeByQuery = useCallback(
+    (
+      node: SpatialStructureNode,
+      query: string
+    ): SpatialStructureNode | null => {
+      const lowerQuery = query.toLowerCase();
+      const naturalName = getNaturalIfcClassName(node.type)?.name ?? "";
+      const matches =
+        (node.Name && node.Name.toLowerCase().includes(lowerQuery)) ||
+        naturalName.toLowerCase().includes(lowerQuery) ||
+        String(node.expressID).includes(lowerQuery);
+
+      const filteredChildren = node.children
+        ? node.children
+            .map((child) => filterTreeByQuery(child, query))
+            .filter((c): c is SpatialStructureNode => c !== null)
+        : [];
+
+      if (matches || filteredChildren.length > 0) {
+        return { ...node, children: filteredChildren };
+      }
+      return null;
+    },
+    [getNaturalIfcClassName]
   );
 
   useEffect(() => {
@@ -566,6 +594,17 @@ export function SpatialTreePanel() {
     setModelToRemove(null);
   };
 
+  const filteredModels = useMemo(() => {
+    if (!searchQuery) return loadedModels;
+    return loadedModels
+      .map((m) => {
+        if (!m.spatialTree) return null;
+        const filteredTree = filterTreeByQuery(m.spatialTree, searchQuery);
+        return filteredTree ? { ...m, spatialTree: filteredTree } : null;
+      })
+      .filter((m): m is LoadedModelData => m !== null);
+  }, [loadedModels, searchQuery, filterTreeByQuery]);
+
   if (!ifcApi) {
     return (
       <div className="p-4 text-sm text-muted-foreground h-full flex items-center justify-center">
@@ -591,9 +630,22 @@ export function SpatialTreePanel() {
   }
 
   return (
-    <div className="flex-1 overflow-auto">
-      <div className="p-0 space-y-0 h-full overflow-y-auto text-xs">
-        {loadedModels.map((modelEntry) => {
+    <div className="flex-1 flex flex-col overflow-auto">
+      <div className="p-2">
+        <Input
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          placeholder={t('modelTree.searchPlaceholder')}
+          className="w-full"
+        />
+      </div>
+      <div className="flex-1 p-0 space-y-0 overflow-y-auto text-xs">
+        {filteredModels.length === 0 ? (
+          <div className="flex items-center justify-center h-full text-sm text-muted-foreground">
+            {searchQuery ? t('modelTree.noSearchResults') : t('noModelsLoaded')}
+          </div>
+        ) : (
+          filteredModels.map((modelEntry) => {
           if (!modelEntry.spatialTree && modelEntry.modelID === null) {
             return (
               <div key={modelEntry.id} className="p-2 text-sm text-foreground/80 flex items-center gap-2">
@@ -646,7 +698,8 @@ export function SpatialTreePanel() {
             );
           }
           return null;
-        })}
+          })
+        )}
       </div>
 
       {modelToRemove && (
