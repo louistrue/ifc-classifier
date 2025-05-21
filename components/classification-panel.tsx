@@ -84,6 +84,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useTranslation } from "react-i18next";
 
 // Helper function to compare two arrays of SelectedElementInfo (order-independent)
 function areElementArraysEqual(arr1: any[], arr2: any[]): boolean {
@@ -128,6 +129,7 @@ export function ClassificationPanel() {
     importClassificationsFromJson,
     importClassificationsFromExcel,
   } = useIFCContext();
+  const { t } = useTranslation();
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [newClassification, setNewClassification] = useState({
     code: "",
@@ -593,9 +595,8 @@ export function ClassificationPanel() {
           <div className="flex items-center gap-2 truncate">
             {/* Removed ring from color dot, consider a scale or opacity change if needed */}
             <div
-              className={`w-3 h-3 rounded-full flex-shrink-0 transition-transform duration-150 ${
-                isHighlighted ? "scale-110" : ""
-              }`}
+              className={`w-3 h-3 rounded-full flex-shrink-0 transition-transform duration-150 ${isHighlighted ? "scale-110" : ""
+                }`}
               style={{ backgroundColor: item.color }}
             />
             <span className="truncate" title={code}>
@@ -610,11 +611,10 @@ export function ClassificationPanel() {
         {/* Elements cell */}
         <div
           style={{ width: elementsColWidth }}
-          className={`flex items-center justify-center p-2 text-sm ${
-            isHighlighted
-              ? "text-accent-foreground/80"
-              : "text-muted-foreground"
-          }`}
+          className={`flex items-center justify-center p-2 text-sm ${isHighlighted
+            ? "text-accent-foreground/80"
+            : "text-muted-foreground"
+            }`}
         >
           <span>{item.elements?.length || 0}</span>
         </div>
@@ -645,7 +645,7 @@ export function ClassificationPanel() {
 
   const handleExportIFC = async () => {
     if (isExporting || !selectedModelIdForExport) {
-      alert("Please select a model to export.");
+      alert(t('alerts.pleaseSelectModel'));
       return;
     }
 
@@ -655,13 +655,13 @@ export function ClassificationPanel() {
 
     if (!modelToExport || !modelToExport.rawBuffer) {
       alert(
-        "Selected model is not available for export or its data is missing."
+        t('alerts.selectedModelNotAvailable')
       );
       return;
     }
 
     if (!hasClassifiedElements || Object.keys(classifications).length === 0) {
-      alert("There are no classifications with assigned elements to export.");
+      alert(t('alerts.noClassifiedElementsToExport'));
       return;
     }
 
@@ -755,7 +755,7 @@ export function ClassificationPanel() {
       <div className="shrink-0 space-y-2">
         <div className="flex justify-between items-center gap-2">
           <h3 className="text-lg font-medium whitespace-nowrap">
-            Classifications
+            {t('classificationsPanel')}
           </h3>
           <div className="flex items-center gap-2">
             {" "}
@@ -768,10 +768,9 @@ export function ClassificationPanel() {
                     <Button
                       size="sm"
                       className={`px-2 py-1 h-auto rounded-full text-xs transition-all duration-150 ease-in-out flex items-center justify-center
-                        ${
-                          !showAllClassificationColors
-                            ? "bg-primary text-primary-foreground shadow-sm"
-                            : "bg-transparent text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                        ${!showAllClassificationColors
+                          ? "bg-primary text-primary-foreground shadow-sm"
+                          : "bg-transparent text-muted-foreground hover:bg-accent hover:text-accent-foreground"
                         }`}
                       onClick={() => {
                         if (showAllClassificationColors)
@@ -779,9 +778,8 @@ export function ClassificationPanel() {
                       }}
                     >
                       <CircleOff
-                        className={`w-4 h-4 flex-shrink-0 ${
-                          !showAllClassificationColors ? "md:mr-1.5" : ""
-                        }`}
+                        className={`w-4 h-4 flex-shrink-0 ${!showAllClassificationColors ? "md:mr-1.5" : ""
+                          }`}
                       />
                       <span
                         className={
@@ -790,17 +788,16 @@ export function ClassificationPanel() {
                             : "hidden"
                         }
                       >
-                        Original
+                        {t('original')}
                       </span>
                       <span className="sr-only">
-                        Show original model colors
+                        {t('tooltips.originalColors')}
                       </span>
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent>
                     <p>
-                      Show original model colors (hides all classification
-                      colors).
+                      {t('tooltips.originalColors')}
                     </p>
                   </TooltipContent>
                 </Tooltip>
@@ -809,10 +806,9 @@ export function ClassificationPanel() {
                     <Button
                       size="sm"
                       className={`px-2 py-1 h-auto rounded-full text-xs transition-all duration-150 ease-in-out flex items-center justify-center
-                        ${
-                          showAllClassificationColors
-                            ? "bg-primary text-primary-foreground shadow-sm"
-                            : "bg-transparent text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                        ${showAllClassificationColors
+                          ? "bg-primary text-primary-foreground shadow-sm"
+                          : "bg-transparent text-muted-foreground hover:bg-accent hover:text-accent-foreground"
                         }`}
                       onClick={() => {
                         if (!showAllClassificationColors)
@@ -820,9 +816,8 @@ export function ClassificationPanel() {
                       }}
                     >
                       <Palette
-                        className={`w-4 h-4 flex-shrink-0 ${
-                          showAllClassificationColors ? "md:mr-1.5" : ""
-                        }`}
+                        className={`w-4 h-4 flex-shrink-0 ${showAllClassificationColors ? "md:mr-1.5" : ""
+                          }`}
                       />
                       <span
                         className={
@@ -831,15 +826,15 @@ export function ClassificationPanel() {
                             : "hidden"
                         }
                       >
-                        Colors
+                        {t('colors')}
                       </span>
                       <span className="sr-only">
-                        Apply all classification colors
+                        {t('tooltips.classificationColors')}
                       </span>
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent>
-                    <p>Apply all classification colors to the model.</p>
+                    <p>{t('tooltips.classificationColors')}</p>
                   </TooltipContent>
                 </Tooltip>
               </div>
@@ -861,16 +856,16 @@ export function ClassificationPanel() {
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuLabel className="text-xs font-semibold text-muted-foreground px-2 py-1.5">
-                  Default Sets
+                  {t('sections.defaultSets')}
                 </DropdownMenuLabel>
                 {isLoadingUniclass && (
                   <DropdownMenuItem disabled>
-                    Loading Uniclass Pr...
+                    {t('buttons.loadingUniclass')}
                   </DropdownMenuItem>
                 )}
                 {errorLoadingUniclass && (
                   <DropdownMenuItem disabled className="text-destructive">
-                    Uniclass Pr Error: {errorLoadingUniclass}
+                    {t('buttons.uniclassError', { message: errorLoadingUniclass })}
                   </DropdownMenuItem>
                 )}
                 {!isLoadingUniclass &&
@@ -880,7 +875,7 @@ export function ClassificationPanel() {
                       onClick={handleAddAllUniclassPr}
                       disabled={areAllUniclassAdded()}
                     >
-                      Load Uniclass Pr ({defaultUniclassPr.length})
+                      {t('buttons.loadUniclass', { count: defaultUniclassPr.length })}
                       {currentDefaultClassification === "uniclass" && (
                         <Star className="ml-2 h-4 w-4 text-yellow-400 fill-yellow-400" />
                       )}
@@ -890,17 +885,17 @@ export function ClassificationPanel() {
                   !errorLoadingUniclass &&
                   defaultUniclassPr.length === 0 && (
                     <DropdownMenuItem disabled>
-                      No Uniclass Pr items found.
+                      {t('buttons.noUniclassFound')}
                     </DropdownMenuItem>
                   )}
                 {isLoadingEBKPH && (
                   <DropdownMenuItem disabled>
-                    Loading eBKP-H...
+                    {t('buttons.loadingEbkph')}
                   </DropdownMenuItem>
                 )}
                 {errorLoadingEBKPH && (
                   <DropdownMenuItem disabled className="text-destructive">
-                    eBKP-H Error: {errorLoadingEBKPH}
+                    {t('buttons.ebkphError', { message: errorLoadingEBKPH })}
                   </DropdownMenuItem>
                 )}
                 {!isLoadingEBKPH &&
@@ -910,7 +905,7 @@ export function ClassificationPanel() {
                       onClick={handleAddAlleBKPH}
                       disabled={areAlleBKPHAdded()}
                     >
-                      Load eBKP-H ({defaultEBKPH.length})
+                      {t('buttons.loadEbkph', { count: defaultEBKPH.length })}
                       {currentDefaultClassification === "ebkph" && (
                         <Star className="ml-2 h-4 w-4 text-yellow-400 fill-yellow-400" />
                       )}
@@ -920,16 +915,16 @@ export function ClassificationPanel() {
                   !errorLoadingEBKPH &&
                   defaultEBKPH.length === 0 && (
                     <DropdownMenuItem disabled>
-                      No eBKP-H items found.
+                      {t('buttons.noEbkphFound')}
                     </DropdownMenuItem>
                   )}
                 <DropdownMenuSeparator />
                 <DropdownMenuLabel className="text-xs font-semibold text-muted-foreground px-2 py-1.5">
-                  Manage Data
+                  {t('sections.manageData')}
                 </DropdownMenuLabel>
                 <DropdownMenuSub>
                   <DropdownMenuSubTrigger>
-                    <FileOutput className="mr-2 h-4 w-4" /> Export
+                    <FileOutput className="mr-2 h-4 w-4" /> {t('buttons.export')}
                   </DropdownMenuSubTrigger>
                   <DropdownMenuSubContent>
                     <DropdownMenuItem onClick={handleExportJson}>
@@ -942,7 +937,7 @@ export function ClassificationPanel() {
                 </DropdownMenuSub>
                 <DropdownMenuSub>
                   <DropdownMenuSubTrigger>
-                    <ArchiveRestore className="mr-2 h-4 w-4" /> Load
+                    <ArchiveRestore className="mr-2 h-4 w-4" /> {t('buttons.load')}
                   </DropdownMenuSubTrigger>
                   <DropdownMenuSubContent>
                     <DropdownMenuItem
@@ -969,7 +964,7 @@ export function ClassificationPanel() {
                   onSelect={() => setIsConfirmRemoveAllOpen(true)}
                 >
                   <Trash2 className="mr-2 h-4 w-4" />
-                  Remove All Classifications
+                  {t('buttons.removeAllClassifications')}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -987,12 +982,12 @@ export function ClassificationPanel() {
         <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Add New Classification</DialogTitle>
+              <DialogTitle>{t('classifications.addNew')}</DialogTitle>
             </DialogHeader>
             <div className="grid gap-4 py-4">
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="code" className="text-right">
-                  Code
+                  {t('classifications.code')}
                 </Label>
                 <Input
                   id="code"
@@ -1009,7 +1004,7 @@ export function ClassificationPanel() {
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="name" className="text-right">
-                  Name
+                  {t('classifications.name')}
                 </Label>
                 <Input
                   id="name"
@@ -1026,7 +1021,7 @@ export function ClassificationPanel() {
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="color" className="text-right">
-                  Color
+                  {t('classifications.color')}
                 </Label>
                 <div className="flex col-span-3 gap-2">
                   <Input
@@ -1049,10 +1044,10 @@ export function ClassificationPanel() {
                 variant="outline"
                 onClick={() => setIsAddDialogOpen(false)}
               >
-                Cancel
+                {t('buttons.cancel')}
               </Button>
               <Button onClick={handleAddClassification}>
-                Add Classification
+                {t('buttons.add')}
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -1147,9 +1142,11 @@ export function ClassificationPanel() {
             <p>No classifications match your search.</p>
           ) : (
             <>
-              <p>No classifications added yet.</p>
-              <p className="text-sm mt-2">
-                Add a classification to start organizing your IFC elements.
+              <p className="mb-2 font-normal text-foreground/60">
+                {t('noClassificationsAdded')}
+              </p>
+              <p className="text-sm font-normal text-foreground/60">
+                {t('addClassification')}
               </p>
             </>
           )}
@@ -1166,7 +1163,7 @@ export function ClassificationPanel() {
                     onClick={() => requestSort("code")}
                   >
                     <div className="flex items-center">
-                      Code
+                      {t('classifications.code')}
                       <SortIndicator
                         columnKey="code"
                         currentSortConfig={sortConfig}
@@ -1179,7 +1176,7 @@ export function ClassificationPanel() {
                     onClick={() => requestSort("name")}
                   >
                     <div className="flex items-center">
-                      Name
+                      {t('classifications.name')}
                       <SortIndicator
                         columnKey="name"
                         currentSortConfig={sortConfig}
@@ -1192,7 +1189,7 @@ export function ClassificationPanel() {
                     onClick={() => requestSort("elementsCount")}
                   >
                     <div className="flex items-center justify-center">
-                      Elements
+                      {t('classifications.elements')}
                       <SortIndicator
                         columnKey="elementsCount"
                         currentSortConfig={sortConfig}
@@ -1233,7 +1230,7 @@ export function ClassificationPanel() {
                               onClick={() => {
                                 const item =
                                   classifications[
-                                    highlightedClassificationCode!
+                                  highlightedClassificationCode!
                                   ];
                                 if (item) handleOpenEditDialog(item);
                                 setIsSpeedDialOpen(false);
@@ -1243,7 +1240,7 @@ export function ClassificationPanel() {
                             </Button>
                           </TooltipTrigger>
                           <TooltipContent side="left">
-                            <p>Edit Classification</p>
+                            <p>{t('classifications.editClassification')}</p>
                           </TooltipContent>
                         </Tooltip>
                       </TooltipProvider>
@@ -1266,7 +1263,7 @@ export function ClassificationPanel() {
                             </Button>
                           </TooltipTrigger>
                           <TooltipContent side="left">
-                            <p>Remove Classification</p>
+                            <p>{t('classifications.removeClassification')}</p>
                           </TooltipContent>
                         </Tooltip>
                       </TooltipProvider>
@@ -1295,19 +1292,19 @@ export function ClassificationPanel() {
           {highlightedClassificationCode ? (
             <>
               <Button className="w-full" onClick={handleAssignSelected}>
-                Assign Selected Element
+                {t('buttons.assignSelected')}
               </Button>
               <Button
                 className="w-full"
                 variant="outline"
                 onClick={handleUnassignSelected}
               >
-                Remove Selected from Classification
+                {t('buttons.removeSelected')}
               </Button>
             </>
           ) : (
             <p className="text-sm text-muted-foreground">
-              Highlight a classification to assign.
+              {t('messages.highlightToAssign')}
             </p>
           )}
           <Button
@@ -1315,21 +1312,21 @@ export function ClassificationPanel() {
             variant="outline"
             onClick={handleClearSelected}
           >
-            Clear from All Classifications
+            {t('buttons.clearFromAll')}
           </Button>
         </div>
       )}
 
       {showExportSection && (
         <div className="mt-auto pt-4 border-t space-y-3">
-          <h4 className="text-md font-medium">Export Classified Model</h4>
+          <h4 className="text-md font-medium">{t('classifications.exportClassifiedModel')}</h4>
           {exportableModels.length > 1 && (
             <div>
               <Label
                 htmlFor="model-select-export"
                 className="text-sm font-normal text-muted-foreground"
               >
-                Select model to export:
+                {t('classifications.selectModelToExport')}
               </Label>
               <Select
                 value={selectedModelIdForExport}
@@ -1350,7 +1347,7 @@ export function ClassificationPanel() {
           )}
           {exportableModels.length === 1 && selectedModelIdForExport && (
             <div className="text-sm text-muted-foreground">
-              Exporting model:{" "}
+              {t('classifications.exportingModel')}{" "}
               <span className="font-medium text-foreground">
                 {exportableModels.find((m) => m.id === selectedModelIdForExport)
                   ?.name || "Selected Model"}
@@ -1366,7 +1363,7 @@ export function ClassificationPanel() {
               className={`mr-2 h-5 w-5 ${isExporting ? "animate-spin" : ""}`}
             />
             <span className="text-base font-medium">
-              {isExporting ? "Exporting..." : "Export IFC"}
+              {isExporting ? t('classifications.exporting') : t('classifications.exportIFC')}
             </span>
           </Button>
         </div>

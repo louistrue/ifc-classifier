@@ -2,8 +2,11 @@
 
 import React from "react";
 import { Github } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 const Footer: React.FC = () => {
+  const { t } = useTranslation();
+
   return (
     <footer className="bg-transparent text-[var(--color-text)] py-1 relative overflow-hidden">
       <div className="bg-gradient-to-t from-[hsl(var(--background,_0_0%_100%))]/60 to-transparent pointer-events-auto">
@@ -40,7 +43,7 @@ const Footer: React.FC = () => {
             >
               AGPL-3.0
             </a>
-            <span> License</span>
+            <span> {t('footer.license')}</span>
           </div>
         </div>
       </div>

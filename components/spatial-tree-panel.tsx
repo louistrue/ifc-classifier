@@ -45,6 +45,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { Badge } from "@/components/ui/badge";
+import { useTranslation } from "react-i18next";
 
 // Helper function to generate a unique key for a node
 const getNodeKey = (
@@ -89,6 +90,7 @@ interface TreeNodeProps {
   selectedNodeKeyForScroll: string | null;
   selectedNodeActualRef: React.RefObject<HTMLDivElement> | null;
   modelID: number | null;
+  t: (key: string, options?: any) => string;
 }
 
 const TreeNode: React.FC<TreeNodeProps> = ({
@@ -104,6 +106,7 @@ const TreeNode: React.FC<TreeNodeProps> = ({
   selectedNodeKeyForScroll,
   selectedNodeActualRef,
   modelID,
+  t,
 }) => {
   const {
     getNaturalIfcClassName,
@@ -314,7 +317,7 @@ const TreeNode: React.FC<TreeNodeProps> = ({
             variant="ghost"
             size="icon"
             className="w-6 h-6 ml-1 opacity-0 group-hover:opacity-100 transition-opacity"
-            title={isModelHidden ? `Show ${modelFileInfo.name}` : `Hide ${modelFileInfo.name}`}
+            title={isModelHidden ? t('modelViewer.showModel', { name: modelFileInfo.name }) : t('modelViewer.hideModel', { name: modelFileInfo.name })}
             onClick={handleToggleModelVisibility}
           >
             {isModelHidden ? (
@@ -329,7 +332,7 @@ const TreeNode: React.FC<TreeNodeProps> = ({
             variant="ghost"
             size="icon"
             className="w-6 h-6 ml-1 opacity-0 group-hover:opacity-100 transition-opacity"
-            title={`Remove ${modelFileInfo.name}`}
+            title={t('modelViewer.removeModel', { name: modelFileInfo.name })}
             onClick={handleRemoveClick}
           >
             <XCircle className="w-4 h-4 text-destructive" />
@@ -340,7 +343,7 @@ const TreeNode: React.FC<TreeNodeProps> = ({
             variant="ghost"
             size="icon"
             className="w-6 h-6 ml-1 opacity-0 group-hover:opacity-100 transition-opacity"
-            title={isStoreyHidden ? `Show Storey` : `Hide Storey`}
+            title={isStoreyHidden ? t('modelViewer.showStorey') : t('modelViewer.hideStorey')}
             onClick={handleToggleStoreyVisibility}
           >
             {isStoreyHidden ? (
@@ -367,6 +370,7 @@ const TreeNode: React.FC<TreeNodeProps> = ({
               selectedNodeKeyForScroll={selectedNodeKeyForScroll}
               selectedNodeActualRef={selectedNodeActualRef}
               modelID={modelFileInfo.modelID}
+              t={t}
             />
           ))}
         </div>
@@ -384,6 +388,7 @@ export function SpatialTreePanel() {
     removeIFCModel,
     getNaturalIfcClassName,
   } = useIFCContext();
+  const { t } = useTranslation();
   const [isConfirmRemoveOpen, setIsConfirmRemoveOpen] = useState(false);
   const [modelToRemove, setModelToRemove] = useState<{
     id: string;
@@ -571,15 +576,14 @@ export function SpatialTreePanel() {
 
   if (loadedModels.length === 0) {
     return (
-      <div className="p-4 text-sm text-muted-foreground h-full flex items-center justify-center">
-        No models loaded. Use the &apos;Load IFC File&apos; or &apos;Add
-        Model&apos; button.
+      <div className="p-4 text-sm font-normal text-muted-foreground h-full flex items-center justify-center">
+        {t('noModelsLoaded')}
       </div>
     );
   }
 
   return (
-    <>
+    <div className="flex-1 overflow-auto">
       <div className="p-0 space-y-0 h-full overflow-y-auto text-xs">
         {loadedModels.map((modelEntry) => {
           if (!modelEntry.spatialTree && modelEntry.modelID === null) {
@@ -627,6 +631,7 @@ export function SpatialTreePanel() {
                 selectedNodeKeyForScroll={selectedNodeKeyForScroll}
                 selectedNodeActualRef={selectedNodeRef}
                 modelID={modelEntry.modelID}
+                t={t}
               />
             );
           }
@@ -674,6 +679,6 @@ export function SpatialTreePanel() {
           </DialogContent>
         </Dialog>
       )}
-    </>
+    </div>
   );
 }
