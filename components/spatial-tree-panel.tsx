@@ -576,8 +576,16 @@ export function SpatialTreePanel() {
 
   if (loadedModels.length === 0) {
     return (
-      <div className="p-4 text-sm font-normal text-muted-foreground h-full flex items-center justify-center">
-        {t('noModelsLoaded')}
+      <div className="flex items-center justify-center h-full">
+        <div className="text-center p-6">
+          <div className="flex justify-center mb-4">
+            <FileText className="h-12 w-12 text-foreground/30" />
+          </div>
+          <p className="text-base font-medium text-foreground/80 mb-2">{t('noModelsLoaded')}</p>
+          <p className="text-sm text-foreground/60">
+            {t('modelViewer.useLoadButton')}
+          </p>
+        </div>
       </div>
     );
   }
@@ -588,15 +596,17 @@ export function SpatialTreePanel() {
         {loadedModels.map((modelEntry) => {
           if (!modelEntry.spatialTree && modelEntry.modelID === null) {
             return (
-              <div key={modelEntry.id} className="p-2 text-muted-foreground">
-                {modelEntry.name} - Initializing...
+              <div key={modelEntry.id} className="p-2 text-sm text-foreground/80 flex items-center gap-2">
+                <span className="animate-pulse block w-2 h-2 bg-foreground/40 rounded-full"></span>
+                <span className="text-base font-medium">{modelEntry.name} - Initializing...</span>
               </div>
             );
           }
           if (!modelEntry.spatialTree && modelEntry.modelID !== null) {
             return (
-              <div key={modelEntry.id} className="p-2 text-muted-foreground">
-                {modelEntry.name} - Loading structure...
+              <div key={modelEntry.id} className="p-2 text-sm text-foreground/80 flex items-center gap-2">
+                <span className="animate-pulse block w-2 h-2 bg-foreground/40 rounded-full"></span>
+                <span className="text-base font-medium">{modelEntry.name} - Loading structure...</span>
               </div>
             );
           }

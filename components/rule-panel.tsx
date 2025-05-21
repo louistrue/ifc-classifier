@@ -385,8 +385,8 @@ export function RulePanel() {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
+    <div className="space-y-6 h-full flex flex-col">
+      <div className="flex justify-between items-center shrink-0">
         <h3 className="text-lg font-medium">{t('rulesEngine')}</h3>
         <div className="flex items-center gap-2">
           <DropdownMenu>
@@ -489,15 +489,17 @@ export function RulePanel() {
       </div>
 
       {rules.length === 0 ? (
-        <div className="text-center py-8 text-muted-foreground bg-muted/30 rounded-lg">
-          <Settings2 className="mx-auto h-12 w-12 opacity-50 mb-2" />
-          <p className="font-semibold">{t('noRulesDefined')}</p>
-          <p className="text-sm font-normal mt-1">
+        <div className="flex items-center justify-center flex-col py-8 flex-grow">
+          <div className="flex justify-center mb-4">
+            <Settings2 className="h-12 w-12 text-foreground/30" />
+          </div>
+          <p className="text-base font-medium text-foreground/80 mb-2">{t('noRulesDefined')}</p>
+          <p className="text-sm text-foreground/60">
             {t('createRulesDescription')}
           </p>
         </div>
       ) : (
-        <div className="space-y-4">
+        <div className="space-y-4 flex-grow overflow-auto">
           {rules.map((rule) => {
             const targetClassification =
               classifications[rule.classificationCode];

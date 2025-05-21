@@ -64,6 +64,7 @@ import {
   FileSpreadsheet,
   ArchiveRestore,
   Star,
+  Cuboid,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -974,7 +975,7 @@ export function ClassificationPanel() {
         <Input
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder="Search classifications..."
+          placeholder={t('classifications.searchPlaceholder')}
           className="w-full"
         />
 
@@ -1137,15 +1138,18 @@ export function ClassificationPanel() {
       )}
 
       {sortedClassificationEntries.length === 0 ? (
-        <div className="text-center py-8 text-muted-foreground bg-card shadow-sm rounded-lg p-4 flex-grow border border-border">
+        <div className="text-center py-8 flex-grow flex flex-col items-center justify-center">
           {searchQuery ? (
-            <p>No classifications match your search.</p>
+            <p className="text-base font-medium text-foreground/80">{t('classifications.noSearchResults')}</p>
           ) : (
             <>
-              <p className="mb-2 font-normal text-foreground/60">
+              <div className="flex justify-center mb-4">
+                <Cuboid className="h-12 w-12 text-foreground/30" />
+              </div>
+              <p className="text-base font-medium text-foreground/80 mb-2">
                 {t('noClassificationsAdded')}
               </p>
-              <p className="text-sm font-normal text-foreground/60">
+              <p className="text-sm text-foreground/60">
                 {t('addClassification')}
               </p>
             </>

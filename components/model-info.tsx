@@ -19,6 +19,7 @@ import {
   Copy,
   ExternalLink,
   Construction,
+  Box,
 } from "lucide-react";
 import React, { useState, useMemo } from "react";
 import { MaterialSectionDisplay } from "./material-section-display";
@@ -347,11 +348,14 @@ export function ModelInfo() {
   if (!selectedElement) {
     return (
       <div className="flex items-center justify-center h-full">
-        <div className="text-center p-4">
-          <div className="flex justify-center">
-            <Construction className="h-10 w-10 text-foreground/40 mb-2" />
+        <div className="text-center p-6">
+          <div className="flex justify-center mb-4">
+            <Box className="h-12 w-12 text-foreground/30" />
           </div>
-          <p className="font-normal text-foreground/70">{t('clickElementToView')}</p>
+          <p className="text-base font-medium text-foreground/80 mb-2">{t('properties')}</p>
+          <p className="text-sm text-foreground/60">
+            {t('clickElementToView')}
+          </p>
         </div>
       </div>
     );
@@ -361,11 +365,11 @@ export function ModelInfo() {
   if (!elementProperties) {
     return (
       <div className="flex items-center justify-center h-full">
-        <div className="text-center p-4">
-          <div className="flex justify-center">
-            <Construction className="h-10 w-10 text-foreground/40 mb-2" />
+        <div className="text-center p-6">
+          <div className="flex justify-center mb-4">
+            <Construction className="h-12 w-12 text-foreground/30 animate-pulse" />
           </div>
-          <p className="font-normal text-foreground/70">{t('messages.loading')}</p>
+          <p className="text-base font-medium text-foreground/80">{t('messages.loading')}</p>
         </div>
       </div>
     );

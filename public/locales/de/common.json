@@ -23,11 +23,11 @@
     "ifcModelViewer": "IFC Modell-Viewer",
     "uploadIFCFile": "Laden Sie eine IFC-Datei hoch oder wählen Sie ein Demomodell",
     "loadIFCFile": "IFC-Datei laden",
-    "noModelsLoaded": "Keine Modelle geladen. Verwenden Sie die Schaltfläche 'IFC-Datei laden' oder 'Modell hinzufügen'.",
-    "clickElementToView": "Klicken Sie auf ein Element oder einen Baumknoten, um die Eigenschaften anzuzeigen.",
+    "noModelsLoaded": "Keine Modelle geladen.",
+    "clickElementToView": "Klicken Sie auf ein Element im 3D-Viewer oder im Modell-Explorer, um die Eigenschaften anzuzeigen.",
     "noClassificationsAdded": "Noch keine Klassifizierungen hinzugefügt.",
     "addClassification": "Fügen Sie eine Klassifizierung hinzu, um Ihre IFC-Elemente zu organisieren.",
-    "rulesEngine": "Regelwerk",
+    "rulesEngine": "Regelbasierte Zuweisung",
     "noRulesDefined": "Noch keine Regeln definiert.",
     "createRulesDescription": "Erstellen Sie Regeln, um Elemente automatisch anhand ihrer Eigenschaften zu klassifizieren.",
     "applicationSettings": "Anwendungseinstellungen",
@@ -118,7 +118,8 @@
         "hideModel": "{{name}} ausblenden",
         "showStorey": "Geschoss anzeigen",
         "hideStorey": "Geschoss ausblenden",
-        "removeModel": "{{name}} entfernen"
+        "removeModel": "{{name}} entfernen",
+        "useLoadButton": "Wählen Sie eine Datei oder ein Modell zum Laden aus."
     },
     "tooltips": {
         "defaultClassification": "Legt das Standard-Klassifizierungssystem fest.",
@@ -150,7 +151,9 @@
         "createFromRule": "Neue Klassifizierung erstellen",
         "codePlaceholder": "Geben Sie einen Code ein (z.B. A1.1)",
         "namePlaceholder": "Geben Sie einen beschreibenden Namen ein",
-        "basicInfo": "Grundinformationen"
+        "basicInfo": "Grundinformationen",
+        "searchPlaceholder": "Klassifizierungen durchsuchen...",
+        "noSearchResults": "Keine Klassifizierungen entsprechen Ihrer Suche."
     },
     "rules": {
         "addNew": "Neue Regel hinzufügen",
