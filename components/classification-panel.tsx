@@ -167,8 +167,22 @@ export function ClassificationPanel() {
   const [isConfirmRemoveAllOpen, setIsConfirmRemoveAllOpen] = useState(false);
   const [currentDefaultClassification, setCurrentDefaultClassification] =
     useState<string>("");
+  const [searchQuery, setSearchQuery] = useState("");
 
-  const classificationEntries = Object.entries(classifications); // Get entries once
+  const filteredClassificationEntries = useMemo(() => {
+    const entries = Object.entries(classifications);
+    if (!searchQuery) return entries;
+    const q = searchQuery.toLowerCase();
+    return entries.filter(([code, item]) => {
+      const cls = item as ClassificationItem;
+      return (
+        code.toLowerCase().includes(q) ||
+        cls.name.toLowerCase().includes(q)
+      );
+    });
+  }, [classifications, searchQuery]);
+
+
 
   const listWrapperRef = useRef<HTMLDivElement>(null);
   const [listHeight, setListHeight] = useState(0);
@@ -297,7 +311,7 @@ export function ClassificationPanel() {
   }, []);
 
   const sortedClassificationEntries = useMemo(() => {
-    const currentEntries = Object.entries(classifications);
+    const currentEntries = filteredClassificationEntries;
 
     if (!sortConfig) {
       return currentEntries;
@@ -337,7 +351,7 @@ export function ClassificationPanel() {
       }
       return sortConfig.direction === "ascending" ? comparison : -comparison;
     });
-  }, [classifications, sortConfig]);
+  }, [filteredClassificationEntries, sortConfig]);
 
   const requestSort = (key: SortableKey) => {
     let direction: "ascending" | "descending" = "ascending";
@@ -957,6 +971,13 @@ export function ClassificationPanel() {
           </div>
         </div>
 
+        <Input
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          placeholder="Search classifications..."
+          className="w-full"
+        />
+
         {/* "Add New Classification" Dialog - Restored */}
         <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
           <DialogContent>
@@ -1116,15 +1137,19 @@ export function ClassificationPanel() {
       )}
 
       {sortedClassificationEntries.length === 0 ? (
-        <div className="flex items-center justify-center h-full p-4">
-          <div className="text-center">
-            <p className="mb-2 font-normal text-foreground/60">
-              {t('noClassificationsAdded')}
-            </p>
-            <p className="text-sm font-normal text-foreground/60">
-              {t('addClassification')}
-            </p>
-          </div>
+        <div className="text-center py-8 text-muted-foreground bg-card shadow-sm rounded-lg p-4 flex-grow border border-border">
+          {searchQuery ? (
+            <p>No classifications match your search.</p>
+          ) : (
+            <>
+              <p className="mb-2 font-normal text-foreground/60">
+                {t('noClassificationsAdded')}
+              </p>
+              <p className="text-sm font-normal text-foreground/60">
+                {t('addClassification')}
+              </p>
+            </>
+          )}
         </div>
       ) : (
         <div className="flex-grow overflow-hidden bg-card shadow-sm rounded-lg flex flex-col min-h-0 border border-border">
