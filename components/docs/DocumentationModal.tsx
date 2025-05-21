@@ -1,20 +1,14 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { X, ChevronLeft, ChevronRight, Home, Zap, FileText, Cog, ChevronsRight, Info } from "lucide-react";
+import { X, ChevronLeft, ChevronRight, ExternalLink } from "lucide-react";
+import { DOC_SECTIONS } from "./docsContent";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
 interface DocumentationModalProps {
     onClose: () => void;
 }
-
-const DOC_SECTIONS = [
-    { id: "general", title: "Welcome!", icon: <Home className="h-5 w-5" />, content: "General Info Content" },
-    { id: "getting-started", title: "Getting Started", icon: <Zap className="h-5 w-5" />, content: "Getting Started Content" },
-    { id: "classifications", title: "Classifications", icon: <FileText className="h-5 w-5" />, content: "Classifications Content: Loading default, creating custom, export options." },
-    { id: "rules", title: "Rules", icon: <ChevronsRight className="h-5 w-5" />, content: "Rules Content: Import/export, creating custom, managing rules." },
-    { id: "settings", title: "Settings", icon: <Cog className="h-5 w-5" />, content: "Settings Content" },
-    { id: "workflow", title: "Typical Workflow", icon: <Info className="h-5 w-5" />, content: "Typical Workflow Content: Detailed start-to-end example including rules." },
-];
 
 const DocumentationModal: React.FC<DocumentationModalProps> = ({ onClose }) => {
     const [currentStep, setCurrentStep] = useState(0);
@@ -78,21 +72,23 @@ const DocumentationModal: React.FC<DocumentationModalProps> = ({ onClose }) => {
 
                 <div className="flex flex-1 overflow-hidden">
                     {/* Sidebar Navigation */}
-                    <aside className="w-1/4 bg-background/50 p-6 border-r border-border/20 overflow-y-auto">
+                    <aside className="w-1/3 bg-background/50 p-6 border-r border-border/20 overflow-y-auto">
                         <nav>
                             <ul>
                                 {DOC_SECTIONS.map((section, index) => (
-                                    <li key={section.id} className="mb-2">
+                                    <li key={section.id} className="mb-3">
                                         <button
                                             onClick={() => goToStep(index)}
-                                            className={`flex items-center space-x-3 w-full text-left px-3 py-2.5 rounded-lg transition-colors duration-150 ease-in-out group
+                                            className={`flex items-center space-x-4 w-full text-left px-4 py-3 rounded-lg transition-colors duration-150 ease-in-out group
                         ${currentStep === index
                                                     ? "bg-primary/20 text-primary font-medium"
                                                     : "hover:bg-accent hover:text-accent-foreground text-muted-foreground"
                                                 }`}
                                         >
-                                            {section.icon}
-                                            <span>{section.title}</span>
+                                            <div className="w-6 h-6 flex-shrink-0 flex items-center justify-center">
+                                                {section.icon}
+                                            </div>
+                                            <span className="text-base">{section.title}</span>
                                         </button>
                                     </li>
                                 ))}
@@ -105,10 +101,26 @@ const DocumentationModal: React.FC<DocumentationModalProps> = ({ onClose }) => {
                         <h3 className="text-3xl font-bold mb-2 text-foreground">{currentSection.title}</h3>
                         <p className="text-sm text-muted-foreground mb-6">Step {currentStep + 1} of {DOC_SECTIONS.length}</p>
 
-                        <div className="prose prose-sm dark:prose-invert max-w-none text-foreground/90">
-                            {/* Placeholder for dynamic content loading */}
-                            <p>{currentSection.content}</p>
-                            {/* Add more detailed content for each section here */}
+                        <div className="prose prose-sm lg:prose-base dark:prose-invert max-w-none text-foreground/90 prose-headings:text-primary prose-a:text-primary prose-strong:text-primary/90 prose-code:bg-muted prose-code:p-1 prose-code:rounded prose-code:text-primary prose-code:before:content-none prose-code:after:content-none">
+                            {/* Render markdown content with ReactMarkdown */}
+                            <ReactMarkdown
+                                remarkPlugins={[remarkGfm]}
+                                components={{
+                                    a: ({ node, ...props }) => (
+                                        <a
+                                            {...props}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="inline-flex items-center"
+                                        >
+                                            {props.children}
+                                            <ExternalLink className="ml-1 h-3 w-3 opacity-70" />
+                                        </a>
+                                    )
+                                }}
+                            >
+                                {currentSection.content}
+                            </ReactMarkdown>
                         </div>
                     </main>
                 </div>

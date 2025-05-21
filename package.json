@@ -32,9 +32,11 @@
     "postprocessing": "^6.37.3",
     "react": "^18.3.1",
     "react-dom": "^18",
+    "react-markdown": "^10.1.0",
     "react-modal": "^3.16.3",
     "react-resizable-panels": "^3.0.2",
     "react-window": "^1.8.11",
+    "remark-gfm": "^4.0.1",
     "tailwind-merge": "^2.2.0",
     "tailwindcss-animate": "^1.0.7",
     "three": "^0.160.0",
@@ -42,6 +44,7 @@
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
+    "@tailwindcss/typography": "^0.5.16",
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",
