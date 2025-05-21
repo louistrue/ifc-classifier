@@ -120,6 +120,7 @@
     "hideStorey": "Hide Storey",
     "removeModel": "Remove {{name}}",
     "useLoadButton": "Select a file or model to load.",
+    "search": "Search",
     "searchTreePlaceholder": "Search model tree...",
     "searchCanvasPlaceholder": "Search elements..."
   },

@@ -668,6 +668,8 @@ function ViewerContent() {
   const [canvasSearch, setCanvasSearch] = useState("");
   const [confirmedSearch, setConfirmedSearch] = useState("");
   const [isSearchFocused, setIsSearchFocused] = useState(false);
+  const [searchProgress, setSearchProgress] = useState({ active: false, percent: 0, status: '' });
+  const [isSearchRunning, setIsSearchRunning] = useState(false);
   const searchHiddenRef = useRef<SelectedElementInfo[]>([]);
   const scene = useRef<THREE.Scene | null>(null);
 
@@ -735,10 +737,32 @@ function ViewerContent() {
   const [leftPanelCollapsed, setLeftPanelCollapsed] = useState(false);
   const [rightPanelCollapsed, setRightPanelCollapsed] = useState(false);
 
+  // Reset search progress when search is cleared
+  useEffect(() => {
+    if (!confirmedSearch) {
+      setSearchProgress({ active: false, percent: 0, status: '' });
+      setIsSearchRunning(false);
+    }
+  }, [confirmedSearch]);
+
   // Handle search submission
   const handleSearchSubmit = useCallback((searchTerm: string) => {
     console.log("Search submitted:", searchTerm);
     setConfirmedSearch(searchTerm);
+    // Only trigger search if there's an actual query
+    if (searchTerm.trim()) {
+      setIsSearchRunning(true);
+    }
+  }, []);
+
+  // Cancel search
+  const handleCancelSearch = useCallback(() => {
+    setIsSearchRunning(false);
+    setSearchProgress({ active: false, percent: 0, status: 'Search cancelled' });
+    // Clear the progress indicator after a short delay
+    setTimeout(() => {
+      setSearchProgress({ active: false, percent: 0, status: '' });
+    }, 1500);
   }, []);
 
   // DEBUG: Log userHiddenElements when it changes
@@ -746,9 +770,9 @@ function ViewerContent() {
     console.log("userHiddenElements changed:", userHiddenElements.length, userHiddenElements.slice(0, 5));
   }, [userHiddenElements]);
 
-  // Apply search filtering on 3D elements - now depends on confirmedSearch instead of canvasSearch
+  // Apply search filtering on 3D elements - now depends on isSearchRunning instead of confirmedSearch
   useEffect(() => {
-    if (!ifcApi) return;
+    if (!ifcApi || !isSearchRunning) return;
 
     let cancelled = false;
 
@@ -815,8 +839,13 @@ function ViewerContent() {
         // (unless they are in userHiddenElements for other reasons)
         // The showElements(searchHiddenRef.current) above handles elements previously hidden *by search*.
         // No further action needed here if query is empty, as userHiddenElements is the source of truth.
+        setSearchProgress({ active: false, percent: 0, status: '' });
+        setIsSearchRunning(false);
         return;
       }
+
+      // Set search in progress
+      setSearchProgress({ active: true, percent: 0, status: 'Preparing search...' });
 
       const regex = toRegex(query);
       console.log("Search regex:", regex.source);
@@ -945,9 +974,13 @@ function ViewerContent() {
         const nodesToProcess = nodes.filter(node => node.expressID !== undefined);
         const results: { match: boolean; expressID: number }[] = [];
 
+        // Maximum number of matches to find before stopping search
+        const MAX_MATCHES = 1000;
+        let hasReachedMaxMatches = false;
+
         // Process nodes in batches
         for (let i = 0; i < nodesToProcess.length; i += batchSize) {
-          if (cancelled) break;
+          if (cancelled || hasReachedMaxMatches) break;
 
           const currentBatch = nodesToProcess.slice(i, i + batchSize);
           const batchPromises = currentBatch.map(node => processNode(node));
@@ -956,9 +989,46 @@ function ViewerContent() {
           const batchResults = await Promise.all(batchPromises);
           results.push(...batchResults);
 
+          // Check if we've found enough matches
+          const matchCount = results.filter(r => r.match).length;
+          if (matchCount >= MAX_MATCHES) {
+            console.log(`Found ${matchCount} matches, stopping search early`);
+            setSearchProgress({ active: true, percent: 100, status: `Found ${matchCount} matches (stopped early)` });
+            hasReachedMaxMatches = true;
+          }
+
           // Provide visual feedback during processing for large models
-          if (i % 100 === 0 && i > 0) {
-            console.log(`Processed ${i}/${nodesToProcess.length} nodes...`);
+          // Update progress more frequently
+          if (i % 20 === 0 || i + batchSize >= nodesToProcess.length) {
+            const percentComplete = Math.round((i / nodesToProcess.length) * 100);
+            console.log(`Processed ${i}/${nodesToProcess.length} nodes (${percentComplete}%)...`);
+
+            // Update progress state for UI
+            setSearchProgress({
+              active: true,
+              percent: percentComplete,
+              status: `Searching... ${i}/${nodesToProcess.length} elements (${matchCount} matches found)`
+            });
+
+            // Update UI to show progress (non-blocking)
+            if (i % 100 === 0) {
+              // Process partial results to show immediate visual feedback
+              const partialResults = results.filter(r => !r.match && r.expressID !== -1)
+                .map(r => ({ modelID: model.modelID as number, expressID: r.expressID }));
+
+              if (partialResults.length > 0) {
+                // Apply visibility changes for partial results
+                for (const result of partialResults) {
+                  if (allMeshes[result.modelID]?.[result.expressID]) {
+                    const meshToHide = allMeshes[result.modelID][result.expressID];
+                    meshToHide.visible = false;
+                  }
+                }
+              }
+
+              // Use setTimeout to avoid blocking UI
+              await new Promise(resolve => setTimeout(resolve, 0));
+            }
           }
         }
 
@@ -1013,6 +1083,24 @@ function ViewerContent() {
           }
         });
       }
+
+      // Set search completed
+      setSearchProgress({
+        active: false,
+        percent: 100,
+        status: `Search complete: ${toHide.length} elements hidden`
+      });
+      setIsSearchRunning(false);
+
+      // Clear status after a delay
+      setTimeout(() => {
+        setSearchProgress(prev => {
+          if (prev.percent === 100) { // Only clear if it's still showing the completed state
+            return { active: false, percent: 0, status: '' };
+          }
+          return prev;
+        });
+      }, 5000); // Longer delay to ensure user sees result
     };
 
     applyFilter();
@@ -1020,7 +1108,7 @@ function ViewerContent() {
     return () => {
       cancelled = true;
     };
-  }, [confirmedSearch, loadedModels, ifcApi, hideElements, showElements, gatherAllElements, scene]);
+  }, [confirmedSearch, loadedModels, ifcApi, hideElements, showElements, gatherAllElements, scene, isSearchRunning]);
 
   // Update collapse state when panels change
   useEffect(() => {
@@ -1451,6 +1539,14 @@ function ViewerContent() {
                             setCanvasSearch(newSearch);
                             if (newSearch.trim() === "") {
                               setConfirmedSearch("");
+
+                              // Reset view when search term is cleared
+                              if (searchHiddenRef.current.length > 0) {
+                                showElements(searchHiddenRef.current);
+                                searchHiddenRef.current = [];
+                              }
+                              setSearchProgress({ active: false, percent: 0, status: '' });
+                              setIsSearchRunning(false);
                             }
                           }}
                           onKeyDown={(e) => {
@@ -1483,32 +1579,81 @@ function ViewerContent() {
                       </TooltipContent>
                     </Tooltip>
                   </TooltipProvider>
-                  <Button
-                    variant="ghost"
-                    onClick={() => handleSearchSubmit(canvasSearch)}
-                    title={t('modelViewer.search')}
-                    className={`transition-all duration-300 ease-in-out flex items-center justify-center rounded-md ${isSearchFocused ? 'h-8 w-8' : 'h-7 w-7 p-0.5' // Adjusted padding for collapsed state
-                      }`}
-                  >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="16" // Base width
-                      height="16" // Base height
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      className={`transition-all duration-300 ease-in-out ${ // Apply scale transform
-                        isSearchFocused ? 'scale-100' : 'scale-[0.80]' // Scale down when collapsed
+                  {isSearchRunning ? (
+                    <Button
+                      variant="ghost"
+                      onClick={handleCancelSearch}
+                      title="Cancel search"
+                      className="transition-all duration-300 ease-in-out flex items-center justify-center rounded-md h-8 w-8"
+                    >
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="16"
+                        height="16"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <path d="M18 6L6 18"></path>
+                        <path d="M6 6l12 12"></path>
+                      </svg>
+                    </Button>
+                  ) : (
+                    <Button
+                      variant="ghost"
+                      onClick={() => handleSearchSubmit(canvasSearch)}
+                      title={t('modelViewer.search')}
+                      className={`transition-all duration-300 ease-in-out flex items-center justify-center rounded-md ${isSearchFocused ? 'h-8 w-8' : 'h-7 w-7 p-0.5' // Adjusted padding for collapsed state
                         }`}
                     >
-                      <circle cx="11" cy="11" r="8"></circle>
-                      <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-                    </svg>
-                  </Button>
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="16" // Base width
+                        height="16" // Base height
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        className={`transition-all duration-300 ease-in-out ${ // Apply scale transform
+                          isSearchFocused ? 'scale-100' : 'scale-[0.80]' // Scale down when collapsed
+                          }`}
+                      >
+                        <circle cx="11" cy="11" r="8"></circle>
+                        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                      </svg>
+                    </Button>
+                  )}
                 </div>
+
+                {/* Search Progress Indicator */}
+                {searchProgress.active && (
+                  <div className="mt-2 p-2 bg-background/95 backdrop-blur-sm border border-border rounded-lg shadow-lg text-xs w-full">
+                    <div className="mb-1 flex justify-between font-medium">
+                      <span>{searchProgress.status}</span>
+                      <span>{searchProgress.percent}%</span>
+                    </div>
+                    <div className="w-full bg-muted rounded-full h-2 overflow-hidden">
+                      <div
+                        className="bg-primary h-full transition-all duration-300 ease-in-out"
+                        style={{ width: `${searchProgress.percent}%` }}
+                      ></div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Show status message even after search is complete */}
+                {!searchProgress.active && searchProgress.status && (
+                  <div className="mt-2 p-2 bg-background/95 backdrop-blur-sm border border-border rounded-lg shadow-lg text-xs w-full">
+                    <div className="text-center font-medium">
+                      {searchProgress.status}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 

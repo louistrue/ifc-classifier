@@ -120,6 +120,7 @@
     "hideStorey": "Geschoss ausblenden",
     "removeModel": "{{name}} entfernen",
     "useLoadButton": "Wählen Sie eine Datei oder ein Modell zum Laden aus.",
+    "search": "Suchen",
     "searchTreePlaceholder": "Modellbaum durchsuchen...",
     "searchCanvasPlaceholder": "3D-Elemente suchen..."
   },
