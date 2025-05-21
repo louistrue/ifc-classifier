@@ -156,17 +156,20 @@ async function buildSpatialTree(
   return node;
 }
 
-async function fetchFullSpatialStructure(
+async function fetchSpatialStructure(
   ifcApi: IfcAPI,
   modelID: number
 ): Promise<SpatialStructureNode | null> {
-  const projectIDs = await ifcApi.GetLineIDsWithType(modelID, IFCPROJECT);
-  if (projectIDs.size() === 0) {
-    console.error("IFCModel: No IFCPROJECT found in the model.");
+  try {
+    if (!ifcApi.properties) {
+      ifcApi.properties = new Properties(ifcApi);
+    }
+    const tree = await ifcApi.properties.getSpatialStructure(modelID, true);
+    return tree as unknown as SpatialStructureNode;
+  } catch (error) {
+    console.error("IFCModel: Error fetching spatial structure:", error);
     return null;
   }
-  const projectID = projectIDs.get(0); // Assume single project
-  return buildSpatialTree(ifcApi, modelID, projectID);
 }
 
 // New helper function to recursively extract property values, handling complex properties (Restored)
@@ -575,11 +578,11 @@ export function IFCModel({ modelData, outlineLayer }: IFCModelProps) {
     }
     const group = new THREE.Group();
     group.name = `IFCModelGroup_${modelData.id}_${ownModelID.current}`;
+    group.applyMatrix4(modelTransformRef.current);
+    scene.add(group);
     meshesRef.current = group;
     try {
-      const flatMeshes = ifcApi.LoadAllGeometry(ownModelID.current!);
-      for (let i = 0; i < flatMeshes.size(); i++) {
-        const flatMesh = flatMeshes.get(i);
+      ifcApi.StreamAllMeshes(ownModelID.current!, (flatMesh: any) => {
         const elementExpressID = flatMesh.expressID;
         const placedGeometries = flatMesh.geometries;
         for (let j = 0; j < placedGeometries.size(); j++) {
@@ -607,9 +610,7 @@ export function IFCModel({ modelData, outlineLayer }: IFCModelProps) {
           };
           group.add(mesh);
         }
-      }
-      group.applyMatrix4(modelTransformRef.current);
-      scene.add(group); // Add this model's group to the main scene
+      });
     } catch (error) {
       console.error(
         `IFCModel (${modelData.id}): Error creating meshes:`,
@@ -713,7 +714,7 @@ export function IFCModel({ modelData, outlineLayer }: IFCModelProps) {
         console.log(
           `IFCModel (${modelData.id}): Extracting data for modelID ${newIfcModelID}...`
         );
-        const tree = await fetchFullSpatialStructure(ifcApi, newIfcModelID);
+        const tree = await fetchSpatialStructure(ifcApi, newIfcModelID);
         setSpatialTreeForModel(newIfcModelID, tree);
         if (tree)
           console.log(
