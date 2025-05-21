@@ -407,11 +407,38 @@ export function ModelInfo() {
         defaultOpen={true}
         icon={<Info className="w-4 h-4" />}
       >
-        <PropertyRow
-          propKey="Type"
-          propValue={ifcType}
-          icon={<Type className="w-3.5 h-3.5" />}
-        />
+        <TooltipProvider delayDuration={300}>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div className="grid grid-cols-[auto_1fr] gap-x-3 items-start py-1.5 border-b border-border/50 last:border-b-0 cursor-default">
+                <div className="flex items-center text-muted-foreground text-xs font-medium">
+                  <Type className="w-3.5 h-3.5 mr-1.5 opacity-80" />
+                  <span>{t('IFC Class')}:</span>
+                </div>
+                <div className="text-xs truncate text-right font-medium">
+                  {ifcType}
+                </div>
+              </div>
+            </TooltipTrigger>
+            <TooltipContent side="right" align="start" className="flex flex-col gap-1 z-50">
+              <p className="font-medium">
+                {getNaturalIfcClassName(ifcType).name || ifcType}
+              </p>
+              {getNaturalIfcClassName(ifcType).schemaUrl && (
+                <a
+                  href={getNaturalIfcClassName(ifcType).schemaUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-xs text-blue-500 hover:text-blue-400 hover:underline flex items-center gap-1 mt-1 pt-1 border-t border-border/30"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  View Schema <ExternalLink className="w-3 h-3" />
+                </a>
+              )}
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+
         {rawAttributes.Name && (
           <PropertyRow
             propKey="Name"
@@ -525,15 +552,15 @@ export function ModelInfo() {
             >
               {props && typeof props === "object"
                 ? Object.entries(props as Record<string, any>).map(
-                    ([propName, propValue]) => (
-                      <PropertyRow
-                        key={propName}
-                        propKey={propName}
-                        propValue={propValue}
-                        icon={getPropertyIcon(propName)}
-                      />
-                    ),
-                  )
+                  ([propName, propValue]) => (
+                    <PropertyRow
+                      key={propName}
+                      propKey={propName}
+                      propValue={propValue}
+                      icon={getPropertyIcon(propName)}
+                    />
+                  ),
+                )
                 : null}
             </CollapsibleSection>
           ))}

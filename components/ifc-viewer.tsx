@@ -267,25 +267,21 @@ interface ViewToolbarProps {
   onZoomExtents: () => void;
   onZoomSelected: () => void;
   isElementSelected: boolean;
-  searchQuery: string;
-  onSearchChange: (val: string) => void;
-  onSearchSubmit: (searchTerm: string) => void;
+  onUnhideAll: () => void;
+  onUnhideLast: () => void;
 }
 
 function ViewToolbar({
   onZoomExtents,
   onZoomSelected,
   isElementSelected,
-  searchQuery,
-  onSearchChange,
-  onSearchSubmit,
+  onUnhideAll,
+  onUnhideLast,
 }: ViewToolbarProps) {
   const {
     selectedElement,
     toggleUserHideElement,
     userHiddenElements,
-    unhideLastElement,
-    unhideAllElements,
   } = useIFCContext();
 
   const { t } = useTranslation();
@@ -296,43 +292,9 @@ function ViewToolbar({
     }
   };
 
-  const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      onSearchSubmit(searchQuery);
-    }
-  };
-
   return (
     <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-20 pointer-events-auto">
       <div className="flex items-center gap-2 p-2 bg-background/80 backdrop-blur-sm border border-border rounded-lg shadow-lg">
-        <TooltipProvider delayDuration={300}>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Input
-                value={searchQuery}
-                onChange={(e) => onSearchChange(e.target.value)}
-                onKeyDown={handleSearchKeyDown}
-                placeholder={t('modelViewer.searchCanvasPlaceholder')}
-                className="h-8 w-40 text-xs"
-              />
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>{t('tooltips.canvasSearch')}</p>
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => onSearchSubmit(searchQuery)}
-          title={t('modelViewer.search')}
-        >
-          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <circle cx="11" cy="11" r="8"></circle>
-            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-          </svg>
-        </Button>
         <Button
           variant="ghost"
           size="icon"
@@ -366,7 +328,7 @@ function ViewToolbar({
         <Button
           variant="ghost"
           size="icon"
-          onClick={unhideLastElement}
+          onClick={onUnhideLast}
           disabled={userHiddenElements.length === 0}
           title={t('modelViewer.unhideLast')}
         >
@@ -375,7 +337,7 @@ function ViewToolbar({
         <Button
           variant="ghost"
           size="icon"
-          onClick={unhideAllElements}
+          onClick={onUnhideAll}
           disabled={userHiddenElements.length === 0}
           title={t('modelViewer.unhideAll')}
         >
@@ -705,6 +667,7 @@ function ViewerContent() {
   const [webGLContextLost, setWebGLContextLost] = useState(false);
   const [canvasSearch, setCanvasSearch] = useState("");
   const [confirmedSearch, setConfirmedSearch] = useState("");
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
   const searchHiddenRef = useRef<SelectedElementInfo[]>([]);
   const scene = useRef<THREE.Scene | null>(null);
 
@@ -799,6 +762,44 @@ function ViewerContent() {
       }
     };
 
+    // Helper function to recursively search for regex matches in an object/array
+    const recursiveSearch = (data: any, regexInstance: RegExp, searchKeys: boolean = false): boolean => {
+      if (data === null || data === undefined) return false;
+
+      // Test stringified value for primitive types
+      if (typeof data === 'string') return regexInstance.test(data.toLowerCase());
+      if (typeof data === 'number' || typeof data === 'boolean') return regexInstance.test(String(data).toLowerCase());
+
+      if (Array.isArray(data)) {
+        for (const item of data) {
+          if (recursiveSearch(item, regexInstance, searchKeys)) return true;
+        }
+        return false;
+      }
+
+      if (typeof data === 'object') {
+        // Handle IFC.js specific structures like { value: X } or { NominalValue: { value: Y } } etc.
+        if (data.hasOwnProperty('value')) {
+          if (recursiveSearch(data.value, regexInstance, false)) return true;
+        }
+        if (data.hasOwnProperty('NominalValue')) {
+          if (recursiveSearch(data.NominalValue, regexInstance, false)) return true;
+        }
+        if (data.hasOwnProperty('wrappedValue')) {
+          if (recursiveSearch(data.wrappedValue, regexInstance, false)) return true;
+        }
+
+        for (const key in data) {
+          if (Object.prototype.hasOwnProperty.call(data, key)) {
+            if (searchKeys && regexInstance.test(key.toLowerCase())) return true;
+            if (recursiveSearch(data[key], regexInstance, searchKeys)) return true;
+          }
+        }
+        return false;
+      }
+      return false;
+    };
+
     const applyFilter = async () => {
       // unhide previous search-hidden elements
       if (searchHiddenRef.current.length > 0) {
@@ -809,7 +810,13 @@ function ViewerContent() {
 
       const query = confirmedSearch.trim();
       console.log("Applying filter with query:", query); // Log query
-      if (!query) return;
+      if (!query) {
+        // If query is cleared, ensure all meshes that might have been directly hidden by previous search iteration are visible
+        // (unless they are in userHiddenElements for other reasons)
+        // The showElements(searchHiddenRef.current) above handles elements previously hidden *by search*.
+        // No further action needed here if query is empty, as userHiddenElements is the source of truth.
+        return;
+      }
 
       const regex = toRegex(query);
       console.log("Search regex:", regex.source);
@@ -891,54 +898,87 @@ function ViewerContent() {
         let matchCount = 0;
         let noMatchCount = 0;
         let errorCount = 0;
+        const processedExpressIDsFromSpatialTree = new Set<number>();
 
         for (const node of nodes) {
           if (node.expressID === undefined) continue;
-          let props: any = null;
-          try {
-            props = await ifcApi.GetLine(model.modelID, node.expressID, true);
+          processedExpressIDsFromSpatialTree.add(node.expressID);
 
-            const text = JSON.stringify(props).toLowerCase();
-            const match = regex.test(text);
-
-            // Count matches and non-matches
-            if (match) {
-              matchCount++;
-            } else {
-              noMatchCount++;
-              toHide.push({ modelID: model.modelID, expressID: node.expressID });
-
-              // DIRECT APPROACH: Immediately hide mesh if it exists
-              if (allMeshes[model.modelID]?.[node.expressID]) {
-                const mesh = allMeshes[model.modelID][node.expressID];
-                mesh.visible = false;
-                console.log(`DIRECT HIDE: Set mesh ${model.modelID}-${node.expressID} to invisible`);
-              }
-            }
-
-            // Log full details for first few non-matches - these are what we're hiding
-            if (!match && noMatchCount <= 3) {
-              console.log(`Non-match sample: Node ${model.modelID}-${node.expressID}:`, {
-                name: props?.Name?.value || 'N/A',
-                type: node.type,
-                match: match,
-                hasMesh: allMeshes[model.modelID]?.[node.expressID] !== undefined,
-                textSample: text.substring(0, 100)
-              });
-            }
-          } catch (err) {
-            errorCount++;
-            if (errorCount <= 3) {
-              console.warn(`Error fetching props for ${model.modelID}-${node.expressID}:`, err);
-            }
-            continue;
+          let match = false;
+          // 1. Quick check on node's direct, readily available properties
+          if (node.Name && node.Name.value && typeof node.Name.value === 'string' && regex.test(node.Name.value.toLowerCase())) {
+            match = true;
+          } else if (node.type && regex.test(node.type.toLowerCase())) { // node.type is string
+            match = true;
+          } else if (node.GlobalId && node.GlobalId.value && typeof node.GlobalId.value === 'string' && regex.test(node.GlobalId.value.toLowerCase())) {
+            match = true;
           }
+          // Add other direct string properties from SpatialStructureNode if relevant for search, e.g. node.Tag?.value
+
+          // 2. If no quick match, fetch all properties and do a recursive search
+          if (!match) {
+            let props: any = null;
+            try {
+              props = await ifcApi.GetLine(model.modelID, node.expressID, true);
+              if (recursiveSearch(props, regex, true)) { // Search keys and values in detailed props
+                match = true;
+              }
+            } catch (err) {
+              errorCount++;
+              if (errorCount <= 3) {
+                console.warn(`Error fetching props for ${model.modelID}-${node.expressID}:`, err);
+              }
+              // If props can't be fetched, we can't determine a match, so assume no match for filtering purposes.
+              // The element will be hidden if other elements match and this one doesn't (or errors out).
+            }
+          }
+
+          if (match) {
+            matchCount++;
+          } else {
+            noMatchCount++;
+            toHide.push({ modelID: model.modelID, expressID: node.expressID });
+
+            if (allMeshes[model.modelID]?.[node.expressID]) {
+              const meshToHide = allMeshes[model.modelID][node.expressID];
+              meshToHide.visible = false;
+              // console.log(`DIRECT HIDE (recursive): Set mesh ${model.modelID}-${node.expressID} to invisible`);
+            }
+          }
+
+          // Log full details for first few non-matches - these are what we're hiding
+          // if (!match && noMatchCount <= 3 && props) { // Ensure props were fetched for logging
+          //   console.log(`Non-match sample (recursive): Node ${model.modelID}-${node.expressID}:`, {
+          //     name: props?.Name?.value || node.Name?.value || 'N/A',
+          //     type: node.type,
+          //     match: match,
+          //     hasMesh: allMeshes[model.modelID]?.[node.expressID] !== undefined,
+          //     // textSample: JSON.stringify(props).substring(0,100) // Avoid stringify if it was the bottleneck
+          //   });
+          // }
         }
 
-        console.log(`Filter results for model ${model.id}: ${matchCount} matches, ${noMatchCount} non-matches (to hide), ${errorCount} errors`);
+        // Handle meshes that are in the scene but not found in the spatial tree
+        const modelMeshesMap = allMeshes[model.modelID];
+        if (query && modelMeshesMap) { // query is confirmedSearch.trim()
+          for (const expressIDStr in modelMeshesMap) {
+            const expressID = parseInt(expressIDStr, 10);
+            if (!processedExpressIDsFromSpatialTree.has(expressID)) {
+              // This mesh element was not found in the spatial tree.
+              // If a search is active, it should be hidden because it can't be "matched" via properties.
+              toHide.push({ modelID: model.modelID, expressID: expressID });
+              const meshToHide = modelMeshesMap[expressID];
+              if (meshToHide) {
+                meshToHide.visible = false; // Direct hide for immediate feedback
+              }
+              noMatchCount++; // Consider it a non-match for accounting
+            }
+          }
+        }
+        console.log(`Filter results for model ${model.id}: ${matchCount} matches, ${noMatchCount} non-matches (to hide, incl. non-spatial), ${errorCount} errors`);
       }
 
-      console.log(`Filter identified ${toHide.length} elements to hide out of ${loadedModels.reduce((sum, m) => sum + (m.spatialTree ? gatherAllElements(m.spatialTree).length : 0), 0)} total nodes`);
+      console.log(`Filter identified ${toHide.length} elements to hide overall.`);
 
       if (!cancelled && toHide.length > 0) {
         console.log("Calling hideElements with", toHide.length, "elements");
@@ -1069,6 +1109,18 @@ function ViewerContent() {
     }
   }, [selectedElement]);
 
+  const customUnhideAllElements = useCallback(() => {
+    unhideAllElements();
+    setCanvasSearch("");
+    setConfirmedSearch("");
+  }, [unhideAllElements]);
+
+  const customUnhideLastElement = useCallback(() => {
+    unhideLastElement();
+    setCanvasSearch("");
+    setConfirmedSearch("");
+  }, [unhideLastElement]);
+
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -1090,7 +1142,9 @@ function ViewerContent() {
         case "KeyZ":
           if (event.ctrlKey || event.metaKey) {
             event.preventDefault();
-            if (userHiddenElements.length > 0) unhideLastElement(); // Check if there's something to unhide
+            if (userHiddenElements.length > 0) {
+              customUnhideLastElement();
+            }
           }
           break;
         case "KeyE": // E for Zoom to Extents
@@ -1106,7 +1160,9 @@ function ViewerContent() {
         case "KeyA": // A for Unhide All (with Shift)
           if (event.shiftKey) {
             event.preventDefault();
-            if (userHiddenElements.length > 0) unhideAllElements(); // Check if there's something to unhide
+            if (userHiddenElements.length > 0) {
+              customUnhideAllElements();
+            }
           }
           break;
         default:
@@ -1126,6 +1182,8 @@ function ViewerContent() {
     userHiddenElements, // Dependency for checks
     handleZoomExtents, // Add if it's memoized (useCallback)
     handleZoomSelected, // Add if it's memoized (useCallback)
+    customUnhideAllElements,
+    customUnhideLastElement,
   ]);
 
   // Add a direct effect to apply userHiddenElements visibility
@@ -1356,6 +1414,83 @@ function ViewerContent() {
           className="bg-transparent pointer-events-none"
         >
           <div className="relative h-full bg-transparent pointer-events-none">
+            {/* Search Bar - Top Right */}
+            {ifcEngineReady && !webGLContextLost && (
+              <div className="absolute top-4 right-4 z-20 pointer-events-auto">
+                <div className="flex items-center gap-2 p-1 bg-background/80 backdrop-blur-sm border border-border rounded-lg shadow-lg">
+                  <TooltipProvider delayDuration={300}>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Input
+                          value={canvasSearch}
+                          onFocus={() => setIsSearchFocused(true)}
+                          onBlur={() => setIsSearchFocused(false)}
+                          onChange={(e) => {
+                            const newSearch = e.target.value;
+                            setCanvasSearch(newSearch);
+                            if (newSearch.trim() === "") {
+                              setConfirmedSearch("");
+                            }
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault();
+                              handleSearchSubmit(canvasSearch);
+                            }
+                          }}
+                          placeholder={isSearchFocused ? t('modelViewer.searchCanvasPlaceholder') : "Search..."}
+                          className={`h-8 text-xs transition-all duration-300 ease-in-out rounded-md ${isSearchFocused
+                            ? 'w-48 px-3'
+                            : 'w-24 px-2 text-[11px]'
+                            }`}
+                        />
+                      </TooltipTrigger>
+                      <TooltipContent
+                        side="bottom"
+                        align="end"
+                        className="max-w-xs p-3 bg-popover text-popover-foreground shadow-md rounded-md z-50 flex flex-col gap-1"
+                      >
+                        <p className="font-medium">
+                          Filter elements by properties
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          Supports wildcard <code className="p-0.5 bg-muted rounded-sm">*</code> and regular expressions (regex).
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Learn more about <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Regular_expressions" target="_blank" rel="noopener noreferrer" className="underline hover:text-primary">regex</a> or test on <a href="https://regex101.com/" target="_blank" rel="noopener noreferrer" className="underline hover:text-primary">regex101.com</a>.
+                        </p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                  <Button
+                    variant="ghost"
+                    onClick={() => handleSearchSubmit(canvasSearch)}
+                    title={t('modelViewer.search')}
+                    className={`transition-all duration-300 ease-in-out flex items-center justify-center rounded-md ${isSearchFocused ? 'h-8 w-8' : 'h-7 w-7 p-0.5' // Adjusted padding for collapsed state
+                      }`}
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="16" // Base width
+                      height="16" // Base height
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      className={`transition-all duration-300 ease-in-out ${ // Apply scale transform
+                        isSearchFocused ? 'scale-100' : 'scale-[0.80]' // Scale down when collapsed
+                        }`}
+                    >
+                      <circle cx="11" cy="11" r="8"></circle>
+                      <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                    </svg>
+                  </Button>
+                </div>
+              </div>
+            )}
+
             {/* FileUpload prompt when no models (will show over global canvas) */}
             {loadedModels.length === 0 &&
               ifcEngineReady &&
@@ -1370,9 +1505,8 @@ function ViewerContent() {
                 onZoomExtents={handleZoomExtents}
                 onZoomSelected={handleZoomSelected}
                 isElementSelected={!!selectedElement}
-                searchQuery={canvasSearch}
-                onSearchChange={setCanvasSearch}
-                onSearchSubmit={handleSearchSubmit}
+                onUnhideAll={customUnhideAllElements}
+                onUnhideLast={customUnhideLastElement}
               />
             )}
           </div>
