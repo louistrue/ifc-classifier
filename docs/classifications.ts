@@ -1,6 +1,4 @@
 const content = `
-## Managing Classifications
-
 - Load the built‑in **Uniclass Pr** or **eBKP‑H** sets from the menu.
 - Create custom entries with a code, name and color.
 - Use the color switch to apply all classification colors or restore the original model appearance.

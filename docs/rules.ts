@@ -1,6 +1,4 @@
 const content = `
-## Rule Engine
-
 Rules automatically assign classifications based on element properties.
 
 - Define conditions using any available property and operator.
