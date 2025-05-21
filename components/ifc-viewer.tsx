@@ -18,6 +18,8 @@ import { ClassificationPanel } from "@/components/classification-panel";
 import { RulePanel } from "@/components/rule-panel";
 import { SettingsPanel } from "@/components/settings-panel";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -49,6 +51,7 @@ import {
   useIFCContext,
   LoadedModelData,
   SelectedElementInfo,
+  SpatialStructureNode,
 } from "@/context/ifc-context";
 import { IFCContextProvider } from "@/context/ifc-context";
 import { IfcAPI, Properties } from "web-ifc";
@@ -264,19 +267,21 @@ interface ViewToolbarProps {
   onZoomExtents: () => void;
   onZoomSelected: () => void;
   isElementSelected: boolean;
+  onUnhideAll: () => void;
+  onUnhideLast: () => void;
 }
 
 function ViewToolbar({
   onZoomExtents,
   onZoomSelected,
   isElementSelected,
+  onUnhideAll,
+  onUnhideLast,
 }: ViewToolbarProps) {
   const {
     selectedElement,
     toggleUserHideElement,
     userHiddenElements,
-    unhideLastElement,
-    unhideAllElements,
   } = useIFCContext();
 
   const { t } = useTranslation();
@@ -323,7 +328,7 @@ function ViewToolbar({
         <Button
           variant="ghost"
           size="icon"
-          onClick={unhideLastElement}
+          onClick={onUnhideLast}
           disabled={userHiddenElements.length === 0}
           title={t('modelViewer.unhideLast')}
         >
@@ -332,7 +337,7 @@ function ViewToolbar({
         <Button
           variant="ghost"
           size="icon"
-          onClick={unhideAllElements}
+          onClick={onUnhideAll}
           disabled={userHiddenElements.length === 0}
           title={t('modelViewer.unhideAll')}
         >
@@ -348,6 +353,18 @@ export interface CameraActions {
   zoomToExtents: () => void;
   zoomToSelected: (selection: SelectedElementInfo | null) => void;
 }
+
+// Simple component to capture the scene for external reference
+const SceneCapture = ({ onSceneCapture }: { onSceneCapture: (scene: THREE.Scene) => void }) => {
+  const { scene } = useThree();
+
+  useEffect(() => {
+    console.log("SceneCapture: Capturing scene");
+    onSceneCapture(scene);
+  }, [scene, onSceneCapture]);
+
+  return null;
+};
 
 // CameraActionsController Component (child of Canvas)
 const CameraActionsController = forwardRef<CameraActions, {}>((props, ref) => {
@@ -640,12 +657,38 @@ function ViewerContent() {
     toggleUserHideElement,
     unhideLastElement,
     unhideAllElements,
+    hideElements,
+    showElements,
     userHiddenElements,
     addIFCModel,
   } = useIFCContext();
   const { t } = useTranslation();
   const [ifcEngineReady, setIfcEngineReady] = useState(false);
   const [webGLContextLost, setWebGLContextLost] = useState(false);
+  const [canvasSearch, setCanvasSearch] = useState("");
+  const [confirmedSearch, setConfirmedSearch] = useState("");
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
+  const [searchProgress, setSearchProgress] = useState({ active: false, percent: 0, status: '' });
+  const [isSearchRunning, setIsSearchRunning] = useState(false);
+  const searchHiddenRef = useRef<SelectedElementInfo[]>([]);
+  const scene = useRef<THREE.Scene | null>(null);
+
+  const gatherAllElements = useCallback((root: SpatialStructureNode | null) => {
+    const items: SpatialStructureNode[] = [];
+    if (!root) return items;
+    const stack = [root];
+    while (stack.length) {
+      const node = stack.pop()!;
+      items.push(node);
+      if (node.children) stack.push(...node.children);
+    }
+    return items;
+  }, []);
+
+  // Capture scene from Canvas for use in filtering
+  const captureScene = useCallback((threeScene: THREE.Scene) => {
+    scene.current = threeScene;
+  }, []);
 
   const leftPanelRef = useRef<ImperativePanelHandle>(null);
   const rightPanelRef = useRef<ImperativePanelHandle>(null);
@@ -693,6 +736,379 @@ function ViewerContent() {
   // Use state to track panel collapsed status for proper icon rendering
   const [leftPanelCollapsed, setLeftPanelCollapsed] = useState(false);
   const [rightPanelCollapsed, setRightPanelCollapsed] = useState(false);
+
+  // Reset search progress when search is cleared
+  useEffect(() => {
+    if (!confirmedSearch) {
+      setSearchProgress({ active: false, percent: 0, status: '' });
+      setIsSearchRunning(false);
+    }
+  }, [confirmedSearch]);
+
+  // Handle search submission
+  const handleSearchSubmit = useCallback((searchTerm: string) => {
+    console.log("Search submitted:", searchTerm);
+    setConfirmedSearch(searchTerm);
+    // Only trigger search if there's an actual query
+    if (searchTerm.trim()) {
+      setIsSearchRunning(true);
+    }
+  }, []);
+
+  // Cancel search
+  const handleCancelSearch = useCallback(() => {
+    setIsSearchRunning(false);
+    setSearchProgress({ active: false, percent: 0, status: 'Search cancelled' });
+    // Clear the progress indicator after a short delay
+    setTimeout(() => {
+      setSearchProgress({ active: false, percent: 0, status: '' });
+    }, 1500);
+  }, []);
+
+  // DEBUG: Log userHiddenElements when it changes
+  useEffect(() => {
+    console.log("userHiddenElements changed:", userHiddenElements.length, userHiddenElements.slice(0, 5));
+  }, [userHiddenElements]);
+
+  // Apply search filtering on 3D elements - now depends on isSearchRunning instead of confirmedSearch
+  useEffect(() => {
+    if (!ifcApi || !isSearchRunning) return;
+
+    let cancelled = false;
+
+    const toRegex = (q: string) => {
+      const pattern = q.replace(/\*/g, ".*");
+      try {
+        return new RegExp(pattern, "i");
+      } catch {
+        const escaped = pattern.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+        return new RegExp(escaped, "i");
+      }
+    };
+
+    // Helper function to recursively search for regex matches in an object/array
+    const recursiveSearch = (data: any, regexInstance: RegExp, searchKeys: boolean = false): boolean => {
+      if (data === null || data === undefined) return false;
+
+      // Test stringified value for primitive types
+      if (typeof data === 'string') return regexInstance.test(data.toLowerCase());
+      if (typeof data === 'number' || typeof data === 'boolean') return regexInstance.test(String(data).toLowerCase());
+
+      if (Array.isArray(data)) {
+        for (const item of data) {
+          if (recursiveSearch(item, regexInstance, searchKeys)) return true;
+        }
+        return false;
+      }
+
+      if (typeof data === 'object') {
+        // Handle IFC.js specific structures like { value: X } or { NominalValue: { value: Y } } etc.
+        if (data.hasOwnProperty('value')) {
+          if (recursiveSearch(data.value, regexInstance, false)) return true;
+        }
+        if (data.hasOwnProperty('NominalValue')) {
+          if (recursiveSearch(data.NominalValue, regexInstance, false)) return true;
+        }
+        if (data.hasOwnProperty('wrappedValue')) {
+          if (recursiveSearch(data.wrappedValue, regexInstance, false)) return true;
+        }
+
+        for (const key in data) {
+          if (Object.prototype.hasOwnProperty.call(data, key)) {
+            if (searchKeys && regexInstance.test(key.toLowerCase())) return true;
+            if (recursiveSearch(data[key], regexInstance, searchKeys)) return true;
+          }
+        }
+        return false;
+      }
+      return false;
+    };
+
+    const applyFilter = async () => {
+      // unhide previous search-hidden elements
+      if (searchHiddenRef.current.length > 0) {
+        console.log("Showing previously hidden elements:", searchHiddenRef.current.length);
+        showElements(searchHiddenRef.current);
+        searchHiddenRef.current = [];
+      }
+
+      const query = confirmedSearch.trim();
+      console.log("Applying filter with query:", query); // Log query
+      if (!query) {
+        // If query is cleared, ensure all meshes that might have been directly hidden by previous search iteration are visible
+        // (unless they are in userHiddenElements for other reasons)
+        // The showElements(searchHiddenRef.current) above handles elements previously hidden *by search*.
+        // No further action needed here if query is empty, as userHiddenElements is the source of truth.
+        setSearchProgress({ active: false, percent: 0, status: '' });
+        setIsSearchRunning(false);
+        return;
+      }
+
+      // Set search in progress
+      setSearchProgress({ active: true, percent: 0, status: 'Preparing search...' });
+
+      const regex = toRegex(query);
+      console.log("Search regex:", regex.source);
+      const toHide: SelectedElementInfo[] = [];
+
+      // Log loaded models info
+      console.log("Loaded models:", loadedModels.length, loadedModels.map(m => ({
+        id: m.id,
+        name: m.name,
+        modelID: m.modelID,
+        hasSpatialTree: !!m.spatialTree
+      })));
+
+      // Collect all meshes to check if spatial tree nodes have corresponding meshes
+      const availableMeshIds: Record<number, Set<number>> = {};
+      const allMeshes: Record<number, Record<number, THREE.Mesh>> = {};
+
+      // Scan scene for meshes
+      scene.current?.traverse((object) => {
+        if (object instanceof THREE.Mesh &&
+          object.userData &&
+          object.userData.expressID !== undefined &&
+          object.userData.modelID !== undefined) {
+          const modelID = object.userData.modelID;
+          const expressID = object.userData.expressID;
+
+          if (!availableMeshIds[modelID]) {
+            availableMeshIds[modelID] = new Set();
+            allMeshes[modelID] = {};
+          }
+          availableMeshIds[modelID].add(expressID);
+          allMeshes[modelID][expressID] = object;
+        }
+      });
+
+      if (Object.keys(availableMeshIds).length === 0) {
+        console.log("WARNING: No meshes found in the scene with IFC data!");
+      } else {
+        console.log("Available mesh expressIDs by model:", Object.entries(availableMeshIds).map(
+          ([modelID, ids]) => `Model ${modelID}: ${ids.size} meshes`
+        ));
+      }
+
+      for (const model of loadedModels) {
+        if (model.modelID === null || model.modelID === undefined || !model.spatialTree) {
+          console.log(`Model ${model.id} (${model.name}) skipped - modelID: ${model.modelID}, hasSpatialTree: ${!!model.spatialTree}`);
+          continue;
+        }
+
+        // Log spatial tree root information
+        console.log(`Spatial tree root for model ${model.id}:`, {
+          rootExpressID: model.spatialTree.expressID,
+          rootType: model.spatialTree.type,
+          rootName: model.spatialTree.Name,
+          childrenCount: model.spatialTree.children?.length || 0
+        });
+
+        const nodes = gatherAllElements(model.spatialTree);
+        console.log(`Model ${model.id} (${model.name}): Processing ${nodes.length} nodes for filtering.`);
+
+        // Check how many nodes in spatial tree have actual meshes
+        const modelMeshes = availableMeshIds[model.modelID] || new Set();
+        const nodesWithMeshes = nodes.filter(node =>
+          node.expressID !== undefined && modelMeshes.has(node.expressID)
+        );
+
+        console.log(`Model ${model.id}: ${nodes.length} tree nodes, ${nodesWithMeshes.length} have corresponding meshes`);
+
+        // Sample logging some actual node data
+        if (nodes.length > 0) {
+          console.log(`Sample node data (first node):`, {
+            expressID: nodes[0].expressID,
+            type: nodes[0].type,
+            name: nodes[0].Name,
+            hasMesh: nodes[0].expressID !== undefined && modelMeshes.has(nodes[0].expressID)
+          });
+        }
+
+        let matchCount = 0;
+        let noMatchCount = 0;
+        const processedExpressIDsFromSpatialTree = new Set<number>();
+        let errorCount = 0;
+
+        // Helper function to process a node with property fetching
+        const processNode = async (node: any): Promise<{ match: boolean; expressID: number }> => {
+          // Skip nodes without a valid expressID or if the model is invalid
+          if (typeof node.expressID !== 'number' || isNaN(node.expressID) || model.modelID === null || model.modelID === undefined) {
+            return { match: false, expressID: -1 };
+          }
+
+          const expressID = node.expressID;
+          processedExpressIDsFromSpatialTree.add(expressID);
+
+          let match = false;
+          // 1. Quick check on node's direct, readily available properties
+          if (node.Name && node.Name.value && typeof node.Name.value === 'string' && regex.test(node.Name.value.toLowerCase())) {
+            match = true;
+          } else if (node.type && regex.test(node.type.toLowerCase())) { // node.type is string
+            match = true;
+          } else if (node.GlobalId && node.GlobalId.value && typeof node.GlobalId.value === 'string' && regex.test(node.GlobalId.value.toLowerCase())) {
+            match = true;
+          }
+
+          // 2. If no quick match, fetch all properties and do a recursive search
+          if (!match) {
+            try {
+              // We've already checked model.modelID is not null above
+              const props = await ifcApi.GetLine(model.modelID as number, expressID, true);
+              if (recursiveSearch(props, regex, true)) { // Search keys and values in detailed props
+                match = true;
+              }
+            } catch (err) {
+              errorCount++;
+              if (errorCount <= 3) {
+                console.warn(`Error fetching props for ${model.modelID}-${expressID}:`, err);
+              }
+              // If props can't be fetched, we can't determine a match, so assume no match
+            }
+          }
+
+          return { match, expressID };
+        };
+
+        // Split nodes into batches for concurrent processing
+        const batchSize = 20; // Number of concurrent operations
+        const nodesToProcess = nodes.filter(node => node.expressID !== undefined);
+        const results: { match: boolean; expressID: number }[] = [];
+
+        // Maximum number of matches to find before stopping search
+        const MAX_MATCHES = 1000;
+        let hasReachedMaxMatches = false;
+
+        // Process nodes in batches
+        for (let i = 0; i < nodesToProcess.length; i += batchSize) {
+          if (cancelled || hasReachedMaxMatches) break;
+
+          const currentBatch = nodesToProcess.slice(i, i + batchSize);
+          const batchPromises = currentBatch.map(node => processNode(node));
+
+          // Wait for the current batch to complete
+          const batchResults = await Promise.all(batchPromises);
+          results.push(...batchResults);
+
+          // Check if we've found enough matches
+          const matchCount = results.filter(r => r.match).length;
+          if (matchCount >= MAX_MATCHES) {
+            console.log(`Found ${matchCount} matches, stopping search early`);
+            setSearchProgress({ active: true, percent: 100, status: `Found ${matchCount} matches (stopped early)` });
+            hasReachedMaxMatches = true;
+          }
+
+          // Provide visual feedback during processing for large models
+          // Update progress more frequently
+          if (i % 20 === 0 || i + batchSize >= nodesToProcess.length) {
+            const percentComplete = Math.round((i / nodesToProcess.length) * 100);
+            console.log(`Processed ${i}/${nodesToProcess.length} nodes (${percentComplete}%)...`);
+
+            // Update progress state for UI
+            setSearchProgress({
+              active: true,
+              percent: percentComplete,
+              status: `Searching... ${i}/${nodesToProcess.length} elements (${matchCount} matches found)`
+            });
+
+            // Update UI to show progress (non-blocking)
+            if (i % 100 === 0) {
+              // Process partial results to show immediate visual feedback
+              const partialResults = results.filter(r => !r.match && r.expressID !== -1)
+                .map(r => ({ modelID: model.modelID as number, expressID: r.expressID }));
+
+              if (partialResults.length > 0) {
+                // Apply visibility changes for partial results
+                for (const result of partialResults) {
+                  if (allMeshes[result.modelID]?.[result.expressID]) {
+                    const meshToHide = allMeshes[result.modelID][result.expressID];
+                    meshToHide.visible = false;
+                  }
+                }
+              }
+
+              // Use setTimeout to avoid blocking UI
+              await new Promise(resolve => setTimeout(resolve, 0));
+            }
+          }
+        }
+
+        // Process the results
+        for (const result of results) {
+          if (result.expressID === -1) continue;
+
+          if (result.match) {
+            matchCount++;
+          } else {
+            noMatchCount++;
+            toHide.push({ modelID: model.modelID, expressID: result.expressID });
+
+            if (allMeshes[model.modelID]?.[result.expressID]) {
+              const meshToHide = allMeshes[model.modelID][result.expressID];
+              meshToHide.visible = false;
+            }
+          }
+        }
+
+        // Handle meshes that are in the scene but not found in the spatial tree
+        const modelMeshesMap = allMeshes[model.modelID];
+        if (query && modelMeshesMap) { // query is confirmedSearch.trim()
+          for (const expressIDStr in modelMeshesMap) {
+            const expressID = parseInt(expressIDStr, 10);
+            if (!processedExpressIDsFromSpatialTree.has(expressID)) {
+              // This mesh element was not found in the spatial tree.
+              // If a search is active, it should be hidden because it can't be "matched" via properties.
+              toHide.push({ modelID: model.modelID, expressID: expressID });
+              const meshToHide = modelMeshesMap[expressID];
+              if (meshToHide) {
+                meshToHide.visible = false; // Direct hide for immediate feedback
+              }
+              noMatchCount++; // Consider it a non-match for accounting
+            }
+          }
+        }
+        console.log(`Filter results for model ${model.id}: ${matchCount} matches, ${noMatchCount} non-matches (to hide, incl. non-spatial), ${errorCount} errors`);
+      }
+
+      console.log(`Filter identified ${toHide.length} elements to hide overall.`);
+
+      if (!cancelled && toHide.length > 0) {
+        console.log("Calling hideElements with", toHide.length, "elements");
+        hideElements(toHide);
+        searchHiddenRef.current = toHide;
+
+        // Force render update of THREE scene
+        scene.current?.traverse(object => {
+          if (object instanceof THREE.Mesh) {
+            object.matrixWorldNeedsUpdate = true;
+          }
+        });
+      }
+
+      // Set search completed
+      setSearchProgress({
+        active: false,
+        percent: 100,
+        status: `Search complete: ${toHide.length} elements hidden`
+      });
+      setIsSearchRunning(false);
+
+      // Clear status after a delay
+      setTimeout(() => {
+        setSearchProgress(prev => {
+          if (prev.percent === 100) { // Only clear if it's still showing the completed state
+            return { active: false, percent: 0, status: '' };
+          }
+          return prev;
+        });
+      }, 5000); // Longer delay to ensure user sees result
+    };
+
+    applyFilter();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [confirmedSearch, loadedModels, ifcApi, hideElements, showElements, gatherAllElements, scene, isSearchRunning]);
 
   // Update collapse state when panels change
   useEffect(() => {
@@ -802,6 +1218,18 @@ function ViewerContent() {
     }
   }, [selectedElement]);
 
+  const customUnhideAllElements = useCallback(() => {
+    unhideAllElements();
+    setCanvasSearch("");
+    setConfirmedSearch("");
+  }, [unhideAllElements]);
+
+  const customUnhideLastElement = useCallback(() => {
+    unhideLastElement();
+    setCanvasSearch("");
+    setConfirmedSearch("");
+  }, [unhideLastElement]);
+
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -823,7 +1251,9 @@ function ViewerContent() {
         case "KeyZ":
           if (event.ctrlKey || event.metaKey) {
             event.preventDefault();
-            if (userHiddenElements.length > 0) unhideLastElement(); // Check if there's something to unhide
+            if (userHiddenElements.length > 0) {
+              customUnhideLastElement();
+            }
           }
           break;
         case "KeyE": // E for Zoom to Extents
@@ -839,7 +1269,9 @@ function ViewerContent() {
         case "KeyA": // A for Unhide All (with Shift)
           if (event.shiftKey) {
             event.preventDefault();
-            if (userHiddenElements.length > 0) unhideAllElements(); // Check if there's something to unhide
+            if (userHiddenElements.length > 0) {
+              customUnhideAllElements();
+            }
           }
           break;
         default:
@@ -859,7 +1291,49 @@ function ViewerContent() {
     userHiddenElements, // Dependency for checks
     handleZoomExtents, // Add if it's memoized (useCallback)
     handleZoomSelected, // Add if it's memoized (useCallback)
+    customUnhideAllElements,
+    customUnhideLastElement,
   ]);
+
+  // Add a direct effect to apply userHiddenElements visibility
+  useEffect(() => {
+    if (!scene.current) return;
+
+    console.log("Direct visibility effect: Processing userHiddenElements", userHiddenElements.length);
+
+    // Track which elements should be hidden
+    const hiddenElements = new Map<number, Set<number>>();
+
+    // Build lookup map of elements to hide
+    userHiddenElements.forEach(element => {
+      if (!hiddenElements.has(element.modelID)) {
+        hiddenElements.set(element.modelID, new Set());
+      }
+      hiddenElements.get(element.modelID)?.add(element.expressID);
+    });
+
+    // Traverse the scene and update visibility
+    let appliedHideCount = 0;
+    scene.current.traverse(object => {
+      if (object instanceof THREE.Mesh &&
+        object.userData &&
+        object.userData.expressID !== undefined &&
+        object.userData.modelID !== undefined) {
+
+        const modelID = object.userData.modelID;
+        const expressID = object.userData.expressID;
+
+        if (hiddenElements.has(modelID) && hiddenElements.get(modelID)?.has(expressID)) {
+          if (object.visible) {
+            object.visible = false;
+            appliedHideCount++;
+          }
+        }
+      }
+    });
+
+    console.log(`Direct visibility effect: Applied visibility=false to ${appliedHideCount} meshes`);
+  }, [userHiddenElements, scene]);
 
   if (!ifcEngineReady && !SKIP_IFC_INITIALIZATION_FOR_TEST) {
     return (
@@ -969,6 +1443,7 @@ function ViewerContent() {
             <Environment preset="city" />
             <OrbitControls makeDefault enableDamping={false} />
             <GlobalInteractionHandler />
+            <SceneCapture onSceneCapture={captureScene} />
             {loadedModels.map((modelEntry) => (
               <IFCModel
                 key={modelEntry.id}
@@ -1048,6 +1523,140 @@ function ViewerContent() {
           className="bg-transparent pointer-events-none"
         >
           <div className="relative h-full bg-transparent pointer-events-none">
+            {/* Search Bar - Top Right */}
+            {ifcEngineReady && !webGLContextLost && (
+              <div className="absolute top-4 right-4 z-20 pointer-events-auto">
+                <div className="flex items-center gap-2 p-1 bg-background/80 backdrop-blur-sm border border-border rounded-lg shadow-lg">
+                  <TooltipProvider delayDuration={300}>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Input
+                          value={canvasSearch}
+                          onFocus={() => setIsSearchFocused(true)}
+                          onBlur={() => setIsSearchFocused(false)}
+                          onChange={(e) => {
+                            const newSearch = e.target.value;
+                            setCanvasSearch(newSearch);
+                            if (newSearch.trim() === "") {
+                              setConfirmedSearch("");
+
+                              // Reset view when search term is cleared
+                              if (searchHiddenRef.current.length > 0) {
+                                showElements(searchHiddenRef.current);
+                                searchHiddenRef.current = [];
+                              }
+                              setSearchProgress({ active: false, percent: 0, status: '' });
+                              setIsSearchRunning(false);
+                            }
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault();
+                              handleSearchSubmit(canvasSearch);
+                            }
+                          }}
+                          placeholder={isSearchFocused ? t('modelViewer.searchCanvasPlaceholder') : "Search..."}
+                          className={`h-8 text-xs transition-all duration-300 ease-in-out rounded-md ${isSearchFocused
+                            ? 'w-48 px-3'
+                            : 'w-24 px-2 text-[11px]'
+                            }`}
+                        />
+                      </TooltipTrigger>
+                      <TooltipContent
+                        side="bottom"
+                        align="end"
+                        className="max-w-xs p-3 bg-popover text-popover-foreground shadow-md rounded-md z-50 flex flex-col gap-1"
+                      >
+                        <p className="font-medium">
+                          Filter elements by properties
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          Supports wildcard <code className="p-0.5 bg-muted rounded-sm">*</code> and regular expressions (regex).
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Learn more about <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Regular_expressions" target="_blank" rel="noopener noreferrer" className="underline hover:text-primary">regex</a> or test on <a href="https://regex101.com/" target="_blank" rel="noopener noreferrer" className="underline hover:text-primary">regex101.com</a>.
+                        </p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                  {isSearchRunning ? (
+                    <Button
+                      variant="ghost"
+                      onClick={handleCancelSearch}
+                      title="Cancel search"
+                      className="transition-all duration-300 ease-in-out flex items-center justify-center rounded-md h-8 w-8"
+                    >
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="16"
+                        height="16"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <path d="M18 6L6 18"></path>
+                        <path d="M6 6l12 12"></path>
+                      </svg>
+                    </Button>
+                  ) : (
+                    <Button
+                      variant="ghost"
+                      onClick={() => handleSearchSubmit(canvasSearch)}
+                      title={t('modelViewer.search')}
+                      className={`transition-all duration-300 ease-in-out flex items-center justify-center rounded-md ${isSearchFocused ? 'h-8 w-8' : 'h-7 w-7 p-0.5' // Adjusted padding for collapsed state
+                        }`}
+                    >
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="16" // Base width
+                        height="16" // Base height
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        className={`transition-all duration-300 ease-in-out ${ // Apply scale transform
+                          isSearchFocused ? 'scale-100' : 'scale-[0.80]' // Scale down when collapsed
+                          }`}
+                      >
+                        <circle cx="11" cy="11" r="8"></circle>
+                        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                      </svg>
+                    </Button>
+                  )}
+                </div>
+
+                {/* Search Progress Indicator */}
+                {searchProgress.active && (
+                  <div className="mt-2 p-2 bg-background/95 backdrop-blur-sm border border-border rounded-lg shadow-lg text-xs w-full">
+                    <div className="mb-1 flex justify-between font-medium">
+                      <span>{searchProgress.status}</span>
+                      <span>{searchProgress.percent}%</span>
+                    </div>
+                    <div className="w-full bg-muted rounded-full h-2 overflow-hidden">
+                      <div
+                        className="bg-primary h-full transition-all duration-300 ease-in-out"
+                        style={{ width: `${searchProgress.percent}%` }}
+                      ></div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Show status message even after search is complete */}
+                {!searchProgress.active && searchProgress.status && (
+                  <div className="mt-2 p-2 bg-background/95 backdrop-blur-sm border border-border rounded-lg shadow-lg text-xs w-full">
+                    <div className="text-center font-medium">
+                      {searchProgress.status}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* FileUpload prompt when no models (will show over global canvas) */}
             {loadedModels.length === 0 &&
               ifcEngineReady &&
@@ -1062,6 +1671,8 @@ function ViewerContent() {
                 onZoomExtents={handleZoomExtents}
                 onZoomSelected={handleZoomSelected}
                 isElementSelected={!!selectedElement}
+                onUnhideAll={customUnhideAllElements}
+                onUnhideLast={customUnhideLastElement}
               />
             )}
           </div>

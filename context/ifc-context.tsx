@@ -889,10 +889,10 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
           } catch (error) {
             console.error(
               "IFCContext: Error processing element " +
-                elementNode.expressID +
-                " for rule " +
-                rule.name +
-                ":",
+              elementNode.expressID +
+              " for rule " +
+              rule.name +
+              ":",
               error,
             );
           }
@@ -1020,10 +1020,10 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
           } catch (error) {
             console.error(
               "Error previewing element " +
-                elementNode.expressID +
-                " for rule " +
-                rule.name +
-                ":",
+              elementNode.expressID +
+              " for rule " +
+              rule.name +
+              ":",
               error,
             );
           }
@@ -1035,10 +1035,10 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
       setShowAllClassificationColors(false);
       console.log(
         'Previewing rule "' +
-          rule.name +
-          '". Found ' +
-          matchingElements.length +
-          " elements.",
+        rule.name +
+        '". Found ' +
+        matchingElements.length +
+        " elements.",
       );
     },
     [
@@ -1131,7 +1131,7 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
       if (
         selectedElement &&
         loadedModels.find((m) => m.id === id)?.modelID ===
-          selectedElement.modelID
+        selectedElement.modelID
       ) {
         setSelectedElement(null);
         setElementPropertiesInternal(null);
@@ -1228,8 +1228,8 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
           setHighlightedElements([]);
           console.warn(
             "Classification " +
-              classificationCode +
-              " or its elements not found for highlight.",
+            classificationCode +
+            " or its elements not found for highlight.",
           );
         }
       }
@@ -1623,8 +1623,18 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
 
   const hideElements = useCallback(
     (elements: SelectedElementInfo[]) => {
+      console.log("IFCContext: hideElements called with", elements.length, "elements");
+
+      // DEBUG: Log sample elements
+      if (elements.length > 0) {
+        console.log("IFCContext: First 3 elements to hide:", elements.slice(0, 3));
+      }
+
       setUserHiddenElements((prev) => {
+        console.log("IFCContext: Previous hidden elements count:", prev.length);
         const newHidden = [...prev];
+        let addedCount = 0;
+
         elements.forEach((el) => {
           if (
             !newHidden.some(
@@ -1636,16 +1646,20 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
               selectedElement.modelID === el.modelID &&
               selectedElement.expressID === el.expressID
             ) {
+              console.log("IFCContext: Deselecting element that's being hidden:", el);
               setSelectedElement(null);
               setElementPropertiesInternal(null);
             }
             newHidden.push(el);
+            addedCount++;
           }
         });
+
+        console.log(`IFCContext: Added ${addedCount} elements to hidden list. New total:`, newHidden.length);
         return newHidden;
       });
     },
-    [selectedElement],
+    [selectedElement, setSelectedElement, setElementPropertiesInternal],
   );
 
   const showElements = useCallback((elements: SelectedElementInfo[]) => {

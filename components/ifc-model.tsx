@@ -582,7 +582,7 @@ export function IFCModel({ modelData, outlineLayer }: IFCModelProps) {
         const flatMesh = flatMeshes.get(i);
         const elementExpressID = flatMesh.expressID;
         const placedGeometries = flatMesh.geometries;
-      for (let j = 0; j < placedGeometries.size(); j++) {
+        for (let j = 0; j < placedGeometries.size(); j++) {
           const placedGeometry = placedGeometries.get(j);
           const ifcGeometryData = ifcApi.GetGeometry(
             ownModelID.current!,
@@ -893,7 +893,7 @@ export function IFCModel({ modelData, outlineLayer }: IFCModelProps) {
             if (mesh.material instanceof THREE.MeshStandardMaterial) {
               if (
                 mesh.material.color.getHexString().toLowerCase() ===
-                  elementClassificationColor.substring(1).toLowerCase() &&
+                elementClassificationColor.substring(1).toLowerCase() &&
                 mesh.material.opacity === 0.9 &&
                 mesh.material.transparent
               ) {
@@ -933,7 +933,7 @@ export function IFCModel({ modelData, outlineLayer }: IFCModelProps) {
               if (mesh.material instanceof THREE.MeshStandardMaterial) {
                 if (
                   mesh.material.color.getHexString().toLowerCase() ===
-                    activeClassification.color.substring(1).toLowerCase() &&
+                  activeClassification.color.substring(1).toLowerCase() &&
                   mesh.material.opacity === 0.7 &&
                   mesh.material.transparent
                 ) {
@@ -973,6 +973,7 @@ export function IFCModel({ modelData, outlineLayer }: IFCModelProps) {
 
         if (isUserExplicitlyHidden) {
           isCurrentlyVisible = false;
+          console.log(`HIDE: Element ${currentModelID}-${expressID} hidden by user filters`);
         }
 
         // Step 4: Selected Element (highest priority for visibility and material)
@@ -983,6 +984,12 @@ export function IFCModel({ modelData, outlineLayer }: IFCModelProps) {
         ) {
           targetMaterial = selectionMaterial;
           isCurrentlyVisible = true;
+          console.log(`SELECT OVERRIDE: Element ${currentModelID}-${expressID} visible despite filtering because it's selected`);
+        }
+
+        // Debug log for hidden elements
+        if (!isCurrentlyVisible) {
+          console.log(`RESULT: Element ${currentModelID}-${expressID} final visibility = false`);
         }
 
         mesh.visible = isCurrentlyVisible;
@@ -1188,8 +1195,7 @@ export function IFCModel({ modelData, outlineLayer }: IFCModelProps) {
         for (const typeObject of typeObjects) {
           const typeObjectName =
             typeObject?.Name?.value ||
-            `TypeObject_${
-              typeObject.expressID || typeObjects.indexOf(typeObject)
+            `TypeObject_${typeObject.expressID || typeObjects.indexOf(typeObject)
             }`;
           const typeAttributesPSetName = `Type Attributes: ${typeObjectName}`;
           if (!psetsData[typeAttributesPSetName])
