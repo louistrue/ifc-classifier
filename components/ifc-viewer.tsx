@@ -897,12 +897,18 @@ function ViewerContent() {
 
         let matchCount = 0;
         let noMatchCount = 0;
-        let errorCount = 0;
         const processedExpressIDsFromSpatialTree = new Set<number>();
+        let errorCount = 0;
 
-        for (const node of nodes) {
-          if (node.expressID === undefined) continue;
-          processedExpressIDsFromSpatialTree.add(node.expressID);
+        // Helper function to process a node with property fetching
+        const processNode = async (node: any): Promise<{ match: boolean; expressID: number }> => {
+          // Skip nodes without a valid expressID or if the model is invalid
+          if (typeof node.expressID !== 'number' || isNaN(node.expressID) || model.modelID === null || model.modelID === undefined) {
+            return { match: false, expressID: -1 };
+          }
+
+          const expressID = node.expressID;
+          processedExpressIDsFromSpatialTree.add(expressID);
 
           let match = false;
           // 1. Quick check on node's direct, readily available properties
@@ -913,49 +919,64 @@ function ViewerContent() {
           } else if (node.GlobalId && node.GlobalId.value && typeof node.GlobalId.value === 'string' && regex.test(node.GlobalId.value.toLowerCase())) {
             match = true;
           }
-          // Add other direct string properties from SpatialStructureNode if relevant for search, e.g. node.Tag?.value
 
           // 2. If no quick match, fetch all properties and do a recursive search
           if (!match) {
-            let props: any = null;
             try {
-              props = await ifcApi.GetLine(model.modelID, node.expressID, true);
+              // We've already checked model.modelID is not null above
+              const props = await ifcApi.GetLine(model.modelID as number, expressID, true);
               if (recursiveSearch(props, regex, true)) { // Search keys and values in detailed props
                 match = true;
               }
             } catch (err) {
               errorCount++;
               if (errorCount <= 3) {
-                console.warn(`Error fetching props for ${model.modelID}-${node.expressID}:`, err);
+                console.warn(`Error fetching props for ${model.modelID}-${expressID}:`, err);
               }
-              // If props can't be fetched, we can't determine a match, so assume no match for filtering purposes.
-              // The element will be hidden if other elements match and this one doesn't (or errors out).
+              // If props can't be fetched, we can't determine a match, so assume no match
             }
           }
 
-          if (match) {
+          return { match, expressID };
+        };
+
+        // Split nodes into batches for concurrent processing
+        const batchSize = 20; // Number of concurrent operations
+        const nodesToProcess = nodes.filter(node => node.expressID !== undefined);
+        const results: { match: boolean; expressID: number }[] = [];
+
+        // Process nodes in batches
+        for (let i = 0; i < nodesToProcess.length; i += batchSize) {
+          if (cancelled) break;
+
+          const currentBatch = nodesToProcess.slice(i, i + batchSize);
+          const batchPromises = currentBatch.map(node => processNode(node));
+
+          // Wait for the current batch to complete
+          const batchResults = await Promise.all(batchPromises);
+          results.push(...batchResults);
+
+          // Provide visual feedback during processing for large models
+          if (i % 100 === 0 && i > 0) {
+            console.log(`Processed ${i}/${nodesToProcess.length} nodes...`);
+          }
+        }
+
+        // Process the results
+        for (const result of results) {
+          if (result.expressID === -1) continue;
+
+          if (result.match) {
             matchCount++;
           } else {
             noMatchCount++;
-            toHide.push({ modelID: model.modelID, expressID: node.expressID });
+            toHide.push({ modelID: model.modelID, expressID: result.expressID });
 
-            if (allMeshes[model.modelID]?.[node.expressID]) {
-              const meshToHide = allMeshes[model.modelID][node.expressID];
+            if (allMeshes[model.modelID]?.[result.expressID]) {
+              const meshToHide = allMeshes[model.modelID][result.expressID];
               meshToHide.visible = false;
-              // console.log(`DIRECT HIDE (recursive): Set mesh ${model.modelID}-${node.expressID} to invisible`);
             }
           }
-
-          // Log full details for first few non-matches - these are what we're hiding
-          // if (!match && noMatchCount <= 3 && props) { // Ensure props were fetched for logging
-          //   console.log(`Non-match sample (recursive): Node ${model.modelID}-${node.expressID}:`, {
-          //     name: props?.Name?.value || node.Name?.value || 'N/A',
-          //     type: node.type,
-          //     match: match,
-          //     hasMesh: allMeshes[model.modelID]?.[node.expressID] !== undefined,
-          //     // textSample: JSON.stringify(props).substring(0,100) // Avoid stringify if it was the bottleneck
-          //   });
-          // }
         }
 
         // Handle meshes that are in the scene but not found in the spatial tree
