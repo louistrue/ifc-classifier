@@ -1521,6 +1521,7 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
       }
 
       const elementsByCode: Record<string, SelectedElementInfo[]> = {};
+      const namesToUpdateForCodes: Record<string, string> = {}; // To store names that should be updated
 
       for (const model of loadedModels) {
         if (model.modelID == null || !model.spatialTree) continue;
@@ -1591,51 +1592,93 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
             );
             const descItem = descProp
               ? psetObject.HasProperties.find(
-                  (p: any) => p.Name?.value === descProp,
-                )
+                (p: any) => p.Name?.value === descProp,
+              )
               : null;
+
             const codeVal = codeItem
               ? codeItem.NominalValue?.value ?? codeItem.NominalValue
               : undefined;
-            const descVal = descItem
-              ? descItem.NominalValue?.value ?? descItem.NominalValue
-              : undefined;
             const codeStr = codeVal != null ? String(codeVal).trim() : "";
-            const nameStr = descVal != null ? String(descVal).trim() : "";
-            if (codeStr && classifications[codeStr]) {
+
+            let finalNameStr = "";
+            // Check if classification with this code already exists in the panel
+            const classificationInPanel = classifications[codeStr];
+
+            if (descProp && descItem) { // If descProp is provided and found in model
+              const descVal = descItem.NominalValue?.value ?? descItem.NominalValue;
+              finalNameStr = descVal != null ? String(descVal).trim() : "";
+            } else if (!descProp && classificationInPanel && classificationInPanel.name) {
+              // If descProp is NOT provided, AND classification exists with this code, AND it has a name in the panel
+              finalNameStr = classificationInPanel.name;
+            }
+
+            if (codeStr && classificationInPanel) {
               const el = { modelID: model.modelID, expressID: node.expressID };
-              if (!elementsByCode[codeStr]) elementsByCode[codeStr] = [];
-              if (!elementsByCode[codeStr].some((e) => e.modelID === el.modelID && e.expressID === el.expressID)) {
+              if (!elementsByCode[codeStr]) {
+                elementsByCode[codeStr] = [];
+              }
+              if (!elementsByCode[codeStr].some((e: SelectedElementInfo) => e.modelID === el.modelID && e.expressID === el.expressID)) {
                 elementsByCode[codeStr].push(el);
               }
-              if (nameStr && !classifications[codeStr].name) {
-                classifications[codeStr].name = nameStr;
+
+              // If a name was determined (from model or existing panel classification) and the panel classification currently has no name,
+              // mark it for update.
+              if (finalNameStr && !classificationInPanel.name) {
+                if (!namesToUpdateForCodes[codeStr] || namesToUpdateForCodes[codeStr] !== finalNameStr) {
+                  namesToUpdateForCodes[codeStr] = finalNameStr;
+                }
               }
             }
           }
         }
       }
 
-      setClassifications((prev) => {
-        const updated = { ...prev };
-        for (const code in elementsByCode) {
-          if (!updated[code]) continue;
-          const existing = updated[code].elements || [];
-          const toAdd = elementsByCode[code];
-          toAdd.forEach((el) => {
-            if (!existing.some((e) => e.modelID === el.modelID && e.expressID === el.expressID)) {
-              existing.push(el);
+      setClassifications((prevClassifications) => {
+        let newClassificationsState = { ...prevClassifications };
+        let changed = false;
+
+        // Update names first
+        for (const code in namesToUpdateForCodes) {
+          if (newClassificationsState[code] && !newClassificationsState[code].name) {
+            if (newClassificationsState[code].name !== namesToUpdateForCodes[code]) { // Should always be true given the !name check
+              newClassificationsState[code] = { ...newClassificationsState[code], name: namesToUpdateForCodes[code] };
+              changed = true;
             }
-          });
-          updated[code] = { ...updated[code], elements: existing };
+          }
         }
-        return updated;
+
+        // Then update elements
+        for (const code in elementsByCode) {
+          if (newClassificationsState[code]) { // Ensure classification exists
+            const existingElements = newClassificationsState[code].elements || [];
+            const elementsToAddFromModel = elementsByCode[code];
+
+            let combinedElements = [...existingElements];
+            let newElementsWereAddedToThisClassification = false;
+
+            elementsToAddFromModel.forEach((elToAdd) => {
+              if (!combinedElements.some(
+                (existingEl) => existingEl.modelID === elToAdd.modelID && existingEl.expressID === elToAdd.expressID
+              )) {
+                combinedElements.push(elToAdd);
+                newElementsWereAddedToThisClassification = true;
+              }
+            });
+
+            if (newElementsWereAddedToThisClassification) {
+              newClassificationsState[code] = { ...newClassificationsState[code], elements: combinedElements };
+              changed = true;
+            }
+          }
+        }
+        return changed ? newClassificationsState : prevClassifications;
       });
     },
     [
       ifcApiInternal,
       loadedModels,
-      classifications,
+      classifications, // Added classifications here as it's read directly
       getAllElementsFromSpatialTreeNodesRecursive,
       setClassifications,
     ],

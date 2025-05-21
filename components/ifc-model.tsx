@@ -750,6 +750,8 @@ export function IFCModel({ modelData, outlineLayer }: IFCModelProps) {
     setInternalApiIdForEffects,
     setRawBufferForModel,
     createMeshes,
+    baseCoordinationMatrix,
+    setBaseCoordinationMatrix,
   ]);
 
   // New useEffect for initial camera positioning
