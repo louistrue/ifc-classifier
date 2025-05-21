@@ -13,6 +13,7 @@ import {
   type SelectedElementInfo,
   type LoadedModelData,
   type ClassificationItem,
+  type SpatialStructureNode
 } from "@/context/ifc-context";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -86,6 +87,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useTranslation } from "react-i18next";
+import { Checkbox } from "@/components/ui/checkbox";
 
 // Helper function to compare two arrays of SelectedElementInfo (order-independent)
 function areElementArraysEqual(arr1: any[], arr2: any[]): boolean {
@@ -129,6 +131,7 @@ export function ClassificationPanel() {
     exportClassificationsAsExcel,
     importClassificationsFromJson,
     importClassificationsFromExcel,
+    availableProperties,
   } = useIFCContext();
   const { t } = useTranslation();
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
@@ -138,6 +141,7 @@ export function ClassificationPanel() {
     color: "#3b82f6",
   });
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isPropertyClassDialogOpen, setIsPropertyClassDialogOpen] = useState(false);
   const [currentClassificationForEdit, setCurrentClassificationForEdit] =
     useState<ClassificationItem | null>(null);
   const [defaultUniclassPr, setDefaultUniclassPr] = useState<
@@ -170,6 +174,11 @@ export function ClassificationPanel() {
     useState<string>("");
   const [searchQuery, setSearchQuery] = useState("");
 
+  // Property-based classification state
+  const [selectedProperty, setSelectedProperty] = useState<string>("");
+  const [classificationPrefix, setClassificationPrefix] = useState<string>("");
+  const [generateUniqueColors, setGenerateUniqueColors] = useState<boolean>(true);
+
   const filteredClassificationEntries = useMemo(() => {
     const entries = Object.entries(classifications);
     if (!searchQuery) return entries;
@@ -182,8 +191,6 @@ export function ClassificationPanel() {
       );
     });
   }, [classifications, searchQuery]);
-
-
 
   const listWrapperRef = useRef<HTMLDivElement>(null);
   const [listHeight, setListHeight] = useState(0);
@@ -751,6 +758,118 @@ export function ClassificationPanel() {
     }
   }, []);
 
+  const handleCreatePropertyBasedClassifications = () => {
+    if (!selectedProperty) {
+      alert("Please select a property for classification");
+      return;
+    }
+
+    // Get all loaded models with valid modelID and spatialTree
+    const validModels = loadedModels.filter(m => m.modelID !== null && m.spatialTree !== null);
+
+    if (validModels.length === 0) {
+      alert("No valid models loaded to create property-based classifications");
+      return;
+    }
+
+    // Track successfully processed models
+    let processedCount = 0;
+    let uniqueValuesMap = new Map<string, SelectedElementInfo[]>();
+
+    // Function to generate a random color
+    const generateRandomColor = () => {
+      const hue = Math.floor(Math.random() * 360);
+      return `hsl(${hue}, 70%, 50%)`;
+    };
+
+    // Process all elements from all models to collect property values
+    validModels.forEach(model => {
+      if (!model.spatialTree) return;
+
+      processedCount++;
+
+      // Get all elements from the spatial tree
+      // Using a local recursive function to get all elements
+      const getAllElements = (nodes: SpatialStructureNode[]): SpatialStructureNode[] => {
+        let elements: SpatialStructureNode[] = [];
+        for (const node of nodes) {
+          elements.push(node);
+          if (node.children && node.children.length > 0) {
+            elements = elements.concat(getAllElements(node.children));
+          }
+        }
+        return elements;
+      };
+
+      const allModelElements = getAllElements([model.spatialTree]);
+
+      // Process each element
+      allModelElements.forEach((element: SpatialStructureNode) => {
+        if (element.expressID === undefined || model.modelID === null) return;
+
+        // For simplicity, we'll use the element's type as the value
+        // In a real implementation, this would need to use the IFC API to get the property value
+        let propertyValue: string;
+
+        if (selectedProperty === "Ifc Class") {
+          propertyValue = element.type || "Unknown";
+        } else {
+          // This is simplified - in a real implementation, you'd need to extract the actual property value
+          // using the property APIs from the IFC context
+          propertyValue = element[selectedProperty as keyof typeof element]?.toString() || "Unknown";
+        }
+
+        // Skip unknown values
+        if (propertyValue === "Unknown") return;
+
+        // Create a code-friendly version of the value for the classification code
+        const valueForCode = propertyValue.replace(/[^a-zA-Z0-9]/g, "_");
+        const classCode = `${classificationPrefix}${valueForCode}`;
+
+        // Get or create the array for this value
+        if (!uniqueValuesMap.has(classCode)) {
+          uniqueValuesMap.set(classCode, []);
+        }
+
+        // Add this element to the map
+        uniqueValuesMap.get(classCode)?.push({
+          modelID: model.modelID,
+          expressID: element.expressID
+        });
+      });
+    });
+
+    if (processedCount === 0) {
+      alert("No models could be processed for classification");
+      return;
+    }
+
+    // Create classifications from the collected values
+    let createdCount = 0;
+    uniqueValuesMap.forEach((elements, classCode) => {
+      if (elements.length === 0) return;
+
+      // Skip if a classification with this code already exists
+      if (classifications[classCode]) {
+        console.warn(`Classification with code ${classCode} already exists, skipping`);
+        return;
+      }
+
+      // Create the classification
+      addClassification({
+        code: classCode,
+        name: classCode.replace(classificationPrefix, "").replace(/_/g, " "),
+        color: generateUniqueColors ? generateRandomColor() : "#3b82f6",
+        elements: elements
+      });
+
+      createdCount++;
+    });
+
+    alert(`Created ${createdCount} new classifications based on ${selectedProperty}`);
+    setIsPropertyClassDialogOpen(false);
+  };
+
   return (
     <div className="space-y-4 h-full flex flex-col">
       <div className="shrink-0 space-y-2">
@@ -854,6 +973,10 @@ export function ClassificationPanel() {
                 <DropdownMenuItem onSelect={() => setIsAddDialogOpen(true)}>
                   <Plus className="mr-2 h-4 w-4" />
                   Add New Classification
+                </DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => setIsPropertyClassDialogOpen(true)}>
+                  <FileSpreadsheet className="mr-2 h-4 w-4" />
+                  Property-based Classification
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuLabel className="text-xs font-semibold text-muted-foreground px-2 py-1.5">
@@ -1471,6 +1594,69 @@ export function ClassificationPanel() {
         onChange={handleImportExcel}
         className="hidden"
       />
+
+      {/* Property-based Classification Dialog */}
+      <Dialog open={isPropertyClassDialogOpen} onOpenChange={setIsPropertyClassDialogOpen}>
+        <DialogContent className="sm:max-w-xl">
+          <DialogHeader>
+            <DialogTitle>Property-based Classification</DialogTitle>
+            <DialogDescription>
+              Create classifications based on element properties
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="property-select">Select Property</Label>
+              <Select
+                value={selectedProperty}
+                onValueChange={setSelectedProperty}
+              >
+                <SelectTrigger id="property-select" className="w-full">
+                  <SelectValue placeholder="Choose a property" />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableProperties.map((prop) => (
+                    <SelectItem key={prop} value={prop}>
+                      {prop}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Classification Prefix</Label>
+              <Input
+                placeholder="e.g. TYPE-"
+                value={classificationPrefix}
+                onChange={(e) => setClassificationPrefix(e.target.value)}
+              />
+            </div>
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="use-colors"
+                checked={generateUniqueColors}
+                onCheckedChange={(checked) =>
+                  setGenerateUniqueColors(checked === true)
+                }
+              />
+              <Label htmlFor="use-colors" className="text-sm font-normal">
+                Generate unique colors for each classification
+              </Label>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setIsPropertyClassDialogOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button onClick={handleCreatePropertyBasedClassifications}>
+              Create Classifications
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
