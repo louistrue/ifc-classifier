@@ -441,6 +441,7 @@ export function IFCModel({ modelData, outlineLayer }: IFCModelProps) {
     classifications,
     showAllClassificationColors,
     userHiddenElements,
+    searchFilteredElements,
     hiddenModelIds,
     setRawBufferForModel,
     baseCoordinationMatrix,
@@ -970,8 +971,11 @@ export function IFCModel({ modelData, outlineLayer }: IFCModelProps) {
             hiddenEl.modelID === currentModelID &&
             hiddenEl.expressID === expressID
         );
+        const isSearchFiltered = searchFilteredElements.some(
+          (el) => el.modelID === currentModelID && el.expressID === expressID
+        );
 
-        if (isUserExplicitlyHidden) {
+        if (isUserExplicitlyHidden || isSearchFiltered) {
           isCurrentlyVisible = false;
         }
 
@@ -1035,6 +1039,7 @@ export function IFCModel({ modelData, outlineLayer }: IFCModelProps) {
     highlightMaterial,
     selectionMaterial,
     userHiddenElements,
+    searchFilteredElements,
     hiddenModelIds,
   ]);
 

@@ -18,6 +18,13 @@ import { ClassificationPanel } from "@/components/classification-panel";
 import { RulePanel } from "@/components/rule-panel";
 import { SettingsPanel } from "@/components/settings-panel";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -340,6 +347,28 @@ function ViewToolbar({
         </Button>
       </div>
     </div>
+  );
+}
+
+function ElementSearchBar() {
+  const { searchQuery, setSearchQuery } = useIFCContext();
+  const { t } = useTranslation();
+  return (
+    <TooltipProvider delayDuration={300}>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Input
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder={t('modelViewer.searchPlaceholder')}
+            className="w-56"
+          />
+        </TooltipTrigger>
+        <TooltipContent side="bottom">
+          <p>{t('tooltips.search3d')}</p>
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
   );
 }
 
@@ -1058,11 +1087,16 @@ function ViewerContent() {
               )}
             {/* ViewToolbar (will show over global canvas) */}
             {ifcEngineReady && !webGLContextLost && (
-              <ViewToolbar
-                onZoomExtents={handleZoomExtents}
-                onZoomSelected={handleZoomSelected}
-                isElementSelected={!!selectedElement}
-              />
+              <>
+                <ViewToolbar
+                  onZoomExtents={handleZoomExtents}
+                  onZoomSelected={handleZoomSelected}
+                  isElementSelected={!!selectedElement}
+                />
+                <div className="absolute top-4 right-4">
+                  <ElementSearchBar />
+                </div>
+              </>
             )}
           </div>
         </Panel>

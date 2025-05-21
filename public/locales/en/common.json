@@ -120,14 +120,16 @@
         "hideStorey": "Hide Storey",
         "removeModel": "Remove {{name}}",
         "useLoadButton": "Select a file or model to load.",
-        "searchTreePlaceholder": "Search model tree..."
+        "searchTreePlaceholder": "Search model tree...",
+        "searchPlaceholder": "Search elements..."
     },
     "tooltips": {
         "defaultClassification": "Sets the default classification system.",
         "autoLoad": "If enabled, the selected 'Default Classification' will be automatically applied on load.",
         "modelUrls": "Manage a list of IFC model URLs. You can add custom URLs or use the demo models.",
         "originalColors": "Show original model colors (hides all classification colors).",
-        "classificationColors": "Apply all classification colors to the model."
+        "classificationColors": "Apply all classification colors to the model.",
+        "search3d": "Filter elements by any property. Use /pattern/ for regex or * as wildcard."
     },
     "sections": {
         "defaultSets": "Default Sets",

@@ -81,6 +81,9 @@ interface IFCContextType {
   showAllClassificationColors: boolean; // Added for global classification colors visibility
   previewingRuleId: string | null; // Added to track active rule preview
   userHiddenElements: SelectedElementInfo[]; // New state for user-hidden elements
+  searchQuery: string;
+  searchFilteredElements: SelectedElementInfo[];
+  setSearchQuery: (query: string) => void;
   availableProperties: string[]; // Collected property names for rule building
   setAvailableProperties: (props: string[]) => void;
   baseCoordinationMatrix: number[] | null; // Base matrix for aligning multiple models
@@ -187,6 +190,10 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
   const [userHiddenElements, setUserHiddenElements] = useState<
     SelectedElementInfo[]
   >([]); // New state
+  const [searchQuery, setSearchQueryInternal] = useState<string>("");
+  const [searchFilteredElements, setSearchFilteredElements] = useState<
+    SelectedElementInfo[]
+  >([]);
   const [hiddenModelIds, setHiddenModelIds] = useState<string[]>([]);
   const [availableProperties, setAvailablePropertiesInternal] = useState<
     string[]
@@ -407,6 +414,20 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
     },
     [],
   );
+
+  const buildSearchRegex = useCallback((query: string): RegExp => {
+    const trimmed = query.trim();
+    if (trimmed.startsWith('/') && trimmed.endsWith('/')) {
+      try {
+        return new RegExp(trimmed.slice(1, -1), 'i');
+      } catch (e) {
+        console.warn('Invalid regex pattern:', trimmed, e);
+      }
+    }
+    const parts = trimmed.split('*').map((p) => p.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+    const pattern = parts.join('.*');
+    return new RegExp(pattern, 'i');
+  }, []);
 
   const matchesAllConditionsCallback = useCallback(
     async (
@@ -1659,6 +1680,50 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
     );
   }, []);
 
+  // Update searchFilteredElements whenever searchQuery or models change
+  useEffect(() => {
+    const applyFilter = async () => {
+      if (!ifcApiInternal) {
+        setSearchFilteredElements([]);
+        return;
+      }
+      if (!ifcApiInternal.properties) {
+        try {
+          ifcApiInternal.properties = new Properties(ifcApiInternal);
+        } catch (e) {
+          console.error('Failed to init properties for search', e);
+          return;
+        }
+      }
+      if (!searchQuery.trim()) {
+        setSearchFilteredElements([]);
+        return;
+      }
+      const regex = buildSearchRegex(searchQuery);
+      const hidden: SelectedElementInfo[] = [];
+      for (const model of loadedModels) {
+        if (!model.spatialTree || model.modelID === null) continue;
+        const elements = getAllElementsFromSpatialTreeNodesRecursive([model.spatialTree]);
+        for (const node of elements) {
+          if (node.expressID === undefined) continue;
+          let dataString = '';
+          try {
+            const props = await ifcApiInternal.properties.getItemProperties(model.modelID, node.expressID, true);
+            const mats = await ifcApiInternal.properties.getMaterialsProperties(model.modelID, node.expressID, true, true);
+            dataString = JSON.stringify({ node, props, mats }).toLowerCase();
+          } catch (e) {
+            console.warn('Search property fetch failed', e);
+          }
+          if (!regex.test(dataString)) {
+            hidden.push({ modelID: model.modelID, expressID: node.expressID });
+          }
+        }
+      }
+      setSearchFilteredElements(hidden);
+    };
+    applyFilter();
+  }, [searchQuery, loadedModels, ifcApiInternal, getAllElementsFromSpatialTreeNodesRecursive, buildSearchRegex]);
+
   return (
     <IFCContext.Provider
       value={{
@@ -1674,6 +1739,8 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
         showAllClassificationColors,
         previewingRuleId,
         userHiddenElements,
+        searchQuery,
+        searchFilteredElements,
         hiddenModelIds,
         availableProperties,
         replaceIFCModel,
@@ -1718,6 +1785,7 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
         unhideLastElement,
         unhideAllElements,
         toggleModelVisibility,
+        setSearchQuery: setSearchQueryInternal,
         naturalIfcClassNames,
         getNaturalIfcClassName,
       }}
