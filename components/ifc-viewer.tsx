@@ -18,6 +18,8 @@ import { ClassificationPanel } from "@/components/classification-panel";
 import { RulePanel } from "@/components/rule-panel";
 import { SettingsPanel } from "@/components/settings-panel";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -49,6 +51,7 @@ import {
   useIFCContext,
   LoadedModelData,
   SelectedElementInfo,
+  SpatialStructureNode,
 } from "@/context/ifc-context";
 import { IFCContextProvider } from "@/context/ifc-context";
 import { IfcAPI, Properties } from "web-ifc";
@@ -264,12 +267,16 @@ interface ViewToolbarProps {
   onZoomExtents: () => void;
   onZoomSelected: () => void;
   isElementSelected: boolean;
+  searchQuery: string;
+  onSearchChange: (val: string) => void;
 }
 
 function ViewToolbar({
   onZoomExtents,
   onZoomSelected,
   isElementSelected,
+  searchQuery,
+  onSearchChange,
 }: ViewToolbarProps) {
   const {
     selectedElement,
@@ -290,6 +297,21 @@ function ViewToolbar({
   return (
     <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-20 pointer-events-auto">
       <div className="flex items-center gap-2 p-2 bg-background/80 backdrop-blur-sm border border-border rounded-lg shadow-lg">
+        <TooltipProvider delayDuration={300}>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Input
+                value={searchQuery}
+                onChange={(e) => onSearchChange(e.target.value)}
+                placeholder={t('modelViewer.searchCanvasPlaceholder')}
+                className="h-8 w-40 text-xs"
+              />
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>{t('tooltips.canvasSearch')}</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
         <Button
           variant="ghost"
           size="icon"
@@ -640,12 +662,28 @@ function ViewerContent() {
     toggleUserHideElement,
     unhideLastElement,
     unhideAllElements,
+    hideElements,
+    showElements,
     userHiddenElements,
     addIFCModel,
   } = useIFCContext();
   const { t } = useTranslation();
   const [ifcEngineReady, setIfcEngineReady] = useState(false);
   const [webGLContextLost, setWebGLContextLost] = useState(false);
+  const [canvasSearch, setCanvasSearch] = useState("");
+  const searchHiddenRef = useRef<SelectedElementInfo[]>([]);
+
+  const gatherAllElements = useCallback((root: SpatialStructureNode | null) => {
+    const items: SpatialStructureNode[] = [];
+    if (!root) return items;
+    const stack = [root];
+    while (stack.length) {
+      const node = stack.pop()!;
+      items.push(node);
+      if (node.children) stack.push(...node.children);
+    }
+    return items;
+  }, []);
 
   const leftPanelRef = useRef<ImperativePanelHandle>(null);
   const rightPanelRef = useRef<ImperativePanelHandle>(null);
@@ -693,6 +731,66 @@ function ViewerContent() {
   // Use state to track panel collapsed status for proper icon rendering
   const [leftPanelCollapsed, setLeftPanelCollapsed] = useState(false);
   const [rightPanelCollapsed, setRightPanelCollapsed] = useState(false);
+
+  // Apply search filtering on 3D elements
+  useEffect(() => {
+    if (!ifcApi) return;
+
+    let cancelled = false;
+
+    const toRegex = (q: string) => {
+      const pattern = q.replace(/\*/g, ".*");
+      try {
+        return new RegExp(pattern, "i");
+      } catch {
+        const escaped = pattern.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+        return new RegExp(escaped, "i");
+      }
+    };
+
+    const applyFilter = async () => {
+      // unhide previous search-hidden elements
+      if (searchHiddenRef.current.length > 0) {
+        showElements(searchHiddenRef.current);
+        searchHiddenRef.current = [];
+      }
+
+      const query = canvasSearch.trim();
+      if (!query) return;
+
+      const regex = toRegex(query);
+      const toHide: SelectedElementInfo[] = [];
+
+      for (const model of loadedModels) {
+        if (!model.modelID || !model.spatialTree) continue;
+        const nodes = gatherAllElements(model.spatialTree);
+        for (const node of nodes) {
+          if (node.expressID === undefined) continue;
+          let props: any = null;
+          try {
+            props = await ifcApi.GetLine(model.modelID, node.expressID, true);
+          } catch {
+            continue;
+          }
+          const text = JSON.stringify(props).toLowerCase();
+          if (!regex.test(text)) {
+            toHide.push({ modelID: model.modelID, expressID: node.expressID });
+          }
+        }
+      }
+
+      if (!cancelled && toHide.length > 0) {
+        hideElements(toHide);
+        searchHiddenRef.current = toHide;
+      }
+    };
+
+    applyFilter();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [canvasSearch, loadedModels, ifcApi, hideElements, showElements, gatherAllElements]);
 
   // Update collapse state when panels change
   useEffect(() => {
@@ -1062,6 +1160,8 @@ function ViewerContent() {
                 onZoomExtents={handleZoomExtents}
                 onZoomSelected={handleZoomSelected}
                 isElementSelected={!!selectedElement}
+                searchQuery={canvasSearch}
+                onSearchChange={setCanvasSearch}
               />
             )}
           </div>
