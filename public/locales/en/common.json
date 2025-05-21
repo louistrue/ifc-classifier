@@ -23,8 +23,8 @@
     "ifcModelViewer": "IFC Model Viewer",
     "uploadIFCFile": "Upload an IFC file to get started or choose a demo model",
     "loadIFCFile": "Load IFC File",
-    "noModelsLoaded": "No models loaded. Use the 'Load IFC File' or 'Add Model' button.",
-    "clickElementToView": "Click on an element or tree node to view properties.",
+    "noModelsLoaded": "No models loaded.",
+    "clickElementToView": "Click on an element in 3D view or tree to view properties.",
     "noClassificationsAdded": "No classifications added yet.",
     "addClassification": "Add a classification to start organizing your IFC elements.",
     "rulesEngine": "Rules Engine",
@@ -118,7 +118,8 @@
         "hideModel": "Hide {{name}}",
         "showStorey": "Show Storey",
         "hideStorey": "Hide Storey",
-        "removeModel": "Remove {{name}}"
+        "removeModel": "Remove {{name}}",
+        "useLoadButton": "Select a file or model to load."
     },
     "tooltips": {
         "defaultClassification": "Sets the default classification system.",
@@ -150,7 +151,9 @@
         "createFromRule": "Create New Classification",
         "codePlaceholder": "Enter a code (e.g., A1.1)",
         "namePlaceholder": "Enter a descriptive name",
-        "basicInfo": "Basic Information"
+        "basicInfo": "Basic Information",
+        "searchPlaceholder": "Search classifications...",
+        "noSearchResults": "No classifications match your search."
     },
     "rules": {
         "addNew": "Add New Rule",

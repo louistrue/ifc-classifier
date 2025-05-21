@@ -1146,6 +1146,7 @@ interface FileUploadProps {
 }
 function FileUpload({ isAdding = false }: FileUploadProps) {
   const { replaceIFCModel, addIFCModel } = useIFCContext();
+  const { t } = useTranslation();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [demoModels, setDemoModels] = useState<ModelSource[]>([]);
   const [savedModels, setSavedModels] = useState<ModelSource[]>([]);
@@ -1325,10 +1326,13 @@ function FileUpload({ isAdding = false }: FileUploadProps) {
         </DropdownMenu>
       );
       return (
-        <div className="text-center p-8 bg-muted/50 rounded-lg backdrop-blur-sm">
-          <h2 className="text-2xl font-bold mb-4">IFC Model Viewer</h2>
-          <p className="mb-6 text-muted-foreground">
-            Upload an IFC file to get started or choose a demo model
+        <div className="text-center p-8">
+          <div className="flex justify-center mb-4">
+            <UploadCloud className="h-12 w-12 text-foreground/30" />
+          </div>
+          <p className="text-base font-medium text-foreground/80 mb-2">{t('ifcModelViewer')}</p>
+          <p className="text-sm text-foreground/60 mb-6">
+            {t('uploadIFCFile')}
           </p>
           <input
             type="file"
@@ -1337,16 +1341,28 @@ function FileUpload({ isAdding = false }: FileUploadProps) {
             ref={fileInputRef}
             onChange={handleFileChange}
           />
-          {mainPromptMenu}
+          {mainPromptMenu || (
+            <Button
+              variant="default"
+              size="default"
+              onClick={() => fileInputRef.current?.click()}
+              title={commonButtonTitle}
+            >
+              {commonButtonContent}
+            </Button>
+          )}
         </div>
       );
     } else {
       // No USER configured models: simple direct upload button
       return (
-        <div className="text-center p-8 bg-muted/50 rounded-lg backdrop-blur-sm">
-          <h2 className="text-2xl font-bold mb-4">IFC Model Viewer</h2>
-          <p className="mb-6 text-muted-foreground">
-            Upload an IFC file to get started
+        <div className="text-center p-8">
+          <div className="flex justify-center mb-4">
+            <UploadCloud className="h-12 w-12 text-foreground/30" />
+          </div>
+          <p className="text-base font-medium text-foreground/80 mb-2">{t('ifcModelViewer')}</p>
+          <p className="text-sm text-foreground/60 mb-6">
+            {t('uploadIFCFile')}
           </p>
           <input
             type="file"
