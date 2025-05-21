@@ -24,7 +24,7 @@ i18n
         interpolation: {
             escapeValue: false, // not needed for react as it escapes by default
         },
-        supportedLngs: ['en', 'de'],
+        supportedLngs: ['en', 'de', 'fr', 'it'],
         ns: ['common'],
         defaultNS: 'common',
         backend: {
