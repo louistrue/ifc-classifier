@@ -1,5 +1,5 @@
-const content = `
-# IFC Classifier
+const content = {
+  en: `# IFC Classifier
 
 IfcClassifier helps you apply standardized classifications to IFC models right in your browser. The project is open source under the AGPL v3 license and is still a work in progress.
 
@@ -29,6 +29,37 @@ Try it out on your own models and let us know how it works for you!
 
 ## Project Status
 
-This application is still in development. Your feedback and contributions are welcome to help improve its functionality.
-`;
+This application is still in development. Your feedback and contributions are welcome to help improve its functionality.`,
+  de: `# IFC Classifier
+
+IfcClassifier hilft dir, standardisierte Klassifizierungen direkt im Browser auf IFC-Modelle anzuwenden. Das Projekt ist quelloffen unter der AGPL v3 Lizenz und befindet sich noch in Entwicklung.
+
+## Was macht es?
+
+Die Zuordnung von Klassifizierungscodes zu IFC-Elementen soll dich nicht ausbremsen. IFC Classifier bietet eine einfache und schnelle Lösung, nutzt [**web-ifc**](https://thatopen.github.io/engine_web-ifc/docs/) zur Modellverarbeitung und [**IfcOpenShell**](https://github.com/IfcOpenShell/IfcOpenShell) zum Export korrekter ClassificationReferences und folgt dabei den Standards von [**buildingSMART**](https://www.buildingsmart.org/standards/bsi-standards/industry-foundation-classes/).
+
+## Hauptfunktionen
+
+- **Automatische Codezuweisung** über anpassbare Regeln
+- **Wechsel zwischen Klassifikationssystemen** (Uniclass, eBKP-H oder eigenes Schema)
+- **Einfacher Workflow** für schnelle Klassifizierungsaufgaben
+- **Im Browser** ohne Installation nutzbar
+- **Vollständig Open Source** und offen für Beiträge
+
+Probiere es mit eigenen Modellen aus und gib uns Feedback!
+
+## Datenschutz & Sicherheit
+
+**Deine IFC-Daten verlassen niemals dein Gerät.** Alle Dateien werden lokal im Browser mit [**WebAssembly**](https://webassembly.org/) verarbeitet:
+
+- **WebAssembly (WASM)** ermöglicht nahezu native Geschwindigkeit im Browser
+- Es findet keine Serverübertragung statt – alles bleibt auf deinem Gerät
+- Deine Modelle und Daten bleiben privat und sicher
+
+> **🔍 Überprüfe es selbst:** Mit \`F12\` oder \`Ctrl+Shift+I\` die Entwicklertools öffnen, den Reiter Netzwerk wählen und sehen, dass **keine IFC-Daten übertragen** werden.
+
+## Projektstatus
+
+Diese Anwendung befindet sich noch in Entwicklung. Feedback und Beiträge sind willkommen.`
+};
 export default content;
