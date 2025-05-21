@@ -579,7 +579,7 @@ export function SpatialTreePanel() {
       <div className="flex items-center justify-center h-full">
         <div className="text-center p-6">
           <div className="flex justify-center mb-4">
-            <FileText className="h-12 w-12 text-foreground/30" />
+            <FileText className="h-8 w-8 text-foreground/30" />
           </div>
           <p className="text-base font-medium text-foreground/80 mb-2">{t('noModelsLoaded')}</p>
           <p className="text-sm text-foreground/60">
