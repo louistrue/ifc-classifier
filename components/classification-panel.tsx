@@ -65,6 +65,7 @@ import {
   ArchiveRestore,
   Star,
   Cuboid,
+  Tag,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -85,6 +86,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { useTranslation } from "react-i18next";
 
 // Helper function to compare two arrays of SelectedElementInfo (order-independent)
@@ -125,6 +127,7 @@ export function ClassificationPanel() {
     unassignClassificationFromElement,
     unassignElementFromAllClassifications,
     removeAllClassifications,
+    matchClassificationsFromProperties,
     exportClassificationsAsJson,
     exportClassificationsAsExcel,
     importClassificationsFromJson,
@@ -169,6 +172,12 @@ export function ClassificationPanel() {
   const [currentDefaultClassification, setCurrentDefaultClassification] =
     useState<string>("");
   const [searchQuery, setSearchQuery] = useState("");
+  const [isMatchDialogOpen, setIsMatchDialogOpen] = useState(false);
+  const [codePropertyKey, setCodePropertyKey] = useState("");
+  const [namePropertyKey, setNamePropertyKey] = useState("");
+  const [useWildcard, setUseWildcard] = useState(false);
+  const [useFuzzy, setUseFuzzy] = useState(false);
+  const [isMatching, setIsMatching] = useState(false);
 
   const filteredClassificationEntries = useMemo(() => {
     const entries = Object.entries(classifications);
@@ -248,6 +257,21 @@ export function ClassificationPanel() {
     if (!file) return;
     importClassificationsFromExcel(file);
     e.target.value = "";
+  };
+
+  const handleMatchFromProperty = async () => {
+    setIsMatching(true);
+    try {
+      await matchClassificationsFromProperties(
+        codePropertyKey,
+        namePropertyKey,
+        useWildcard,
+        useFuzzy,
+      );
+    } finally {
+      setIsMatching(false);
+      setIsMatchDialogOpen(false);
+    }
   };
 
   // Effect to manage the default selected model for export
@@ -920,6 +944,11 @@ export function ClassificationPanel() {
                     </DropdownMenuItem>
                   )}
                 <DropdownMenuSeparator />
+                <DropdownMenuItem onSelect={() => setIsMatchDialogOpen(true)}>
+                  <Tag className="mr-2 h-4 w-4" />
+                  {t('classifications.matchFromProperty')}
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
                 <DropdownMenuLabel className="text-xs font-semibold text-muted-foreground px-2 py-1.5">
                   {t('sections.manageData')}
                 </DropdownMenuLabel>
@@ -1049,6 +1078,66 @@ export function ClassificationPanel() {
               </Button>
               <Button onClick={handleAddClassification}>
                 {t('buttons.add')}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+        {/* Match From Property Dialog */}
+        <Dialog open={isMatchDialogOpen} onOpenChange={setIsMatchDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>{t('classifications.matchFromProperty')}</DialogTitle>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="code-prop" className="text-right">
+                  {t('classifications.codePropertyKey')}
+                </Label>
+                <Input
+                  id="code-prop"
+                  value={codePropertyKey}
+                  onChange={(e) => setCodePropertyKey(e.target.value)}
+                  className="col-span-3"
+                />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="name-prop" className="text-right">
+                  {t('classifications.namePropertyKey')}
+                </Label>
+                <Input
+                  id="name-prop"
+                  value={namePropertyKey}
+                  onChange={(e) => setNamePropertyKey(e.target.value)}
+                  className="col-span-3"
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                <Switch
+                  id="wildcard-switch"
+                  checked={useWildcard}
+                  onCheckedChange={(val) => setUseWildcard(!!val)}
+                />
+                <Label htmlFor="wildcard-switch">
+                  {t('classifications.useWildcard')}
+                </Label>
+              </div>
+              <div className="flex items-center gap-2">
+                <Switch
+                  id="fuzzy-switch"
+                  checked={useFuzzy}
+                  onCheckedChange={(val) => setUseFuzzy(!!val)}
+                />
+                <Label htmlFor="fuzzy-switch">
+                  {t('classifications.useFuzzy')}
+                </Label>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsMatchDialogOpen(false)}>
+                {t('buttons.cancel')}
+              </Button>
+              <Button onClick={handleMatchFromProperty} disabled={isMatching}>
+                {isMatching ? t('classifications.matching') : t('buttons.match')}
               </Button>
             </DialogFooter>
           </DialogContent>

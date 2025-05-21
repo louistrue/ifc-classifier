@@ -94,7 +94,8 @@
     "editRule": "Regel bearbeiten",
     "deleteRule": "Regel löschen",
     "previewRule": "Regelauswirkung anzeigen",
-    "clearPreview": "Vorschau zurücksetzen"
+    "clearPreview": "Vorschau zurücksetzen",
+    "match": "Zuordnen"
   },
   "messages": {
     "loading": "Wird geladen...",
@@ -161,6 +162,12 @@
     "classificationPlural": "Klassifikationen",
     "searchPlaceholder": "Klassifizierungen durchsuchen...",
     "noSearchResults": "Keine Klassifizierungen entsprechen Ihrer Suche.",
+    "matchFromProperty": "Nach Eigenschaft zuordnen",
+    "codePropertyKey": "Eigenschaftsschlüssel für Code",
+    "namePropertyKey": "Eigenschaftsschlüssel für Name",
+    "useWildcard": "Wildcards verwenden",
+    "useFuzzy": "Unscharfe Suche",
+    "matching": "Suche läuft...",
     "noClassificationFound": "Keine Klassifizierung gefunden. Tippen Sie, um zu erstellen.",
     "createNewClassification": "Neue Klassifizierung \"{{value}}\" erstellen"
   },

@@ -94,7 +94,8 @@
     "editRule": "Edit Rule",
     "deleteRule": "Delete Rule",
     "previewRule": "Preview Rule Impact",
-    "clearPreview": "Clear Preview"
+    "clearPreview": "Clear Preview",
+    "match": "Match"
   },
   "messages": {
     "loading": "Loading...",
@@ -160,7 +161,13 @@
     "classificationSingular": "classification",
     "classificationPlural": "classifications",
     "searchPlaceholder": "Search classifications...",
-    "noSearchResults": "No classifications match your search."
+    "noSearchResults": "No classifications match your search.",
+    "matchFromProperty": "Match From Property",
+    "codePropertyKey": "Code Property Key",
+    "namePropertyKey": "Name Property Key",
+    "useWildcard": "Use Wildcards",
+    "useFuzzy": "Use Fuzzy Matching",
+    "matching": "Matching..."
   },
   "rules": {
     "addNew": "Add New Rule",
