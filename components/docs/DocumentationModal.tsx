@@ -1,20 +1,12 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { X, ChevronLeft, ChevronRight, Home, Zap, FileText, Cog, ChevronsRight, Info } from "lucide-react";
+import { X, ChevronLeft, ChevronRight } from "lucide-react";
+import { DOC_SECTIONS } from "./docsContent";
 
 interface DocumentationModalProps {
     onClose: () => void;
 }
-
-const DOC_SECTIONS = [
-    { id: "general", title: "Welcome!", icon: <Home className="h-5 w-5" />, content: "General Info Content" },
-    { id: "getting-started", title: "Getting Started", icon: <Zap className="h-5 w-5" />, content: "Getting Started Content" },
-    { id: "classifications", title: "Classifications", icon: <FileText className="h-5 w-5" />, content: "Classifications Content: Loading default, creating custom, export options." },
-    { id: "rules", title: "Rules", icon: <ChevronsRight className="h-5 w-5" />, content: "Rules Content: Import/export, creating custom, managing rules." },
-    { id: "settings", title: "Settings", icon: <Cog className="h-5 w-5" />, content: "Settings Content" },
-    { id: "workflow", title: "Typical Workflow", icon: <Info className="h-5 w-5" />, content: "Typical Workflow Content: Detailed start-to-end example including rules." },
-];
 
 const DocumentationModal: React.FC<DocumentationModalProps> = ({ onClose }) => {
     const [currentStep, setCurrentStep] = useState(0);
