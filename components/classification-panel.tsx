@@ -64,6 +64,7 @@ import {
   FileSpreadsheet,
   ArchiveRestore,
   Star,
+  Tag,
   Cuboid,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -129,6 +130,7 @@ export function ClassificationPanel() {
     exportClassificationsAsExcel,
     importClassificationsFromJson,
     importClassificationsFromExcel,
+    mapClassificationsFromModel,
   } = useIFCContext();
   const { t } = useTranslation();
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
@@ -137,6 +139,9 @@ export function ClassificationPanel() {
     name: "",
     color: "#3b82f6",
   });
+  const [isMapDialogOpen, setIsMapDialogOpen] = useState(false);
+  const [mapPset, setMapPset] = useState("");
+  const [mapProperty, setMapProperty] = useState("");
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [currentClassificationForEdit, setCurrentClassificationForEdit] =
     useState<ClassificationItem | null>(null);
@@ -525,6 +530,13 @@ export function ClassificationPanel() {
       );
       setIsEditDialogOpen(false);
       setCurrentClassificationForEdit(null);
+    }
+  };
+
+  const handleApplyMapping = async () => {
+    if (mapPset && mapProperty) {
+      await mapClassificationsFromModel(mapPset, mapProperty);
+      setIsMapDialogOpen(false);
     }
   };
 
@@ -923,6 +935,10 @@ export function ClassificationPanel() {
                 <DropdownMenuLabel className="text-xs font-semibold text-muted-foreground px-2 py-1.5">
                   {t('sections.manageData')}
                 </DropdownMenuLabel>
+                <DropdownMenuItem onSelect={() => setIsMapDialogOpen(true)}>
+                  <Tag className="mr-2 h-4 w-4" />
+                  {t('classifications.mapFromModel')}
+                </DropdownMenuItem>
                 <DropdownMenuSub>
                   <DropdownMenuSubTrigger>
                     <FileOutput className="mr-2 h-4 w-4" /> {t('buttons.export')}
@@ -1050,6 +1066,43 @@ export function ClassificationPanel() {
               <Button onClick={handleAddClassification}>
                 {t('buttons.add')}
               </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+        <Dialog open={isMapDialogOpen} onOpenChange={setIsMapDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>{t('classifications.mapFromModel')}</DialogTitle>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="pset" className="text-right">
+                  {t('classifications.psetInputLabel')}
+                </Label>
+                <Input
+                  id="pset"
+                  value={mapPset}
+                  onChange={(e) => setMapPset(e.target.value)}
+                  className="col-span-3"
+                />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="property" className="text-right">
+                  {t('classifications.propertyInputLabel')}
+                </Label>
+                <Input
+                  id="property"
+                  value={mapProperty}
+                  onChange={(e) => setMapProperty(e.target.value)}
+                  className="col-span-3"
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsMapDialogOpen(false)}>
+                {t('buttons.cancel')}
+              </Button>
+              <Button onClick={handleApplyMapping}>{t('buttons.apply')}</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>

@@ -142,6 +142,11 @@ interface IFCContextType {
   importRulesFromExcel: (file: File) => Promise<void>;
   removeAllRules: () => void;
 
+  mapClassificationsFromModel: (
+    psetName: string,
+    propName: string,
+  ) => Promise<void>;
+
   assignClassificationToElement: (
     classificationCode: string,
     element: SelectedElementInfo,
@@ -1427,6 +1432,134 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
     [classifications],
   );
 
+  const mapClassificationsFromModel = useCallback(
+    async (psetName: string, propName: string) => {
+      if (!ifcApiInternal) return;
+
+      if (!ifcApiInternal.properties) {
+        try {
+          ifcApiInternal.properties = new Properties(ifcApiInternal);
+        } catch (e) {
+          console.error("Failed to init properties in mapClassificationsFromModel", e);
+          return;
+        }
+      }
+
+      const newElementsPerClassification: Record<string, SelectedElementInfo[]> = {};
+      for (const code of Object.keys(classifications)) {
+        newElementsPerClassification[code] = [];
+      }
+
+      const getPsetPropValue = async (
+        modelID: number,
+        expressID: number,
+      ): Promise<any> => {
+        let itemProps: any;
+        try {
+          itemProps = await ifcApiInternal!.properties.getItemProperties(
+            modelID,
+            expressID,
+            true,
+          );
+        } catch (e) {
+          console.warn(`Error fetching item properties for ${expressID}:`, e);
+          return undefined;
+        }
+
+        let psetObject: any = undefined;
+        if (itemProps && itemProps[psetName]) {
+          psetObject = itemProps[psetName];
+        } else if (itemProps && Array.isArray(itemProps.PropertySets)) {
+          psetObject = itemProps.PropertySets.find((ps: any) => ps.Name?.value === psetName);
+        } else if (itemProps) {
+          for (const key in itemProps) {
+            if (
+              Object.prototype.hasOwnProperty.call(itemProps, key) &&
+              typeof itemProps[key] === "object" &&
+              itemProps[key] !== null &&
+              itemProps[key].Name?.value === psetName &&
+              itemProps[key].HasProperties
+            ) {
+              psetObject = itemProps[key];
+              break;
+            }
+          }
+        }
+
+        if (!psetObject) {
+          try {
+            const typeObjects = await ifcApiInternal!.properties.getTypeProperties(
+              modelID,
+              expressID,
+              true,
+            );
+            for (const typeObj of typeObjects) {
+              if (typeObj.HasPropertySets && Array.isArray(typeObj.HasPropertySets)) {
+                const found = typeObj.HasPropertySets.find((ps: any) => ps.Name?.value === psetName);
+                if (found) {
+                  psetObject = found;
+                  break;
+                }
+              }
+            }
+          } catch (e) {
+            console.warn(`Error fetching type properties for ${expressID}:`, e);
+          }
+        }
+
+        if (psetObject && psetObject.HasProperties) {
+          const targetProp = psetObject.HasProperties.find((p: any) => p.Name?.value === propName);
+          if (targetProp) {
+            return targetProp.NominalValue?.value !== undefined
+              ? targetProp.NominalValue.value
+              : targetProp.NominalValue;
+          }
+        }
+        return undefined;
+      };
+
+      for (const model of loadedModels) {
+        if (model.modelID == null || !model.spatialTree) continue;
+        const allElements = getAllElementsFromSpatialTreeNodesRecursive([
+          model.spatialTree,
+        ]);
+        for (const el of allElements) {
+          if (el.expressID === undefined) continue;
+          const value = await getPsetPropValue(model.modelID, el.expressID);
+          if (value === undefined || value === null) continue;
+          const codes = String(value)
+            .split(/[,;\s]+/)
+            .map((c) => c.trim())
+            .filter((c) => c);
+          for (const code of codes) {
+            if (classifications[code]) {
+              const arr = newElementsPerClassification[code];
+              const info = { modelID: model.modelID!, expressID: el.expressID };
+              if (!arr.some((e) => e.modelID === info.modelID && e.expressID === info.expressID)) {
+                arr.push(info);
+              }
+            }
+          }
+        }
+      }
+
+      setClassifications((prev) => {
+        const updated = { ...prev };
+        for (const code of Object.keys(updated)) {
+          updated[code] = { ...updated[code], elements: newElementsPerClassification[code] };
+        }
+        return updated;
+      });
+    },
+    [
+      ifcApiInternal,
+      loadedModels,
+      classifications,
+      getAllElementsFromSpatialTreeNodesRecursive,
+      setClassifications,
+    ],
+  );
+
   const addRule = useCallback(
     (ruleItem: Rule) => {
       setRules((prev) => [...prev, ruleItem]);
@@ -1712,6 +1845,7 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
         assignClassificationToElement,
         unassignClassificationFromElement,
         unassignElementFromAllClassifications,
+        mapClassificationsFromModel,
         getClassificationsForElement,
         addRule,
         removeRule,

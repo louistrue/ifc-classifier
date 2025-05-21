@@ -161,6 +161,10 @@
     "classificationPlural": "Klassifikationen",
     "searchPlaceholder": "Klassifizierungen durchsuchen...",
     "noSearchResults": "Keine Klassifizierungen entsprechen Ihrer Suche.",
+    "mapFromModel": "Aus Modell zuordnen",
+    "psetInputLabel": "PSet Name",
+    "propertyInputLabel": "Eigenschaft",
+    "applyFromModel": "Anwenden",
     "noClassificationFound": "Keine Klassifizierung gefunden. Tippen Sie, um zu erstellen.",
     "createNewClassification": "Neue Klassifizierung \"{{value}}\" erstellen"
   },

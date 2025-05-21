@@ -160,7 +160,11 @@
     "classificationSingular": "classification",
     "classificationPlural": "classifications",
     "searchPlaceholder": "Search classifications...",
-    "noSearchResults": "No classifications match your search."
+    "noSearchResults": "No classifications match your search.",
+    "mapFromModel": "Map from Model",
+    "psetInputLabel": "Property Set",
+    "propertyInputLabel": "Property",
+    "applyFromModel": "Apply"
   },
   "rules": {
     "addNew": "Add New Rule",
