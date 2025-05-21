@@ -5,7 +5,7 @@ This document explains how to use i18next for internationalization in the IFC Cl
 ## Structure
 
 - Translation files are stored in `/public/locales/{language}/{namespace}.json`
-- Currently supported languages: English (`en`) and German (`de`)
+- Currently supported languages: English (`en`), German (`de`), French (`fr`), and Italian (`it`)
 - Main namespace is `common`, but you can add more namespaces as needed
 - The i18next configuration is in `/lib/i18n-config.ts`
 

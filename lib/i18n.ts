@@ -1,4 +1,4 @@
-export type Language = 'en' | 'de';
+export type Language = 'en' | 'de' | 'fr' | 'it';
 
 // This is kept for backward compatibility with existing code
 // New code should use i18next directly instead of this object
@@ -32,5 +32,35 @@ export const translations: Record<Language, Record<string, string>> = {
     doc_settings_title: 'Einstellungen',
     doc_workflow_title: 'Typischer Ablauf',
     closeDocs: 'Dokumentation schließen',
+  },
+  fr: {
+    appName: 'IfcClassifier',
+    openDocs: 'Open documentation',
+    docModalTitle: 'IfcClassifier Guide',
+    prev: 'Previous',
+    next: 'Next',
+    doc_welcome_title: 'Welcome!',
+    doc_getting_started_title: 'Getting Started',
+    doc_ui_title: 'Interface & 3D',
+    doc_classifications_title: 'Classifications',
+    doc_rules_title: 'Rules',
+    doc_settings_title: 'Settings',
+    doc_workflow_title: 'Typical Workflow',
+    closeDocs: 'Close documentation',
+  },
+  it: {
+    appName: 'IfcClassifier',
+    openDocs: 'Open documentation',
+    docModalTitle: 'IfcClassifier Guide',
+    prev: 'Previous',
+    next: 'Next',
+    doc_welcome_title: 'Welcome!',
+    doc_getting_started_title: 'Getting Started',
+    doc_ui_title: 'Interface & 3D',
+    doc_classifications_title: 'Classifications',
+    doc_rules_title: 'Rules',
+    doc_settings_title: 'Settings',
+    doc_workflow_title: 'Typical Workflow',
+    closeDocs: 'Close documentation',
   },
 };

@@ -51,6 +51,18 @@ export const LanguageSwitcher = () => {
             >
                 DE
             </button>
+            <button
+                className={`px-2 py-1 rounded ${i18n.language === 'fr' ? 'bg-blue-500 text-white' : 'bg-gray-200'}`}
+                onClick={() => changeLanguage('fr')}
+            >
+                FR
+            </button>
+            <button
+                className={`px-2 py-1 rounded ${i18n.language === 'it' ? 'bg-blue-500 text-white' : 'bg-gray-200'}`}
+                onClick={() => changeLanguage('it')}
+            >
+                IT
+            </button>
         </div>
     );
 }; 
