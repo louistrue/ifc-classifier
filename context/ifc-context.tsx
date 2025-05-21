@@ -457,42 +457,64 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
           }
 
           if (condition.property.includes(".")) {
-            // Handle PSet properties (e.g., "Pset_WallCommon.Reference")
-            const [psetName, propName] = condition.property.split(".");
-            if (!psetName || !propName) {
+            // Handle PSet properties (supports wildcard patterns)
+            const [psetPattern, propName] = condition.property.split(".");
+            if (!psetPattern || !propName) {
               console.warn("Invalid Pset property format:", condition.property);
               return false;
             }
 
-            // Revised PSet lookup
-            let psetObject: any = undefined;
-            if (itemProps && itemProps[psetName]) {
-              psetObject = itemProps[psetName];
-            } else if (itemProps && Array.isArray(itemProps.PropertySets)) {
-              psetObject = itemProps.PropertySets.find(
-                (ps: any) => ps.Name?.value === psetName,
-              );
-            } else if (itemProps) {
-              for (const key in itemProps) {
-                if (
-                  Object.prototype.hasOwnProperty.call(itemProps, key) &&
-                  typeof itemProps[key] === "object" &&
-                  itemProps[key] !== null &&
-                  itemProps[key].Name?.value === psetName &&
-                  itemProps[key].HasProperties // Check if it looks like a PSet
-                ) {
-                  psetObject = itemProps[key];
+            // Try direct access via itemProps.propertySets first
+            if (itemProps && itemProps.propertySets) {
+              const allNames = Object.keys(itemProps.propertySets);
+              const hasWildcard = psetPattern.includes("*");
+              const regex = hasWildcard
+                ? new RegExp("^" + psetPattern.replace(/\*/g, ".*") + "$", "i")
+                : null;
+
+              const matchingNames = hasWildcard
+                ? allNames.filter((n) => regex!.test(n))
+                : [psetPattern];
+
+              for (const name of matchingNames) {
+                const pset = itemProps.propertySets[name];
+                if (pset && pset[propName] !== undefined) {
+                  elementValue = pset[propName];
                   break;
                 }
               }
             }
+
+            // If not found via propertySets above, use existing fallback logic
+            if (elementValue === undefined) {
+              let psetObject: any = undefined;
+              if (itemProps && itemProps[psetPattern]) {
+                psetObject = itemProps[psetPattern];
+              } else if (itemProps && Array.isArray(itemProps.PropertySets)) {
+                psetObject = itemProps.PropertySets.find(
+                  (ps: any) => ps.Name?.value === psetPattern,
+                );
+              } else if (itemProps) {
+                for (const key in itemProps) {
+                  if (
+                    Object.prototype.hasOwnProperty.call(itemProps, key) &&
+                    typeof itemProps[key] === "object" &&
+                    itemProps[key] !== null &&
+                    itemProps[key].Name?.value === psetPattern &&
+                    itemProps[key].HasProperties
+                  ) {
+                    psetObject = itemProps[key];
+                    break;
+                  }
+                }
+              }
 
             // 4. If PSet still not found, try fetching from Type Properties
             if (!psetObject && elementNode.expressID) {
               if (condition.property === "Pset_WallCommon.IsExternal") {
                 // Debug for this specific property
                 console.log(
-                  `[DEBUG RULE TRACE - Type Fetch] Element ID: ${elementNode.expressID}, PSet ${psetName} not in itemProps. Attempting type property fetch.`,
+                  `[DEBUG RULE TRACE - Type Fetch] Element ID: ${elementNode.expressID}, PSet ${psetPattern} not in itemProps. Attempting type property fetch.`,
                 );
               }
               try {
@@ -507,13 +529,13 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
                     Array.isArray(typeObj.HasPropertySets)
                   ) {
                     const foundPsetInType = typeObj.HasPropertySets.find(
-                      (ps: any) => ps.Name?.value === psetName,
+                      (ps: any) => ps.Name?.value === psetPattern,
                     );
                     if (foundPsetInType) {
                       psetObject = foundPsetInType;
                       if (condition.property === "Pset_WallCommon.IsExternal") {
                         console.log(
-                          `[DEBUG RULE TRACE - Type Fetch] Element ID: ${elementNode.expressID}, Found PSet ${psetName} in Type Object:`,
+                          `[DEBUG RULE TRACE - Type Fetch] Element ID: ${elementNode.expressID}, Found PSet ${psetPattern} in Type Object:`,
                           psetObject
                             ? JSON.parse(JSON.stringify(psetObject))
                             : "undefined",
@@ -525,7 +547,7 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
                 }
               } catch (e) {
                 console.warn(
-                  `[RULE ENGINE] Error fetching type properties for ${elementNode.expressID} while looking for PSet ${psetName}:`,
+                  `[RULE ENGINE] Error fetching type properties for ${elementNode.expressID} while looking for PSet ${psetPattern}:`,
                   e,
                 );
               }
@@ -547,7 +569,7 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
                   `[DEBUG RULE TRACE] Element ID: ${elementNode.expressID}, Property: ${condition.property}`,
                 );
                 console.log(
-                  `[DEBUG RULE TRACE] PSet Object (itemProps["${psetName}"]):`,
+                  `[DEBUG RULE TRACE] PSet Object (itemProps["${psetPattern}"]):`,
                   psetObject
                     ? JSON.parse(JSON.stringify(psetObject))
                     : "undefined",
@@ -578,7 +600,7 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
                   itemProps ? Object.keys(itemProps) : "itemProps undefined",
                 );
                 console.log(
-                  `[DEBUG RULE TRACE - Fallback] PSet Object for ${psetName} was not found directly or lacked HasProperties.`,
+                  `[DEBUG RULE TRACE - Fallback] PSet Object for ${psetPattern} was not found directly or lacked HasProperties.`,
                 );
               }
               // DEBUG LOGGING END for fallback path
