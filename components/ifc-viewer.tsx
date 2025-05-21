@@ -1093,7 +1093,7 @@ function ViewerContent() {
                   onZoomSelected={handleZoomSelected}
                   isElementSelected={!!selectedElement}
                 />
-                <div className="absolute top-4 right-4">
+                <div className="absolute top-4 right-4 pointer-events-auto">
                   <ElementSearchBar />
                 </div>
               </>
