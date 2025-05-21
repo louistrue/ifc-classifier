@@ -6,12 +6,13 @@ import { useTheme } from "next-themes";
 import { Moon, Sun, Shapes, HelpCircle } from "lucide-react";
 import DocumentationModal from "@/components/docs/DocumentationModal";
 import { useI18n } from "@/context/i18n-context";
+import { useTranslation } from "react-i18next";
 
 const Menubar = () => {
   const [mounted, setMounted] = useState(false);
   const { theme, setTheme } = useTheme();
   const [isDocsModalOpen, setIsDocsModalOpen] = useState(false);
-  const { lang, setLang, t } = useI18n();
+  const { t, i18n } = useTranslation();
 
   useEffect(() => {
     setMounted(true);
@@ -20,6 +21,10 @@ const Menubar = () => {
   if (!mounted) {
     return null;
   }
+
+  const changeLanguage = (lng: string) => {
+    i18n.changeLanguage(lng);
+  };
 
   return (
     <nav className="bg-transparent border-b border-border/15 fixed top-0 left-0 right-0 z-50 pointer-events-none backdrop-blur-sm">
@@ -33,8 +38,8 @@ const Menubar = () => {
           </Link>
           <div className="flex items-center space-x-2">
             <select
-              value={lang}
-              onChange={(e) => setLang(e.target.value as any)}
+              value={i18n.language}
+              onChange={(e) => changeLanguage(e.target.value)}
               className="p-2 rounded-md bg-background border border-border text-foreground hover:bg-accent focus:outline-none"
               aria-label="Language"
             >

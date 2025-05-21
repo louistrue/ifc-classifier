@@ -4,6 +4,7 @@ import "./globals.css";
 import { ThemeProvider } from "@/app/theme-provider";
 import { IFCContextProvider } from "@/context/ifc-context";
 import { I18nProvider } from "@/context/i18n-context";
+import I18nClientProvider from "./i18n-client-provider";
 import Script from "next/script";
 import Menubar from "@/components/layout/Menubar";
 import Footer from "@/components/layout/Footer";
@@ -36,15 +37,17 @@ export default function RootLayout({
       </head>
       <body className={`${inter.className} h-full flex flex-col overflow-hidden`}>
         <IFCContextProvider>
-          <I18nProvider>
-            <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
-              <div className="flex flex-col h-full">
-                <Menubar />
-                <main className="flex-1 overflow-hidden">{children}</main>
-                <Footer />
-              </div>
-            </ThemeProvider>
-          </I18nProvider>
+          <I18nClientProvider>
+            <I18nProvider>
+              <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
+                <div className="flex flex-col h-full">
+                  <Menubar />
+                  <main className="flex-1 overflow-hidden">{children}</main>
+                  <Footer />
+                </div>
+              </ThemeProvider>
+            </I18nProvider>
+          </I18nClientProvider>
         </IFCContextProvider>
         <Script src="https://cdn.jsdelivr.net/pyodide/v0.26.0/full/pyodide.js" strategy="beforeInteractive" />
       </body>

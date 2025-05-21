@@ -7,7 +7,8 @@ import classifications from "@/docs/classifications";
 import rules from "@/docs/rules";
 import settings from "@/docs/settings";
 import workflow from "@/docs/workflow";
-import { translations, Language } from "@/lib/i18n";
+import { Language } from "@/lib/i18n";
+import { translations } from "@/lib/i18n";
 
 export const getDocSections = (lang: Language) => [
   { id: "general", title: translations[lang].doc_welcome_title, icon: <Home className="h-5 w-5" />, content: welcome[lang] },

@@ -1,5 +1,7 @@
 export type Language = 'en' | 'de';
 
+// This is kept for backward compatibility with existing code
+// New code should use i18next directly instead of this object
 export const translations: Record<Language, Record<string, string>> = {
   en: {
     appName: 'IfcClassifier',

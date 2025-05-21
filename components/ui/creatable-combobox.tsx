@@ -22,6 +22,7 @@ import {
 export interface ComboboxOption {
   value: string;
   label: string;
+  [key: string]: any; // Allow additional properties
 }
 
 interface CreatableComboboxProps {
@@ -34,6 +35,7 @@ interface CreatableComboboxProps {
   createText?: (value: string) => string;
   className?: string;
   popoverClassName?: string;
+  renderOption?: (option: ComboboxOption) => React.ReactNode;
 }
 
 export function CreatableCombobox({
@@ -46,9 +48,11 @@ export function CreatableCombobox({
   createText = (searchValue) => `Create "${searchValue}"`,
   className,
   popoverClassName,
+  renderOption,
 }: CreatableComboboxProps) {
   const [open, setOpen] = React.useState(false);
   const [inputValue, setInputValue] = React.useState("");
+  const inputRef = React.useRef<HTMLInputElement>(null);
   const [selectedOption, setSelectedOption] =
     React.useState<ComboboxOption | null>(() => {
       const initialOption = options.find((option) => option.value === value);
@@ -60,6 +64,16 @@ export function CreatableCombobox({
       }
       return null;
     });
+
+  // Focus input when dropdown opens
+  React.useEffect(() => {
+    if (open && inputRef.current) {
+      // Short timeout to ensure DOM has updated
+      setTimeout(() => {
+        inputRef.current?.focus();
+      }, 10);
+    }
+  }, [open]);
 
   React.useEffect(() => {
     const foundOption = options.find((option) => option.value === value);
@@ -115,33 +129,53 @@ export function CreatableCombobox({
           aria-expanded={open}
           className={cn("w-full justify-between", className)}
         >
-          {selectedOption ? selectedOption.label : placeholder}
+          {selectedOption ? (
+            renderOption ? (
+              <div className="overflow-hidden text-ellipsis text-left flex-1">
+                {renderOption(selectedOption)}
+              </div>
+            ) : (
+              selectedOption.label
+            )
+          ) : (
+            placeholder
+          )}
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
+      <div className={cn(open ? "fixed inset-0 bg-black/30 z-50" : "hidden")} />
       <PopoverContent
         className={cn(
           "p-0",
-          "min-w-[--radix-popover-trigger-width]",
-          "w-[300px]",
-          "sm:w-[350px]",
-          "max-w-[calc(100vw-2rem)]",
-          "sm:max-w-sm",
-          "md:max-w-md",
+          "min-w-[300px]",
+          "shadow-xl",
+          "border-border",
+          "rounded-md",
+          "overflow-hidden",
           popoverClassName
         )}
         align="center"
-        side="right"
+        side="top"
         sideOffset={8}
-        sticky="partial"
-        collisionPadding={10}
+        style={{
+          position: 'absolute',
+          bottom: '100%',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          zIndex: 10000,
+          marginBottom: '8px',
+          width: '400px',
+          maxHeight: '600px',
+        }}
       >
-        <Command shouldFilter={false}>
+        <Command shouldFilter={false} className="h-full overflow-hidden">
           <CommandInput
+            ref={inputRef}
             placeholder={searchPlaceholder}
             value={inputValue}
             onValueChange={setInputValue}
             onKeyDown={(e) => {
+              // Handle Enter key
               if (e.key === "Enter") {
                 if (inputValue && !open) {
                   setOpen(true);
@@ -158,47 +192,93 @@ export function CreatableCombobox({
                   }
                 }
               }
+
+              // Don't block other navigation keys
+              if (["ArrowUp", "ArrowDown", "Escape", "Tab", "Home", "End", "PageUp", "PageDown"].includes(e.key)) {
+                return;
+              }
             }}
             className="h-10"
           />
-          <CommandList className="max-h-[80vh] beautiful-scrollbar">
-            <CommandEmpty>{!showCreateOption && emptyResultText}</CommandEmpty>
-            <CommandGroup>
-              {filteredOptions.map((option) => (
-                <CommandItem
-                  key={option.value}
-                  value={option.value}
-                  onSelect={() => {
-                    handleSelectOption(option.value);
-                  }}
-                  className="cursor-pointer"
-                >
-                  <Check
-                    className={cn(
-                      "mr-2 h-4 w-4",
-                      selectedOption?.value === option.value
-                        ? "opacity-100"
-                        : "opacity-0"
-                    )}
-                  />
-                  {option.label}
-                </CommandItem>
-              ))}
-              {showCreateOption && (
-                <CommandItem
-                  key="__create__"
-                  value={inputValue}
-                  onSelect={() => {
-                    handleSelectOption(inputValue);
-                  }}
-                  className="text-muted-foreground italic cursor-pointer"
-                >
-                  <PlusCircle className="mr-2 h-4 w-4" />
-                  {createText(inputValue)}
-                </CommandItem>
-              )}
-            </CommandGroup>
-          </CommandList>
+          <div className="overflow-y-auto" style={{ maxHeight: 'calc(600px - 40px)' }}>
+            <CommandList
+              className="beautiful-scrollbar focus-visible:outline-none focus-visible:ring-0"
+              onKeyDown={(e) => {
+                // Handle numpad navigation
+                if (e.key === "8" || e.key === "ArrowUp") {
+                  e.preventDefault();
+                  const list = e.currentTarget;
+                  const selectedItem = list.querySelector('[aria-selected="true"]') as HTMLElement;
+                  const prevItem = selectedItem?.previousElementSibling as HTMLElement;
+                  if (prevItem) prevItem.click();
+                }
+                if (e.key === "2" || e.key === "ArrowDown") {
+                  e.preventDefault();
+                  const list = e.currentTarget;
+                  const selectedItem = list.querySelector('[aria-selected="true"]') as HTMLElement;
+                  const nextItem = selectedItem?.nextElementSibling as HTMLElement ||
+                    list.querySelector('[cmdk-item]') as HTMLElement;
+                  if (nextItem) nextItem.click();
+                }
+                if (e.key === "Home") {
+                  e.preventDefault();
+                  const list = e.currentTarget;
+                  const firstItem = list.querySelector('[cmdk-item]') as HTMLElement;
+                  if (firstItem) firstItem.click();
+                }
+                if (e.key === "End") {
+                  e.preventDefault();
+                  const list = e.currentTarget;
+                  const items = list.querySelectorAll('[cmdk-item]');
+                  const lastItem = items[items.length - 1] as HTMLElement;
+                  if (lastItem) lastItem.click();
+                }
+              }}
+              onWheel={(e) => {
+                // React to wheel events naturally as we're using native overflow
+                e.stopPropagation();
+              }}
+            >
+              <CommandEmpty>
+                {inputValue ? null : emptyResultText}
+              </CommandEmpty>
+              <CommandGroup>
+                {filteredOptions.map((option) => (
+                  <CommandItem
+                    key={option.value}
+                    value={option.value}
+                    onSelect={() => {
+                      handleSelectOption(option.value);
+                    }}
+                    className="cursor-pointer aria-selected:bg-accent aria-selected:text-accent-foreground"
+                  >
+                    <Check
+                      className={cn(
+                        "mr-2 h-4 w-4",
+                        selectedOption?.value === option.value
+                          ? "opacity-100"
+                          : "opacity-0"
+                      )}
+                    />
+                    {renderOption ? renderOption(option) : option.label}
+                  </CommandItem>
+                ))}
+                {inputValue && (
+                  <CommandItem
+                    key="__create__"
+                    value={inputValue}
+                    onSelect={() => {
+                      handleSelectOption(inputValue);
+                    }}
+                    className="text-muted-foreground italic cursor-pointer aria-selected:bg-accent aria-selected:text-accent-foreground"
+                  >
+                    <PlusCircle className="mr-2 h-4 w-4" />
+                    {createText(inputValue)}
+                  </CommandItem>
+                )}
+              </CommandGroup>
+            </CommandList>
+          </div>
         </Command>
       </PopoverContent>
     </Popover>
