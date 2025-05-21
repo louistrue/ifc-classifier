@@ -413,9 +413,9 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
       elementNode: SpatialStructureNode,
       conditions: RuleCondition[],
       modelID: number,
-      api: IfcAPI, // Passed explicitly, not from context state directly in this func
+      ifcApi: IfcAPI,
     ): Promise<boolean> => {
-      if (!api.properties) {
+      if (!ifcApi.properties) {
         console.warn(
           "API properties not initialized in matchesAllConditionsCallback",
         );
@@ -434,7 +434,7 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
           // Fetch all item properties once if not already fetched for this element
           if (itemProps === null && elementNode.expressID) {
             try {
-              itemProps = await api.properties.getItemProperties(
+              itemProps = await ifcApi.properties.getItemProperties(
                 modelID,
                 elementNode.expressID,
                 true,
@@ -509,270 +509,271 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
                 }
               }
 
-            // 4. If PSet still not found, try fetching from Type Properties
-            if (!psetObject && elementNode.expressID) {
-              if (condition.property === "Pset_WallCommon.IsExternal") {
-                // Debug for this specific property
-                console.log(
-                  `[DEBUG RULE TRACE - Type Fetch] Element ID: ${elementNode.expressID}, PSet ${psetPattern} not in itemProps. Attempting type property fetch.`,
-                );
-              }
-              try {
-                const typeObjects = await api.properties.getTypeProperties(
-                  modelID,
-                  elementNode.expressID,
-                  true,
-                );
-                for (const typeObj of typeObjects) {
-                  if (
-                    typeObj.HasPropertySets &&
-                    Array.isArray(typeObj.HasPropertySets)
-                  ) {
-                    const foundPsetInType = typeObj.HasPropertySets.find(
-                      (ps: any) => ps.Name?.value === psetPattern,
-                    );
-                    if (foundPsetInType) {
-                      psetObject = foundPsetInType;
-                      if (condition.property === "Pset_WallCommon.IsExternal") {
-                        console.log(
-                          `[DEBUG RULE TRACE - Type Fetch] Element ID: ${elementNode.expressID}, Found PSet ${psetPattern} in Type Object:`,
-                          psetObject
-                            ? JSON.parse(JSON.stringify(psetObject))
-                            : "undefined",
-                        );
+              // 4. If PSet still not found, try fetching from Type Properties
+              if (!psetObject && elementNode.expressID) {
+                if (condition.property === "Pset_WallCommon.IsExternal") {
+                  // Debug for this specific property
+                  console.log(
+                    `[DEBUG RULE TRACE - Type Fetch] Element ID: ${elementNode.expressID}, PSet ${psetPattern} not in itemProps. Attempting type property fetch.`,
+                  );
+                }
+                try {
+                  const typeObjects = await ifcApi.properties.getTypeProperties(
+                    modelID,
+                    elementNode.expressID,
+                    true,
+                  );
+                  for (const typeObj of typeObjects) {
+                    if (
+                      typeObj.HasPropertySets &&
+                      Array.isArray(typeObj.HasPropertySets)
+                    ) {
+                      const foundPsetInType = typeObj.HasPropertySets.find(
+                        (ps: any) => ps.Name?.value === psetPattern,
+                      );
+                      if (foundPsetInType) {
+                        psetObject = foundPsetInType;
+                        if (condition.property === "Pset_WallCommon.IsExternal") {
+                          console.log(
+                            `[DEBUG RULE TRACE - Type Fetch] Element ID: ${elementNode.expressID}, Found PSet ${psetPattern} in Type Object:`,
+                            psetObject
+                              ? JSON.parse(JSON.stringify(psetObject))
+                              : "undefined",
+                          );
+                        }
+                        break; // Found the PSet in a type object
                       }
-                      break; // Found the PSet in a type object
                     }
                   }
+                } catch (e) {
+                  console.warn(
+                    `[RULE ENGINE] Error fetching type properties for ${elementNode.expressID} while looking for PSet ${psetPattern}:`,
+                    e,
+                  );
                 }
-              } catch (e) {
-                console.warn(
-                  `[RULE ENGINE] Error fetching type properties for ${elementNode.expressID} while looking for PSet ${psetPattern}:`,
-                  e,
+              }
+
+              if (psetObject && psetObject.HasProperties) {
+                const targetProp = psetObject.HasProperties.find(
+                  (p: any) => p.Name?.value === propName,
                 );
+                if (targetProp) {
+                  elementValue =
+                    targetProp.NominalValue?.value !== undefined
+                      ? targetProp.NominalValue.value
+                      : targetProp.NominalValue;
+                }
+                // DEBUG LOGGING START
+                if (condition.property === "Pset_WallCommon.IsExternal") {
+                  console.log(
+                    `[DEBUG RULE TRACE] Element ID: ${elementNode.expressID}, Property: ${condition.property}`,
+                  );
+                  console.log(
+                    `[DEBUG RULE TRACE] PSet Object (itemProps["${psetPattern}"]):`,
+                    psetObject
+                      ? JSON.parse(JSON.stringify(psetObject))
+                      : "undefined",
+                  );
+                  console.log(
+                    `[DEBUG RULE TRACE] Target Prop (${propName}):`,
+                    targetProp
+                      ? JSON.parse(JSON.stringify(targetProp))
+                      : "undefined",
+                  );
+                  console.log(
+                    `[DEBUG RULE TRACE] Raw elementValue:`,
+                    elementValue,
+                    `(type: ${typeof elementValue})`,
+                  );
+                }
+                // DEBUG LOGGING END
+              } else {
+                // Fallback checks if PSet not directly under itemProps[psetName]
+                // ... (existing fallback logic) ...
+                // DEBUG LOGGING START for fallback path
+                if (condition.property === "Pset_WallCommon.IsExternal") {
+                  console.log(
+                    `[DEBUG RULE TRACE - Fallback] Element ID: ${elementNode.expressID}, Property: ${condition.property}`,
+                  );
+                  console.log(
+                    `[DEBUG RULE TRACE - Fallback] itemProps keys:`,
+                    itemProps ? Object.keys(itemProps) : "itemProps undefined",
+                  );
+                  console.log(
+                    `[DEBUG RULE TRACE - Fallback] PSet Object for ${psetPattern} was not found directly or lacked HasProperties.`,
+                  );
+                }
+                // DEBUG LOGGING END for fallback path
+              }
+            } else {
+              // Handle direct attributes (e.g., "Name", "GlobalId", "Description")
+              const directPropValue = itemProps[condition.property];
+              if (directPropValue !== undefined) {
+                if (directPropValue?.hasOwnProperty("value")) {
+                  elementValue = directPropValue.value;
+                } else {
+                  elementValue = directPropValue;
+                }
+              } else if (elementNode[condition.property]) {
+                // Fallback to spatial tree node properties if direct attribute not in itemProps
+                // (e.g. Name might be on spatial tree node itself)
+                const nodeProp = elementNode[condition.property];
+                if (nodeProp?.hasOwnProperty("value")) {
+                  elementValue = nodeProp.value;
+                } else {
+                  elementValue = nodeProp;
+                }
               }
             }
+          }
 
-            if (psetObject && psetObject.HasProperties) {
-              const targetProp = psetObject.HasProperties.find(
-                (p: any) => p.Name?.value === propName,
-              );
-              if (targetProp) {
-                elementValue =
-                  targetProp.NominalValue?.value !== undefined
-                    ? targetProp.NominalValue.value
-                    : targetProp.NominalValue;
+          // Existing normalization and comparison logic
+          const normElementValue =
+            typeof elementValue === "string"
+              ? elementValue.toLowerCase()
+              : elementValue;
+          const normRuleValue =
+            typeof ruleValue === "string" ? ruleValue.toLowerCase() : ruleValue;
+          let conditionMet = false;
+
+          const convertToBoolean = (val: any): boolean | undefined => {
+            if (typeof val === "boolean") return val;
+            if (typeof val === "number") {
+              if (val === 1) return true;
+              if (val === 0) return false;
+            }
+            if (typeof val === "string") {
+              if (["true", "yes", "1"].includes(val)) return true;
+              if (["false", "no", "0"].includes(val)) return false;
+            }
+            return undefined;
+          };
+
+          const valFromElement = convertToBoolean(normElementValue);
+          const valFromRule = convertToBoolean(normRuleValue); // normRuleValue is effectively always string from UI
+
+          // DEBUG LOGGING START (after value processing, before switch)
+          if (condition.property === "Pset_WallCommon.IsExternal") {
+            console.log(
+              `[DEBUG RULE TRACE] normElementValue:`,
+              normElementValue,
+              `(type: ${typeof normElementValue})`,
+            );
+            console.log(
+              `[DEBUG RULE TRACE] valFromElement (boolean):`,
+              valFromElement,
+            );
+            console.log(
+              `[DEBUG RULE TRACE] normRuleValue (user input):`,
+              normRuleValue,
+            );
+            console.log(`[DEBUG RULE TRACE] valFromRule (boolean):`, valFromRule);
+          }
+          // DEBUG LOGGING END
+
+          switch (condition.operator) {
+            case "equals":
+              if (valFromElement !== undefined && valFromRule !== undefined) {
+                conditionMet = valFromElement === valFromRule;
+              } else if (
+                valFromElement !== undefined &&
+                valFromRule === undefined
+              ) {
+                // Element is bool, rule is "cat"
+                conditionMet = false;
+              } else if (
+                valFromElement === undefined &&
+                valFromRule !== undefined
+              ) {
+                // Element is "dog", rule is "true"
+                conditionMet = false;
+              } else {
+                // Both undefined as booleans, e.g. "dog" === "cat"
+                conditionMet = normElementValue === normRuleValue;
               }
-              // DEBUG LOGGING START
+              // DEBUG LOGGING START (inside switch, after conditionMet is set)
               if (condition.property === "Pset_WallCommon.IsExternal") {
                 console.log(
-                  `[DEBUG RULE TRACE] Element ID: ${elementNode.expressID}, Property: ${condition.property}`,
-                );
-                console.log(
-                  `[DEBUG RULE TRACE] PSet Object (itemProps["${psetPattern}"]):`,
-                  psetObject
-                    ? JSON.parse(JSON.stringify(psetObject))
-                    : "undefined",
-                );
-                console.log(
-                  `[DEBUG RULE TRACE] Target Prop (${propName}):`,
-                  targetProp
-                    ? JSON.parse(JSON.stringify(targetProp))
-                    : "undefined",
-                );
-                console.log(
-                  `[DEBUG RULE TRACE] Raw elementValue:`,
-                  elementValue,
-                  `(type: ${typeof elementValue})`,
+                  `[DEBUG RULE TRACE] Final conditionMet for ${condition.operator}:`,
+                  conditionMet,
                 );
               }
               // DEBUG LOGGING END
-            } else {
-              // Fallback checks if PSet not directly under itemProps[psetName]
-              // ... (existing fallback logic) ...
-              // DEBUG LOGGING START for fallback path
+              break;
+            case "notEquals":
+              if (valFromElement !== undefined && valFromRule !== undefined) {
+                conditionMet = valFromElement !== valFromRule;
+              } else if (
+                valFromElement !== undefined &&
+                valFromRule === undefined
+              ) {
+                // Element is bool, rule is "cat" -> they are not equal
+                conditionMet = true;
+              } else if (
+                valFromElement === undefined &&
+                valFromRule !== undefined
+              ) {
+                // Element is "dog", rule is "true" -> they are not equal
+                conditionMet = true;
+              } else {
+                // Both undefined as booleans, e.g. "dog" !== "cat"
+                conditionMet = normElementValue !== normRuleValue;
+              }
+              // DEBUG LOGGING START (inside switch, after conditionMet is set)
               if (condition.property === "Pset_WallCommon.IsExternal") {
                 console.log(
-                  `[DEBUG RULE TRACE - Fallback] Element ID: ${elementNode.expressID}, Property: ${condition.property}`,
+                  `[DEBUG RULE TRACE] Final conditionMet for ${condition.operator}:`,
+                  conditionMet,
                 );
+              }
+              // DEBUG LOGGING END
+              break;
+            case "contains":
+              conditionMet =
+                typeof normElementValue === "string" &&
+                typeof normRuleValue === "string" &&
+                normElementValue.includes(normRuleValue);
+              // DEBUG LOGGING START (inside switch, after conditionMet is set)
+              if (condition.property === "Pset_WallCommon.IsExternal") {
                 console.log(
-                  `[DEBUG RULE TRACE - Fallback] itemProps keys:`,
-                  itemProps ? Object.keys(itemProps) : "itemProps undefined",
-                );
-                console.log(
-                  `[DEBUG RULE TRACE - Fallback] PSet Object for ${psetPattern} was not found directly or lacked HasProperties.`,
+                  `[DEBUG RULE TRACE] Final conditionMet for ${condition.operator}:`,
+                  conditionMet,
                 );
               }
-              // DEBUG LOGGING END for fallback path
-            }
-          } else {
-            // Handle direct attributes (e.g., "Name", "GlobalId", "Description")
-            const directPropValue = itemProps[condition.property];
-            if (directPropValue !== undefined) {
-              if (directPropValue?.hasOwnProperty("value")) {
-                elementValue = directPropValue.value;
-              } else {
-                elementValue = directPropValue;
+              // DEBUG LOGGING END
+              break;
+            case "greaterThan":
+              {
+                const numElementValue = parseFloat(String(normElementValue));
+                const numRuleValue = parseFloat(String(normRuleValue));
+                if (!isNaN(numElementValue) && !isNaN(numRuleValue)) {
+                  conditionMet = numElementValue > numRuleValue;
+                } else {
+                  conditionMet = false;
+                }
               }
-            } else if (elementNode[condition.property]) {
-              // Fallback to spatial tree node properties if direct attribute not in itemProps
-              // (e.g. Name might be on spatial tree node itself)
-              const nodeProp = elementNode[condition.property];
-              if (nodeProp?.hasOwnProperty("value")) {
-                elementValue = nodeProp.value;
-              } else {
-                elementValue = nodeProp;
+              break;
+            case "lessThan":
+              {
+                const numElementValue = parseFloat(String(normElementValue));
+                const numRuleValue = parseFloat(String(normRuleValue));
+                if (!isNaN(numElementValue) && !isNaN(numRuleValue)) {
+                  conditionMet = numElementValue < numRuleValue;
+                } else {
+                  conditionMet = false;
+                }
               }
-            }
+              break;
+            default:
+              console.warn("Unsupported operator:", condition.operator);
+              return false;
           }
+          if (!conditionMet) return false;
         }
-
-        // Existing normalization and comparison logic
-        const normElementValue =
-          typeof elementValue === "string"
-            ? elementValue.toLowerCase()
-            : elementValue;
-        const normRuleValue =
-          typeof ruleValue === "string" ? ruleValue.toLowerCase() : ruleValue;
-        let conditionMet = false;
-
-        const convertToBoolean = (val: any): boolean | undefined => {
-          if (typeof val === "boolean") return val;
-          if (typeof val === "number") {
-            if (val === 1) return true;
-            if (val === 0) return false;
-          }
-          if (typeof val === "string") {
-            if (["true", "yes", "1"].includes(val)) return true;
-            if (["false", "no", "0"].includes(val)) return false;
-          }
-          return undefined;
-        };
-
-        const valFromElement = convertToBoolean(normElementValue);
-        const valFromRule = convertToBoolean(normRuleValue); // normRuleValue is effectively always string from UI
-
-        // DEBUG LOGGING START (after value processing, before switch)
-        if (condition.property === "Pset_WallCommon.IsExternal") {
-          console.log(
-            `[DEBUG RULE TRACE] normElementValue:`,
-            normElementValue,
-            `(type: ${typeof normElementValue})`,
-          );
-          console.log(
-            `[DEBUG RULE TRACE] valFromElement (boolean):`,
-            valFromElement,
-          );
-          console.log(
-            `[DEBUG RULE TRACE] normRuleValue (user input):`,
-            normRuleValue,
-          );
-          console.log(`[DEBUG RULE TRACE] valFromRule (boolean):`, valFromRule);
-        }
-        // DEBUG LOGGING END
-
-        switch (condition.operator) {
-          case "equals":
-            if (valFromElement !== undefined && valFromRule !== undefined) {
-              conditionMet = valFromElement === valFromRule;
-            } else if (
-              valFromElement !== undefined &&
-              valFromRule === undefined
-            ) {
-              // Element is bool, rule is "cat"
-              conditionMet = false;
-            } else if (
-              valFromElement === undefined &&
-              valFromRule !== undefined
-            ) {
-              // Element is "dog", rule is "true"
-              conditionMet = false;
-            } else {
-              // Both undefined as booleans, e.g. "dog" === "cat"
-              conditionMet = normElementValue === normRuleValue;
-            }
-            // DEBUG LOGGING START (inside switch, after conditionMet is set)
-            if (condition.property === "Pset_WallCommon.IsExternal") {
-              console.log(
-                `[DEBUG RULE TRACE] Final conditionMet for ${condition.operator}:`,
-                conditionMet,
-              );
-            }
-            // DEBUG LOGGING END
-            break;
-          case "notEquals":
-            if (valFromElement !== undefined && valFromRule !== undefined) {
-              conditionMet = valFromElement !== valFromRule;
-            } else if (
-              valFromElement !== undefined &&
-              valFromRule === undefined
-            ) {
-              // Element is bool, rule is "cat" -> they are not equal
-              conditionMet = true;
-            } else if (
-              valFromElement === undefined &&
-              valFromRule !== undefined
-            ) {
-              // Element is "dog", rule is "true" -> they are not equal
-              conditionMet = true;
-            } else {
-              // Both undefined as booleans, e.g. "dog" !== "cat"
-              conditionMet = normElementValue !== normRuleValue;
-            }
-            // DEBUG LOGGING START (inside switch, after conditionMet is set)
-            if (condition.property === "Pset_WallCommon.IsExternal") {
-              console.log(
-                `[DEBUG RULE TRACE] Final conditionMet for ${condition.operator}:`,
-                conditionMet,
-              );
-            }
-            // DEBUG LOGGING END
-            break;
-          case "contains":
-            conditionMet =
-              typeof normElementValue === "string" &&
-              typeof normRuleValue === "string" &&
-              normElementValue.includes(normRuleValue);
-            // DEBUG LOGGING START (inside switch, after conditionMet is set)
-            if (condition.property === "Pset_WallCommon.IsExternal") {
-              console.log(
-                `[DEBUG RULE TRACE] Final conditionMet for ${condition.operator}:`,
-                conditionMet,
-              );
-            }
-            // DEBUG LOGGING END
-            break;
-          case "greaterThan":
-            {
-              const numElementValue = parseFloat(String(normElementValue));
-              const numRuleValue = parseFloat(String(normRuleValue));
-              if (!isNaN(numElementValue) && !isNaN(numRuleValue)) {
-                conditionMet = numElementValue > numRuleValue;
-              } else {
-                conditionMet = false;
-              }
-            }
-            break;
-          case "lessThan":
-            {
-              const numElementValue = parseFloat(String(normElementValue));
-              const numRuleValue = parseFloat(String(normRuleValue));
-              if (!isNaN(numElementValue) && !isNaN(numRuleValue)) {
-                conditionMet = numElementValue < numRuleValue;
-              } else {
-                conditionMet = false;
-              }
-            }
-            break;
-          default:
-            console.warn("Unsupported operator:", condition.operator);
-            return false;
-        }
-        if (!conditionMet) return false;
       }
       return true;
     },
-    [],
+    []
   );
 
   const applyAllActiveRules = useCallback(async () => {
