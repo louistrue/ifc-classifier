@@ -134,7 +134,8 @@
         "manageData": "Daten verwalten",
         "basicInformation": "Grundinformationen",
         "attributes": "Attribute",
-        "propertySets": "Eigenschaftssätze"
+        "propertySets": "Eigenschaftssätze",
+        "classifications": "Klassifikationen"
     },
     "classifications": {
         "code": "Code",
@@ -153,8 +154,12 @@
         "codePlaceholder": "Geben Sie einen Code ein (z.B. A1.1)",
         "namePlaceholder": "Geben Sie einen beschreibenden Namen ein",
         "basicInfo": "Grundinformationen",
+        "classificationSingular": "Klassifikation",
+        "classificationPlural": "Klassifikationen",
         "searchPlaceholder": "Klassifizierungen durchsuchen...",
-        "noSearchResults": "Keine Klassifizierungen entsprechen Ihrer Suche."
+        "noSearchResults": "Keine Klassifizierungen entsprechen Ihrer Suche.",
+        "noClassificationFound": "Keine Klassifizierung gefunden. Tippen Sie, um zu erstellen.",
+        "createNewClassification": "Neue Klassifizierung \"{{value}}\" erstellen"
     },
     "rules": {
         "addNew": "Neue Regel hinzufügen",

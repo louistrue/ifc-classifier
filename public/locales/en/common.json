@@ -134,7 +134,8 @@
         "manageData": "Manage Data",
         "basicInformation": "Basic Information",
         "attributes": "Attributes",
-        "propertySets": "Property Sets"
+        "propertySets": "Property Sets",
+        "classifications": "Classifications"
     },
     "classifications": {
         "code": "Code",
@@ -153,6 +154,8 @@
         "codePlaceholder": "Enter a code (e.g., A1.1)",
         "namePlaceholder": "Enter a descriptive name",
         "basicInfo": "Basic Information",
+        "classificationSingular": "classification",
+        "classificationPlural": "classifications",
         "searchPlaceholder": "Search classifications...",
         "noSearchResults": "No classifications match your search."
     },
