@@ -119,7 +119,8 @@
         "showStorey": "Show Storey",
         "hideStorey": "Hide Storey",
         "removeModel": "Remove {{name}}",
-        "useLoadButton": "Select a file or model to load."
+        "useLoadButton": "Select a file or model to load.",
+        "searchTreePlaceholder": "Search model tree..."
     },
     "tooltips": {
         "defaultClassification": "Sets the default classification system.",

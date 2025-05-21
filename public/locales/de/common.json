@@ -119,7 +119,8 @@
         "showStorey": "Geschoss anzeigen",
         "hideStorey": "Geschoss ausblenden",
         "removeModel": "{{name}} entfernen",
-        "useLoadButton": "Wählen Sie eine Datei oder ein Modell zum Laden aus."
+        "useLoadButton": "Wählen Sie eine Datei oder ein Modell zum Laden aus.",
+        "searchTreePlaceholder": "Modellbaum durchsuchen..."
     },
     "tooltips": {
         "defaultClassification": "Legt das Standard-Klassifizierungssystem fest.",
