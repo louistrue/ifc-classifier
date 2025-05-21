@@ -154,17 +154,12 @@ const PropertyRow: React.FC<PropertyRowProps> = ({
   propValue,
   icon,
 }) => {
-  // Improved key rendering - attempt to make it more readable
-  const formattedKey = propKey
-    .replace(/([A-Z])/g, " $1") // Add space before capitals
-    .replace(/^./, (str) => str.toUpperCase()); // Capitalize first letter
-
   return (
     <div className="grid grid-cols-[auto_1fr] gap-x-3 items-start py-1.5 border-b border-border/50 last:border-b-0">
       <div className="flex items-center text-muted-foreground text-xs font-medium">
         {icon && <span className="mr-1.5 opacity-80">{icon}</span>}
         <span className="truncate" title={propKey}>
-          {formattedKey}:
+          {propKey}:
         </span>
       </div>
       <div
