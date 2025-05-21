@@ -61,6 +61,7 @@ import {
   PanelResizeHandle,
   ImperativePanelHandle,
 } from "react-resizable-panels";
+import { useTranslation } from "react-i18next";
 // import { EffectComposer, Outline } from "@react-three/postprocessing"; // Comment out post-processing imports
 
 // Define the layer for outlines
@@ -278,6 +279,8 @@ function ViewToolbar({
     unhideAllElements,
   } = useIFCContext();
 
+  const { t } = useTranslation();
+
   const handleHideSelected = () => {
     if (selectedElement) {
       toggleUserHideElement(selectedElement);
@@ -291,7 +294,7 @@ function ViewToolbar({
           variant="ghost"
           size="icon"
           onClick={onZoomExtents}
-          title="Zoom to Extents (E)"
+          title={t('modelViewer.fitToView')}
         >
           <Maximize className="w-5 h-5" />
         </Button>
@@ -300,7 +303,7 @@ function ViewToolbar({
           size="icon"
           onClick={onZoomSelected}
           disabled={!isElementSelected}
-          title="Zoom to Selected (F)"
+          title={t('modelViewer.zoomToSelected')}
         >
           <Focus className="w-5 h-5" />
         </Button>
@@ -311,8 +314,8 @@ function ViewToolbar({
           disabled={!selectedElement}
           title={
             selectedElement
-              ? "Toggle Visibility of Selected (Spacebar)"
-              : "Select an element to toggle visibility"
+              ? t('modelViewer.toggleVisibility')
+              : t('modelViewer.selectElementToToggle')
           }
         >
           <EyeOff className="w-5 h-5" />
@@ -322,7 +325,7 @@ function ViewToolbar({
           size="icon"
           onClick={unhideLastElement}
           disabled={userHiddenElements.length === 0}
-          title="Unhide Last (Cmd/Ctrl+Z)"
+          title={t('modelViewer.unhideLast')}
         >
           <Undo2 className="w-5 h-5" />
         </Button>
@@ -331,7 +334,7 @@ function ViewToolbar({
           size="icon"
           onClick={unhideAllElements}
           disabled={userHiddenElements.length === 0}
-          title="Unhide All Elements (Shift+A)"
+          title={t('modelViewer.unhideAll')}
         >
           <LayersIcon className="w-5 h-5" />
         </Button>
@@ -640,6 +643,7 @@ function ViewerContent() {
     userHiddenElements,
     addIFCModel,
   } = useIFCContext();
+  const { t } = useTranslation();
   const [ifcEngineReady, setIfcEngineReady] = useState(false);
   const [webGLContextLost, setWebGLContextLost] = useState(false);
 
@@ -1002,7 +1006,7 @@ function ViewerContent() {
           {/* Inner div has the gradient */}
           <div className="h-full flex flex-col shadow-lg bg-gradient-to-r from-[hsl(var(--card))]">
             <div className="p-2 border-b flex justify-between items-center shrink-0">
-              <h3 className="text-sm font-semibold px-2">Model Explorer</h3>
+              <h3 className="text-sm font-semibold px-2">{t('modelExplorer')}</h3>
               <FileUpload key={`file-upload-sidebar-${settingsVersion}`} isAdding={true} />
             </div>
 
@@ -1019,7 +1023,7 @@ function ViewerContent() {
               <Panel id="properties-panel" defaultSize={30} minSize={20}>
                 <div className="h-full flex flex-col">
                   <div className="p-1 border-b">
-                    <h3 className="text-sm font-semibold px-2">Properties</h3>
+                    <h3 className="text-sm font-semibold px-2">{t('properties')}</h3>
                   </div>
                   <div className="p-2 overflow-y-auto flex-grow">
                     <ModelInfo />
@@ -1090,21 +1094,21 @@ function ViewerContent() {
                 className="flex-1 text-sm py-1.5 px-2 data-[state=active]:bg-accent data-[state=active]:text-accent-foreground rounded-sm"
               >
                 <Layers className="w-4 h-4 mr-1.5" />
-                Classifications
+                {t('navigation.classificationsTab')}
               </TabsTrigger>
               <TabsTrigger
                 value="rules"
                 className="flex-1 text-sm py-1.5 px-2 data-[state=active]:bg-accent data-[state=active]:text-accent-foreground rounded-sm"
               >
                 <Filter className="w-4 h-4 mr-1.5" />
-                Rules
+                {t('rulesPanel')}
               </TabsTrigger>
               <TabsTrigger
                 value="settings"
                 className="flex-1 text-sm py-1.5 px-2 data-[state=active]:bg-accent data-[state=active]:text-accent-foreground rounded-sm"
               >
                 <Settings className="w-4 h-4 mr-1.5" />
-                Settings
+                {t('settingsPanel')}
               </TabsTrigger>
             </TabsList>
             <TabsContent

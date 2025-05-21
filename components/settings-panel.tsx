@@ -19,6 +19,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Trash2, Check, Plus, Library } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 interface ModelSource {
   name: string;
@@ -65,6 +66,9 @@ const getInitialSettings = (): AppSettings => {
 };
 
 export function SettingsPanel({ onSettingsChanged }: SettingsPanelProps) {
+  // Add translation hook
+  const { t } = useTranslation();
+
   // Initialize state directly from localStorage
   const [defaultClassification, setDefaultClassification] = useState<string>(
     () => getInitialSettings().defaultClassification
@@ -108,18 +112,18 @@ export function SettingsPanel({ onSettingsChanged }: SettingsPanelProps) {
   return (
     <TooltipProvider>
       <div className="space-y-6">
-        <h3 className="text-lg font-medium mb-6">Application Settings</h3>
+        <h3 className="text-lg font-medium mb-6">{t('applicationSettings')}</h3>
         <div className="space-y-4">
           <div className="p-4 rounded-lg bg-muted/30 space-y-4">
             <div className="grid grid-cols-3 items-center gap-4">
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Label htmlFor="default-classification" className="col-span-1 cursor-help">
-                    Default Classification
+                    {t('settings.defaultClassification')}
                   </Label>
                 </TooltipTrigger>
                 <TooltipContent>
-                  <p>Sets the default classification system.</p>
+                  <p>{t('tooltips.defaultClassification')}</p>
                 </TooltipContent>
               </Tooltip>
               <Select
@@ -127,10 +131,10 @@ export function SettingsPanel({ onSettingsChanged }: SettingsPanelProps) {
                 onValueChange={setDefaultClassification}
               >
                 <SelectTrigger id="default-classification" className="col-span-2">
-                  <SelectValue placeholder="None" />
+                  <SelectValue placeholder={t('settings.none')} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="none">None</SelectItem>
+                  <SelectItem value="none">{t('settings.none')}</SelectItem>
                   <SelectItem value="uniclass">Uniclass Pr</SelectItem>
                   <SelectItem value="ebkph">eBKP-H</SelectItem>
                 </SelectContent>
@@ -140,11 +144,11 @@ export function SettingsPanel({ onSettingsChanged }: SettingsPanelProps) {
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Label htmlFor="autoload" className="col-span-1 cursor-help">
-                    Always apply on load
+                    {t('settings.alwaysApplyOnLoad')}
                   </Label>
                 </TooltipTrigger>
                 <TooltipContent>
-                  <p>If enabled, the selected &apos;Default Classification&apos; will be automatically applied on load.</p>
+                  <p>{t('tooltips.autoLoad')}</p>
                 </TooltipContent>
               </Tooltip>
               <div className="col-span-2">
@@ -160,10 +164,10 @@ export function SettingsPanel({ onSettingsChanged }: SettingsPanelProps) {
             <div className="flex justify-between items-center mb-2">
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Label className="cursor-help">Model URLs</Label>
+                  <Label className="cursor-help">{t('settings.modelUrls')}</Label>
                 </TooltipTrigger>
                 <TooltipContent>
-                  <p>Manage a list of IFC model URLs. You can add custom URLs or use the demo models.</p>
+                  <p>{t('tooltips.modelUrls')}</p>
                 </TooltipContent>
               </Tooltip>
               {demoModels.length > 0 && (
@@ -182,7 +186,7 @@ export function SettingsPanel({ onSettingsChanged }: SettingsPanelProps) {
                   }}
                 >
                   <Library className="h-4 w-4 mr-1" />
-                  Demo Models
+                  {t('settings.demoModels')}
                 </Button>
               )}
             </div>
@@ -218,7 +222,7 @@ export function SettingsPanel({ onSettingsChanged }: SettingsPanelProps) {
             {/* Inputs for adding a new URL - combined with inline add button */}
             <div className="grid grid-cols-3 items-end gap-2 pt-2">
               <Input
-                placeholder="Name"
+                placeholder={t('settings.name')}
                 value={newModelName}
                 onChange={(e) => setNewModelName(e.target.value)}
                 className="col-span-1"
@@ -226,7 +230,7 @@ export function SettingsPanel({ onSettingsChanged }: SettingsPanelProps) {
               {/* Wrapper for URL input and inline Add button */}
               <div className="col-span-2 flex items-center gap-2">
                 <Input
-                  placeholder="URL"
+                  placeholder={t('settings.url')}
                   value={newModelUrl}
                   onChange={(e) => setNewModelUrl(e.target.value)}
                   className="flex-grow" // Input takes available space
@@ -241,7 +245,7 @@ export function SettingsPanel({ onSettingsChanged }: SettingsPanelProps) {
                     setNewModelUrl("");
                   }}
                   disabled={!newModelName || !newModelUrl} // Disable if inputs are empty
-                  title="Add this URL"
+                  title={t('settings.addThisUrl')}
                 >
                   <Check className="h-4 w-4" />
                 </Button>
