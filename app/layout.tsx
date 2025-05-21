@@ -8,6 +8,7 @@ import I18nClientProvider from "./i18n-client-provider";
 import Script from "next/script";
 import Menubar from "@/components/layout/Menubar";
 import Footer from "@/components/layout/Footer";
+import { Analytics } from "@vercel/analytics/next";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -49,6 +50,7 @@ export default function RootLayout({
             </I18nProvider>
           </I18nClientProvider>
         </IFCContextProvider>
+        <Analytics />
         <Script src="https://cdn.jsdelivr.net/pyodide/v0.26.0/full/pyodide.js" strategy="beforeInteractive" />
       </body>
     </html>
