@@ -259,7 +259,7 @@ const TreeNode: React.FC<TreeNodeProps> = ({
       ref={nodeKey === selectedNodeKeyForScroll ? selectedNodeActualRef : null}
     >
       <div
-      className={cn(
+        className={cn(
           "flex items-center py-1.5 px-2 rounded-md hover:bg-accent group",
           isSelected && "bg-accent text-accent-foreground font-semibold",
           !isSelected && matchesSearch && "bg-primary/10",
@@ -479,10 +479,15 @@ export function SpatialTreePanel() {
       keys: Set<string>
     ): SpatialStructureNode | null => {
       const norm = query.toLowerCase();
-      const natural = getNaturalIfcClassName(node.type).name.toLowerCase();
+      const naturalResult = getNaturalIfcClassName(node.type);
+      const natural = naturalResult && naturalResult.name ? naturalResult.name.toLowerCase() : "";
       const name = (node.Name || "").toLowerCase();
+      const expressIdString = String(node.expressID);
       const matches =
-        name.includes(norm) || natural.includes(norm) || node.type.toLowerCase().includes(norm);
+        name.includes(norm) ||
+        natural.includes(norm) ||
+        node.type.toLowerCase().includes(norm) ||
+        expressIdString.includes(norm);
       const filteredChildren: SpatialStructureNode[] = [];
       node.children?.forEach((child) => {
         const res = filterTree(child, query, modelId, keys);
