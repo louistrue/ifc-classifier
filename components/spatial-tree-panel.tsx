@@ -29,6 +29,7 @@ import {
   ExternalLink,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import {
   Dialog,
@@ -91,6 +92,7 @@ interface TreeNodeProps {
   selectedNodeActualRef: React.RefObject<HTMLDivElement> | null;
   modelID: number | null;
   t: (key: string, options?: any) => string;
+  searchQuery: string;
 }
 
 const TreeNode: React.FC<TreeNodeProps> = ({
@@ -107,6 +109,7 @@ const TreeNode: React.FC<TreeNodeProps> = ({
   selectedNodeActualRef,
   modelID,
   t,
+  searchQuery,
 }) => {
   const {
     getNaturalIfcClassName,
@@ -233,6 +236,13 @@ const TreeNode: React.FC<TreeNodeProps> = ({
     ? modelFileInfo.name
     : node.Name || naturalIfcName || `ID: ${node.expressID}`;
 
+  const lowerQuery = searchQuery.toLowerCase();
+  const matchesSearch =
+    searchQuery &&
+    (displayName.toLowerCase().includes(lowerQuery) ||
+      originalIfcType.toLowerCase().includes(lowerQuery) ||
+      String(node.expressID).includes(lowerQuery));
+
   let tooltipPrimaryContent = isRootModelNode
     ? modelFileInfo.name
     : `${naturalIfcName}${node.Name ? ` - ${node.Name}` : ""}`;
@@ -252,6 +262,7 @@ const TreeNode: React.FC<TreeNodeProps> = ({
         className={cn(
           "flex items-center py-1.5 px-2 rounded-md hover:bg-accent group",
           isSelected && "bg-accent text-accent-foreground font-semibold",
+          !isSelected && matchesSearch && "bg-primary/10",
           isRootModelNode ? "cursor-default" : "cursor-pointer"
         )}
         style={{
@@ -371,6 +382,7 @@ const TreeNode: React.FC<TreeNodeProps> = ({
               selectedNodeActualRef={selectedNodeActualRef}
               modelID={modelFileInfo.modelID}
               t={t}
+              searchQuery={searchQuery}
             />
           ))}
         </div>
@@ -402,6 +414,7 @@ export function SpatialTreePanel() {
   const [selectedNodeKeyForScroll, setSelectedNodeKeyForScroll] = useState<
     string | null
   >(null);
+  const [searchQuery, setSearchQuery] = useState("");
 
   const toggleNodeExpansion = useCallback((nodeKeyToToggle: string) => {
     setExpandedNodeKeys((prevKeys) => {
@@ -458,11 +471,55 @@ export function SpatialTreePanel() {
     []
   );
 
+  const filterTree = useCallback(
+    (
+      node: SpatialStructureNode,
+      query: string,
+      modelId: number | null,
+      keys: Set<string>
+    ): SpatialStructureNode | null => {
+      const norm = query.toLowerCase();
+      const naturalResult = getNaturalIfcClassName(node.type);
+      const natural = naturalResult && naturalResult.name ? naturalResult.name.toLowerCase() : "";
+      const name = (node.Name || "").toLowerCase();
+      const expressIdString = String(node.expressID);
+      const matches =
+        name.includes(norm) ||
+        natural.includes(norm) ||
+        node.type.toLowerCase().includes(norm) ||
+        expressIdString.includes(norm);
+      const filteredChildren: SpatialStructureNode[] = [];
+      node.children?.forEach((child) => {
+        const res = filterTree(child, query, modelId, keys);
+        if (res) filteredChildren.push(res);
+      });
+      if (matches || filteredChildren.length > 0) {
+        if (modelId !== null) {
+          keys.add(getNodeKey(node, modelId));
+        }
+        return { ...node, children: filteredChildren };
+      }
+      return null;
+    },
+    [getNaturalIfcClassName]
+  );
+
+  const filteredModels = useMemo(() => {
+    if (!searchQuery.trim()) {
+      return loadedModels.map((m) => ({ ...m, filteredTree: m.spatialTree, matchedKeys: new Set<string>() }));
+    }
+    return loadedModels.map((m) => {
+      if (!m.spatialTree || m.modelID === null) return { ...m, filteredTree: null, matchedKeys: new Set<string>() };
+      const keys = new Set<string>();
+      const tree = filterTree(m.spatialTree, searchQuery, m.modelID, keys);
+      return { ...m, filteredTree: tree, matchedKeys: keys };
+    });
+  }, [loadedModels, searchQuery, filterTree]);
+
   useEffect(() => {
     const newCalculatedKeys = new Set<string>();
     let newScrollKey: string | null = null;
 
-    // 1. Default: all model roots are candidates for expansion
     loadedModels.forEach((modelEntry) => {
       if (modelEntry.modelID !== null) {
         newCalculatedKeys.add(
@@ -471,8 +528,13 @@ export function SpatialTreePanel() {
       }
     });
 
-    // 2. If an element is selected, refine expansion (exclusive focus)
-    if (
+    if (searchQuery.trim()) {
+      filteredModels.forEach((m) => {
+        if (m.modelID !== null && m.filteredTree) {
+          m.matchedKeys.forEach((k: string) => newCalculatedKeys.add(k));
+        }
+      });
+    } else if (
       selectedElement &&
       selectedElement.modelID !== null &&
       loadedModels.length > 0
@@ -491,8 +553,6 @@ export function SpatialTreePanel() {
         );
 
         if (pathResult) {
-          // Exclusive expansion: Start with only model roots of *all* models,
-          // then add selected path and its storey.
           const exclusiveKeys = new Set<string>();
           loadedModels.forEach((m) => {
             if (m.modelID !== null) {
@@ -505,37 +565,25 @@ export function SpatialTreePanel() {
           if (pathResult.storeyKey) {
             exclusiveKeys.add(pathResult.storeyKey);
           }
-          // Replace newCalculatedKeys with this more specific set
           newCalculatedKeys.clear();
           exclusiveKeys.forEach((k) => newCalculatedKeys.add(k));
           newScrollKey = pathResult.selectedNodeKey;
         }
-        // If pathResult is null, newCalculatedKeys still contains all model roots from step 1.
-        // newScrollKey remains null.
       }
-      // If model or spatialTree doesn't exist, newCalculatedKeys contains all model roots from step 1.
     }
-    // If no element is selected, newCalculatedKeys just contains all model roots from step 1.
 
     setExpandedNodeKeys((currentExpandedKeys) => {
       if (
         newCalculatedKeys.size === currentExpandedKeys.size &&
-        Array.from(newCalculatedKeys).every((key) =>
-          currentExpandedKeys.has(key)
-        )
+        Array.from(newCalculatedKeys).every((key) => currentExpandedKeys.has(key))
       ) {
         return currentExpandedKeys;
       }
       return newCalculatedKeys;
     });
 
-    setSelectedNodeKeyForScroll((currentScrollKey) => {
-      if (currentScrollKey === newScrollKey) {
-        return currentScrollKey;
-      }
-      return newScrollKey;
-    });
-  }, [selectedElement, loadedModels, findPathToNodeRecursive]);
+    setSelectedNodeKeyForScroll(searchQuery.trim() ? null : newScrollKey);
+  }, [selectedElement, loadedModels, findPathToNodeRecursive, filteredModels, searchQuery]);
 
   useEffect(() => {
     if (selectedNodeRef.current && selectedNodeKeyForScroll) {
@@ -592,8 +640,16 @@ export function SpatialTreePanel() {
 
   return (
     <div className="flex-1 overflow-auto">
+      <div className="p-2">
+        <Input
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          placeholder={t('modelViewer.searchTreePlaceholder')}
+          className="mb-2"
+        />
+      </div>
       <div className="p-0 space-y-0 h-full overflow-y-auto text-xs">
-        {loadedModels.map((modelEntry) => {
+        {filteredModels.map((modelEntry) => {
           if (!modelEntry.spatialTree && modelEntry.modelID === null) {
             return (
               <div key={modelEntry.id} className="p-2 text-sm text-foreground/80 flex items-center gap-2">
@@ -610,12 +666,13 @@ export function SpatialTreePanel() {
               </div>
             );
           }
-          if (modelEntry.spatialTree) {
+          const treeToRender = searchQuery.trim() ? modelEntry.filteredTree : modelEntry.spatialTree;
+          if (treeToRender) {
             const modelRootNodeForTree: SpatialStructureNode = {
               expressID: -1,
               type: "MODEL_FILE",
               Name: modelEntry.name,
-              children: [modelEntry.spatialTree],
+              children: [treeToRender],
             };
             const modelRootKey = getNodeKey(
               modelRootNodeForTree,
@@ -642,6 +699,7 @@ export function SpatialTreePanel() {
                 selectedNodeActualRef={selectedNodeRef}
                 modelID={modelEntry.modelID}
                 t={t}
+                searchQuery={searchQuery}
               />
             );
           }
