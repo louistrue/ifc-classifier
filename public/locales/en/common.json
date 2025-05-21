@@ -80,6 +80,7 @@
     "export": "Export",
     "load": "Load",
     "removeAllClassifications": "Remove All Classifications",
+    "useFromModel": "Use Classifications from Model",
     "loadUniclass": "Load Uniclass Pr ({{count}})",
     "loadEbkph": "Load eBKP-H ({{count}})",
     "noUniclassFound": "No Uniclass Pr items found.",
@@ -160,7 +161,11 @@
     "classificationSingular": "classification",
     "classificationPlural": "classifications",
     "searchPlaceholder": "Search classifications...",
-    "noSearchResults": "No classifications match your search."
+    "noSearchResults": "No classifications match your search.",
+    "assignFromModelTitle": "Use Classifications from Model",
+    "pset": "Property Set",
+    "codeProperty": "Code Property",
+    "descriptionProperty": "Description Property"
   },
   "rules": {
     "addNew": "Add New Rule",

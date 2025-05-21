@@ -129,6 +129,7 @@ export function ClassificationPanel() {
     exportClassificationsAsExcel,
     importClassificationsFromJson,
     importClassificationsFromExcel,
+    assignClassificationsFromModel,
   } = useIFCContext();
   const { t } = useTranslation();
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
@@ -166,6 +167,10 @@ export function ClassificationPanel() {
   >(null);
   const [isConfirmRemoveOpen, setIsConfirmRemoveOpen] = useState(false);
   const [isConfirmRemoveAllOpen, setIsConfirmRemoveAllOpen] = useState(false);
+  const [isFromModelOpen, setIsFromModelOpen] = useState(false);
+  const [fromModelPset, setFromModelPset] = useState("");
+  const [fromModelCodeProp, setFromModelCodeProp] = useState("");
+  const [fromModelDescProp, setFromModelDescProp] = useState("");
   const [currentDefaultClassification, setCurrentDefaultClassification] =
     useState<string>("");
   const [searchQuery, setSearchQuery] = useState("");
@@ -550,6 +555,16 @@ export function ClassificationPanel() {
     if (selectedElement) {
       unassignElementFromAllClassifications(selectedElement);
     }
+  };
+
+  const handleAssignFromModel = async () => {
+    if (!fromModelPset || !fromModelCodeProp) return;
+    await assignClassificationsFromModel(
+      fromModelPset,
+      fromModelCodeProp,
+      fromModelDescProp || undefined,
+    );
+    setIsFromModelOpen(false);
   };
 
   // Component to render each row in the virtualized list
@@ -959,6 +974,10 @@ export function ClassificationPanel() {
                     </DropdownMenuItem>
                   </DropdownMenuSubContent>
                 </DropdownMenuSub>
+                <DropdownMenuItem onSelect={() => setIsFromModelOpen(true)}>
+                  <Upload className="mr-2 h-4 w-4" />
+                  {t('buttons.useFromModel')}
+                </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
                   className="text-destructive focus:bg-destructive/10 focus:text-destructive"
@@ -1452,6 +1471,56 @@ export function ClassificationPanel() {
               >
                 Remove All
               </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
+      {isFromModelOpen && (
+        <Dialog open={isFromModelOpen} onOpenChange={setIsFromModelOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>{t('classifications.assignFromModelTitle')}</DialogTitle>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="pset" className="text-right">
+                  {t('classifications.pset')}
+                </Label>
+                <Input
+                  id="pset"
+                  value={fromModelPset}
+                  onChange={(e) => setFromModelPset(e.target.value)}
+                  className="col-span-3"
+                />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="codeProp" className="text-right">
+                  {t('classifications.codeProperty')}
+                </Label>
+                <Input
+                  id="codeProp"
+                  value={fromModelCodeProp}
+                  onChange={(e) => setFromModelCodeProp(e.target.value)}
+                  className="col-span-3"
+                />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="descProp" className="text-right">
+                  {t('classifications.descriptionProperty')}
+                </Label>
+                <Input
+                  id="descProp"
+                  value={fromModelDescProp}
+                  onChange={(e) => setFromModelDescProp(e.target.value)}
+                  className="col-span-3"
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsFromModelOpen(false)}>
+                {t('buttons.cancel')}
+              </Button>
+              <Button onClick={handleAssignFromModel}>{t('buttons.apply')}</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>

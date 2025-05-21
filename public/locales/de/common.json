@@ -80,6 +80,7 @@
     "export": "Exportieren",
     "load": "Laden",
     "removeAllClassifications": "Alle Klassifizierungen entfernen",
+    "useFromModel": "Klassifizierungen aus Modell verwenden",
     "loadUniclass": "Uniclass Pr laden ({{count}})",
     "loadEbkph": "eBKP-H laden ({{count}})",
     "noUniclassFound": "Keine Uniclass Pr Elemente gefunden.",
@@ -161,6 +162,10 @@
     "classificationPlural": "Klassifikationen",
     "searchPlaceholder": "Klassifizierungen durchsuchen...",
     "noSearchResults": "Keine Klassifizierungen entsprechen Ihrer Suche.",
+    "assignFromModelTitle": "Klassifizierungen aus Modell verwenden",
+    "pset": "Property Set",
+    "codeProperty": "Code-Eigenschaft",
+    "descriptionProperty": "Beschreibungs-Eigenschaft",
     "noClassificationFound": "Keine Klassifizierung gefunden. Tippen Sie, um zu erstellen.",
     "createNewClassification": "Neue Klassifizierung \"{{value}}\" erstellen"
   },
