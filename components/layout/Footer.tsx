@@ -42,6 +42,26 @@ const Footer: React.FC = () => {
             </a>
             <span> License</span>
           </div>
+          <p className="text-[10px] text-[var(--color-text-muted)] italic mt-1 md:ml-4 md:text-right w-full md:w-auto">
+            Crafted by Louis – open source AEC &amp; sustainability.
+            <a
+              href="https://github.com/louistrue"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="ml-1 hover:text-[var(--color-primary)] underline"
+            >
+              GitHub
+            </a>
+            <span className="mx-0.5">|</span>
+            <a
+              href="https://www.linkedin.com/in/louistrue/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:text-[var(--color-primary)] underline"
+            >
+              LinkedIn
+            </a>
+          </p>
         </div>
       </div>
       <style jsx global>{`
