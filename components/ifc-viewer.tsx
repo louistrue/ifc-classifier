@@ -269,6 +269,7 @@ interface ViewToolbarProps {
   isElementSelected: boolean;
   searchQuery: string;
   onSearchChange: (val: string) => void;
+  onSearchSubmit: (searchTerm: string) => void;
 }
 
 function ViewToolbar({
@@ -277,6 +278,7 @@ function ViewToolbar({
   isElementSelected,
   searchQuery,
   onSearchChange,
+  onSearchSubmit,
 }: ViewToolbarProps) {
   const {
     selectedElement,
@@ -294,6 +296,13 @@ function ViewToolbar({
     }
   };
 
+  const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      onSearchSubmit(searchQuery);
+    }
+  };
+
   return (
     <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-20 pointer-events-auto">
       <div className="flex items-center gap-2 p-2 bg-background/80 backdrop-blur-sm border border-border rounded-lg shadow-lg">
@@ -303,6 +312,7 @@ function ViewToolbar({
               <Input
                 value={searchQuery}
                 onChange={(e) => onSearchChange(e.target.value)}
+                onKeyDown={handleSearchKeyDown}
                 placeholder={t('modelViewer.searchCanvasPlaceholder')}
                 className="h-8 w-40 text-xs"
               />
@@ -312,6 +322,17 @@ function ViewToolbar({
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => onSearchSubmit(searchQuery)}
+          title={t('modelViewer.search')}
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+        </Button>
         <Button
           variant="ghost"
           size="icon"
@@ -370,6 +391,18 @@ export interface CameraActions {
   zoomToExtents: () => void;
   zoomToSelected: (selection: SelectedElementInfo | null) => void;
 }
+
+// Simple component to capture the scene for external reference
+const SceneCapture = ({ onSceneCapture }: { onSceneCapture: (scene: THREE.Scene) => void }) => {
+  const { scene } = useThree();
+
+  useEffect(() => {
+    console.log("SceneCapture: Capturing scene");
+    onSceneCapture(scene);
+  }, [scene, onSceneCapture]);
+
+  return null;
+};
 
 // CameraActionsController Component (child of Canvas)
 const CameraActionsController = forwardRef<CameraActions, {}>((props, ref) => {
@@ -671,7 +704,9 @@ function ViewerContent() {
   const [ifcEngineReady, setIfcEngineReady] = useState(false);
   const [webGLContextLost, setWebGLContextLost] = useState(false);
   const [canvasSearch, setCanvasSearch] = useState("");
+  const [confirmedSearch, setConfirmedSearch] = useState("");
   const searchHiddenRef = useRef<SelectedElementInfo[]>([]);
+  const scene = useRef<THREE.Scene | null>(null);
 
   const gatherAllElements = useCallback((root: SpatialStructureNode | null) => {
     const items: SpatialStructureNode[] = [];
@@ -683,6 +718,11 @@ function ViewerContent() {
       if (node.children) stack.push(...node.children);
     }
     return items;
+  }, []);
+
+  // Capture scene from Canvas for use in filtering
+  const captureScene = useCallback((threeScene: THREE.Scene) => {
+    scene.current = threeScene;
   }, []);
 
   const leftPanelRef = useRef<ImperativePanelHandle>(null);
@@ -732,7 +772,18 @@ function ViewerContent() {
   const [leftPanelCollapsed, setLeftPanelCollapsed] = useState(false);
   const [rightPanelCollapsed, setRightPanelCollapsed] = useState(false);
 
-  // Apply search filtering on 3D elements
+  // Handle search submission
+  const handleSearchSubmit = useCallback((searchTerm: string) => {
+    console.log("Search submitted:", searchTerm);
+    setConfirmedSearch(searchTerm);
+  }, []);
+
+  // DEBUG: Log userHiddenElements when it changes
+  useEffect(() => {
+    console.log("userHiddenElements changed:", userHiddenElements.length, userHiddenElements.slice(0, 5));
+  }, [userHiddenElements]);
+
+  // Apply search filtering on 3D elements - now depends on confirmedSearch instead of canvasSearch
   useEffect(() => {
     if (!ifcApi) return;
 
@@ -751,37 +802,155 @@ function ViewerContent() {
     const applyFilter = async () => {
       // unhide previous search-hidden elements
       if (searchHiddenRef.current.length > 0) {
+        console.log("Showing previously hidden elements:", searchHiddenRef.current.length);
         showElements(searchHiddenRef.current);
         searchHiddenRef.current = [];
       }
 
-      const query = canvasSearch.trim();
+      const query = confirmedSearch.trim();
+      console.log("Applying filter with query:", query); // Log query
       if (!query) return;
 
       const regex = toRegex(query);
+      console.log("Search regex:", regex.source);
       const toHide: SelectedElementInfo[] = [];
 
+      // Log loaded models info
+      console.log("Loaded models:", loadedModels.length, loadedModels.map(m => ({
+        id: m.id,
+        name: m.name,
+        modelID: m.modelID,
+        hasSpatialTree: !!m.spatialTree
+      })));
+
+      // Collect all meshes to check if spatial tree nodes have corresponding meshes
+      const availableMeshIds: Record<number, Set<number>> = {};
+      const allMeshes: Record<number, Record<number, THREE.Mesh>> = {};
+
+      // Scan scene for meshes
+      scene.current?.traverse((object) => {
+        if (object instanceof THREE.Mesh &&
+          object.userData &&
+          object.userData.expressID !== undefined &&
+          object.userData.modelID !== undefined) {
+          const modelID = object.userData.modelID;
+          const expressID = object.userData.expressID;
+
+          if (!availableMeshIds[modelID]) {
+            availableMeshIds[modelID] = new Set();
+            allMeshes[modelID] = {};
+          }
+          availableMeshIds[modelID].add(expressID);
+          allMeshes[modelID][expressID] = object;
+        }
+      });
+
+      if (Object.keys(availableMeshIds).length === 0) {
+        console.log("WARNING: No meshes found in the scene with IFC data!");
+      } else {
+        console.log("Available mesh expressIDs by model:", Object.entries(availableMeshIds).map(
+          ([modelID, ids]) => `Model ${modelID}: ${ids.size} meshes`
+        ));
+      }
+
       for (const model of loadedModels) {
-        if (!model.modelID || !model.spatialTree) continue;
+        if (model.modelID === null || model.modelID === undefined || !model.spatialTree) {
+          console.log(`Model ${model.id} (${model.name}) skipped - modelID: ${model.modelID}, hasSpatialTree: ${!!model.spatialTree}`);
+          continue;
+        }
+
+        // Log spatial tree root information
+        console.log(`Spatial tree root for model ${model.id}:`, {
+          rootExpressID: model.spatialTree.expressID,
+          rootType: model.spatialTree.type,
+          rootName: model.spatialTree.Name,
+          childrenCount: model.spatialTree.children?.length || 0
+        });
+
         const nodes = gatherAllElements(model.spatialTree);
+        console.log(`Model ${model.id} (${model.name}): Processing ${nodes.length} nodes for filtering.`);
+
+        // Check how many nodes in spatial tree have actual meshes
+        const modelMeshes = availableMeshIds[model.modelID] || new Set();
+        const nodesWithMeshes = nodes.filter(node =>
+          node.expressID !== undefined && modelMeshes.has(node.expressID)
+        );
+
+        console.log(`Model ${model.id}: ${nodes.length} tree nodes, ${nodesWithMeshes.length} have corresponding meshes`);
+
+        // Sample logging some actual node data
+        if (nodes.length > 0) {
+          console.log(`Sample node data (first node):`, {
+            expressID: nodes[0].expressID,
+            type: nodes[0].type,
+            name: nodes[0].Name,
+            hasMesh: nodes[0].expressID !== undefined && modelMeshes.has(nodes[0].expressID)
+          });
+        }
+
+        let matchCount = 0;
+        let noMatchCount = 0;
+        let errorCount = 0;
+
         for (const node of nodes) {
           if (node.expressID === undefined) continue;
           let props: any = null;
           try {
             props = await ifcApi.GetLine(model.modelID, node.expressID, true);
-          } catch {
+
+            const text = JSON.stringify(props).toLowerCase();
+            const match = regex.test(text);
+
+            // Count matches and non-matches
+            if (match) {
+              matchCount++;
+            } else {
+              noMatchCount++;
+              toHide.push({ modelID: model.modelID, expressID: node.expressID });
+
+              // DIRECT APPROACH: Immediately hide mesh if it exists
+              if (allMeshes[model.modelID]?.[node.expressID]) {
+                const mesh = allMeshes[model.modelID][node.expressID];
+                mesh.visible = false;
+                console.log(`DIRECT HIDE: Set mesh ${model.modelID}-${node.expressID} to invisible`);
+              }
+            }
+
+            // Log full details for first few non-matches - these are what we're hiding
+            if (!match && noMatchCount <= 3) {
+              console.log(`Non-match sample: Node ${model.modelID}-${node.expressID}:`, {
+                name: props?.Name?.value || 'N/A',
+                type: node.type,
+                match: match,
+                hasMesh: allMeshes[model.modelID]?.[node.expressID] !== undefined,
+                textSample: text.substring(0, 100)
+              });
+            }
+          } catch (err) {
+            errorCount++;
+            if (errorCount <= 3) {
+              console.warn(`Error fetching props for ${model.modelID}-${node.expressID}:`, err);
+            }
             continue;
           }
-          const text = JSON.stringify(props).toLowerCase();
-          if (!regex.test(text)) {
-            toHide.push({ modelID: model.modelID, expressID: node.expressID });
-          }
         }
+
+        console.log(`Filter results for model ${model.id}: ${matchCount} matches, ${noMatchCount} non-matches (to hide), ${errorCount} errors`);
       }
 
+      console.log(`Filter identified ${toHide.length} elements to hide out of ${loadedModels.reduce((sum, m) => sum + (m.spatialTree ? gatherAllElements(m.spatialTree).length : 0), 0)} total nodes`);
+
       if (!cancelled && toHide.length > 0) {
+        console.log("Calling hideElements with", toHide.length, "elements");
         hideElements(toHide);
         searchHiddenRef.current = toHide;
+
+        // Force render update of THREE scene
+        scene.current?.traverse(object => {
+          if (object instanceof THREE.Mesh) {
+            object.matrixWorldNeedsUpdate = true;
+          }
+        });
       }
     };
 
@@ -790,7 +959,7 @@ function ViewerContent() {
     return () => {
       cancelled = true;
     };
-  }, [canvasSearch, loadedModels, ifcApi, hideElements, showElements, gatherAllElements]);
+  }, [confirmedSearch, loadedModels, ifcApi, hideElements, showElements, gatherAllElements, scene]);
 
   // Update collapse state when panels change
   useEffect(() => {
@@ -959,6 +1128,46 @@ function ViewerContent() {
     handleZoomSelected, // Add if it's memoized (useCallback)
   ]);
 
+  // Add a direct effect to apply userHiddenElements visibility
+  useEffect(() => {
+    if (!scene.current) return;
+
+    console.log("Direct visibility effect: Processing userHiddenElements", userHiddenElements.length);
+
+    // Track which elements should be hidden
+    const hiddenElements = new Map<number, Set<number>>();
+
+    // Build lookup map of elements to hide
+    userHiddenElements.forEach(element => {
+      if (!hiddenElements.has(element.modelID)) {
+        hiddenElements.set(element.modelID, new Set());
+      }
+      hiddenElements.get(element.modelID)?.add(element.expressID);
+    });
+
+    // Traverse the scene and update visibility
+    let appliedHideCount = 0;
+    scene.current.traverse(object => {
+      if (object instanceof THREE.Mesh &&
+        object.userData &&
+        object.userData.expressID !== undefined &&
+        object.userData.modelID !== undefined) {
+
+        const modelID = object.userData.modelID;
+        const expressID = object.userData.expressID;
+
+        if (hiddenElements.has(modelID) && hiddenElements.get(modelID)?.has(expressID)) {
+          if (object.visible) {
+            object.visible = false;
+            appliedHideCount++;
+          }
+        }
+      }
+    });
+
+    console.log(`Direct visibility effect: Applied visibility=false to ${appliedHideCount} meshes`);
+  }, [userHiddenElements, scene]);
+
   if (!ifcEngineReady && !SKIP_IFC_INITIALIZATION_FOR_TEST) {
     return (
       <div className="flex h-screen w-full items-center justify-center">
@@ -1067,6 +1276,7 @@ function ViewerContent() {
             <Environment preset="city" />
             <OrbitControls makeDefault enableDamping={false} />
             <GlobalInteractionHandler />
+            <SceneCapture onSceneCapture={captureScene} />
             {loadedModels.map((modelEntry) => (
               <IFCModel
                 key={modelEntry.id}
@@ -1162,6 +1372,7 @@ function ViewerContent() {
                 isElementSelected={!!selectedElement}
                 searchQuery={canvasSearch}
                 onSearchChange={setCanvasSearch}
+                onSearchSubmit={handleSearchSubmit}
               />
             )}
           </div>
