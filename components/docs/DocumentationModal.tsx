@@ -1,19 +1,180 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { X, ChevronLeft, ChevronRight, Home, Zap, FileText, Cog, ChevronsRight, Info } from "lucide-react";
+import {
+  X,
+  ChevronLeft,
+  ChevronRight,
+  Home,
+  Zap,
+  FileText,
+  Cog,
+  ChevronsRight,
+  Info,
+  LayoutDashboard,
+} from "lucide-react";
 
 interface DocumentationModalProps {
     onClose: () => void;
 }
 
-const DOC_SECTIONS = [
-    { id: "general", title: "Welcome!", icon: <Home className="h-5 w-5" />, content: "General Info Content" },
-    { id: "getting-started", title: "Getting Started", icon: <Zap className="h-5 w-5" />, content: "Getting Started Content" },
-    { id: "classifications", title: "Classifications", icon: <FileText className="h-5 w-5" />, content: "Classifications Content: Loading default, creating custom, export options." },
-    { id: "rules", title: "Rules", icon: <ChevronsRight className="h-5 w-5" />, content: "Rules Content: Import/export, creating custom, managing rules." },
-    { id: "settings", title: "Settings", icon: <Cog className="h-5 w-5" />, content: "Settings Content" },
-    { id: "workflow", title: "Typical Workflow", icon: <Info className="h-5 w-5" />, content: "Typical Workflow Content: Detailed start-to-end example including rules." },
+const DOC_SECTIONS: {
+  id: string;
+  title: string;
+  icon: React.ReactNode;
+  content: React.ReactNode;
+}[] = [
+  {
+    id: "general",
+    title: "Welcome!",
+    icon: <Home className="h-5 w-5" />,
+    content: (
+      <>
+        <p>
+          IfcClassifier lets you add classifications to IFC models right in the
+          browser. Models are rendered with Three.js and WebIFC, while exporting
+          uses IfcOpenShell through Pyodide.
+        </p>
+        <p>
+          This project is open source and currently a work in progress. Feedback
+          and contributions are welcome!
+        </p>
+      </>
+    ),
+  },
+  {
+    id: "getting-started",
+    title: "Getting Started",
+    icon: <Zap className="h-5 w-5" />,
+    content: (
+      <ol className="list-decimal list-inside space-y-2">
+        <li>Load an IFC model from the toolbar or Settings panel.</li>
+        <li>Navigate with the mouse: orbit, pan and zoom the view.</li>
+        <li>
+          Select elements in the 3D view or via the Spatial Tree to inspect
+          their properties.
+        </li>
+      </ol>
+    ),
+  },
+  {
+    id: "ui",
+    title: "UI Overview",
+    icon: <LayoutDashboard className="h-5 w-5" />,
+    content: (
+      <>
+        <p>
+          The viewer is flanked by panels that can be collapsed using the small
+          chevron handles. The left side contains the spatial tree; the right
+          side hosts classifications, rules and settings.
+        </p>
+        <h4 className="mt-4 font-semibold">3D View Controls</h4>
+        <ul className="list-disc list-inside space-y-1">
+          <li>Orbit: left mouse drag</li>
+          <li>Pan: right mouse drag or Shift + left drag</li>
+          <li>Zoom: mouse wheel</li>
+          <li>Select element: left click</li>
+        </ul>
+        <h4 className="mt-4 font-semibold">View Toolbar</h4>
+        <ul className="list-disc list-inside space-y-1">
+          <li>
+            <strong>Zoom to Extents</strong> – button or <kbd>E</kbd>
+          </li>
+          <li>
+            <strong>Zoom to Selected</strong> – button or <kbd>F</kbd>
+          </li>
+          <li>
+            <strong>Toggle Visibility</strong> – Spacebar when an element is
+            selected
+          </li>
+          <li>
+            <strong>Unhide Last</strong> – Cmd/Ctrl+Z
+          </li>
+          <li>
+            <strong>Unhide All</strong> – Shift+A
+          </li>
+        </ul>
+      </>
+    ),
+  },
+  {
+    id: "classifications",
+    title: "Classifications",
+    icon: <FileText className="h-5 w-5" />,
+    content: (
+      <>
+        <p>
+          Load complete systems such as Uniclass or eBKP&#45;H, or create your own
+          entries. Assign a colour to each classification and select elements to
+          attach them.
+        </p>
+        <ul className="list-disc list-inside space-y-1">
+          <li>Toggle the eye icon to highlight a classification in the model.</li>
+          <li>Import or export data as JSON or Excel files.</li>
+          <li>Remove individual items or clear all classifications.</li>
+        </ul>
+      </>
+    ),
+  },
+  {
+    id: "rules",
+    title: "Rules",
+    icon: <ChevronsRight className="h-5 w-5" />,
+    content: (
+      <>
+        <p>
+          Rules classify elements automatically based on properties such as IFC
+          type or custom attributes.
+        </p>
+        <ul className="list-disc list-inside space-y-1">
+          <li>Create conditions with operators like equals or contains.</li>
+          <li>Preview a rule to see the affected elements in blue.</li>
+          <li>Import and export rule sets as JSON or Excel.</li>
+          <li>Enable, disable or duplicate rules from the menu.</li>
+        </ul>
+      </>
+    ),
+  },
+  {
+    id: "settings",
+    title: "Settings",
+    icon: <Cog className="h-5 w-5" />,
+    content: (
+      <>
+        <p>Configure default behaviour and manage stored model URLs.</p>
+        <ul className="list-disc list-inside space-y-1">
+          <li>Select a default classification system.</li>
+          <li>
+            Choose whether that system should be applied automatically when a
+            model loads.
+          </li>
+          <li>Add or remove model URLs for quick access.</li>
+        </ul>
+      </>
+    ),
+  },
+  {
+    id: "workflow",
+    title: "Typical Workflow",
+    icon: <Info className="h-5 w-5" />,
+    content: (
+      <ol className="list-decimal list-inside space-y-2">
+        <li>Load one or more IFC models.</li>
+        <li>
+          Optionally apply a default classification system from the Settings
+          panel.
+        </li>
+        <li>
+          Create or import rules, then preview and apply them to classify
+          elements.
+        </li>
+        <li>
+          Manually adjust classifications as needed using the 3D selection.
+        </li>
+        <li>Export the IFC with embedded classifications when finished.</li>
+      </ol>
+    ),
+  },
 ];
 
 const DocumentationModal: React.FC<DocumentationModalProps> = ({ onClose }) => {
@@ -106,9 +267,7 @@ const DocumentationModal: React.FC<DocumentationModalProps> = ({ onClose }) => {
                         <p className="text-sm text-muted-foreground mb-6">Step {currentStep + 1} of {DOC_SECTIONS.length}</p>
 
                         <div className="prose prose-sm dark:prose-invert max-w-none text-foreground/90">
-                            {/* Placeholder for dynamic content loading */}
-                            <p>{currentSection.content}</p>
-                            {/* Add more detailed content for each section here */}
+                            {currentSection.content}
                         </div>
                     </main>
                 </div>
