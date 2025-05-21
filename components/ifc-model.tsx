@@ -156,17 +156,20 @@ async function buildSpatialTree(
   return node;
 }
 
-async function fetchFullSpatialStructure(
+async function fetchSpatialStructure(
   ifcApi: IfcAPI,
   modelID: number
 ): Promise<SpatialStructureNode | null> {
-  const projectIDs = await ifcApi.GetLineIDsWithType(modelID, IFCPROJECT);
-  if (projectIDs.size() === 0) {
-    console.error("IFCModel: No IFCPROJECT found in the model.");
+  try {
+    if (!ifcApi.properties) {
+      ifcApi.properties = new Properties(ifcApi);
+    }
+    const tree = await ifcApi.properties.getSpatialStructure(modelID, true);
+    return tree as unknown as SpatialStructureNode;
+  } catch (error) {
+    console.error("IFCModel: Error fetching spatial structure:", error);
     return null;
   }
-  const projectID = projectIDs.get(0); // Assume single project
-  return buildSpatialTree(ifcApi, modelID, projectID);
 }
 
 // New helper function to recursively extract property values, handling complex properties (Restored)
@@ -560,7 +563,7 @@ export function IFCModel({ modelData, outlineLayer }: IFCModelProps) {
     [ifcApi]
   );
 
-  const createMeshes = useCallback(() => {
+  const createMeshes = useCallback(async () => {
     if (!ifcApi || ownModelID.current === null) return;
     if (meshesRef.current) {
       scene.remove(meshesRef.current);
@@ -575,11 +578,19 @@ export function IFCModel({ modelData, outlineLayer }: IFCModelProps) {
     }
     const group = new THREE.Group();
     group.name = `IFCModelGroup_${modelData.id}_${ownModelID.current}`;
+    group.applyMatrix4(modelTransformRef.current);
+    scene.add(group);
     meshesRef.current = group;
+
     try {
-      const flatMeshes = ifcApi.LoadAllGeometry(ownModelID.current!);
-      for (let i = 0; i < flatMeshes.size(); i++) {
-        const flatMesh = flatMeshes.get(i);
+      const allIdsVector = ifcApi.GetAllLines(ownModelID.current!);
+      const allIds: number[] = [];
+      for (let i = 0; i < allIdsVector.size(); i++) {
+        allIds.push(allIdsVector.get(i));
+      }
+
+      const batchSize = 100;
+      const meshCallback = (flatMesh: any) => {
         const elementExpressID = flatMesh.expressID;
         const placedGeometries = flatMesh.geometries;
         for (let j = 0; j < placedGeometries.size(); j++) {
@@ -607,9 +618,14 @@ export function IFCModel({ modelData, outlineLayer }: IFCModelProps) {
           };
           group.add(mesh);
         }
+      };
+
+      for (let i = 0; i < allIds.length; i += batchSize) {
+        const batch = allIds.slice(i, i + batchSize);
+        ifcApi.StreamMeshes(ownModelID.current!, batch, meshCallback);
+        // yield to allow rendering
+        await new Promise((r) => setTimeout(r, 0));
       }
-      group.applyMatrix4(modelTransformRef.current);
-      scene.add(group); // Add this model's group to the main scene
     } catch (error) {
       console.error(
         `IFCModel (${modelData.id}): Error creating meshes:`,
@@ -706,14 +722,17 @@ export function IFCModel({ modelData, outlineLayer }: IFCModelProps) {
         modelTransformRef.current.copy(relativeMatrix);
         ifcApi.SetGeometryTransformation(newIfcModelID, Array.from(relativeMatrix.elements));
 
-        createMeshes(); // This populates meshesRef.current
+        // start geometry creation without blocking
+        createMeshes().catch((e) =>
+          console.error(`IFCModel (${modelData.id}): Mesh creation error`, e)
+        );
         // Note: setModelMeshesProcessedForInitialView is NOT set here directly,
         // it will be handled by the new useEffect that depends on meshesRef.current becoming available.
 
         console.log(
           `IFCModel (${modelData.id}): Extracting data for modelID ${newIfcModelID}...`
         );
-        const tree = await fetchFullSpatialStructure(ifcApi, newIfcModelID);
+        const tree = await fetchSpatialStructure(ifcApi, newIfcModelID);
         setSpatialTreeForModel(newIfcModelID, tree);
         if (tree)
           console.log(
