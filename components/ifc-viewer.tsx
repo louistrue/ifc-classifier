@@ -887,7 +887,9 @@ function ViewerContent() {
   }
 
   return (
-    <div className="flex h-full w-full relative overflow-hidden">
+    <div className="flex h-full w-full relative overflow-hidden"
+      style={{ isolation: 'isolate' }}
+    >
       {/* Canvas moved here, absolutely positioned, z-index 0 */}
       <div
         style={{

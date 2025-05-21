@@ -3,11 +3,13 @@
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { useTheme } from "next-themes";
-import { Moon, Sun, Shapes } from "lucide-react"; // Changed Aperture to Shapes
+import { Moon, Sun, Shapes, HelpCircle } from "lucide-react"; // Changed Aperture to Shapes, Added HelpCircle
+import DocumentationModal from "@/components/docs/DocumentationModal"; // Import DocumentationModal using alias
 
 const Menubar = () => {
   const [mounted, setMounted] = useState(false);
   const { theme, setTheme } = useTheme();
+  const [isDocsModalOpen, setIsDocsModalOpen] = useState(false); // State for docs modal
 
   useEffect(() => {
     setMounted(true);
@@ -32,7 +34,7 @@ const Menubar = () => {
               IfcClassifier
             </span>
           </Link>
-          <div className="flex items-center">
+          <div className="flex items-center space-x-2"> {/* Added space-x-2 for button spacing */}
             <button
               onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
               className="p-2 rounded-md hover:bg-accent focus:outline-none focus:ring-2 focus:ring-ring"
@@ -44,9 +46,17 @@ const Menubar = () => {
                 <Moon className="h-6 w-6 text-foreground" />
               )}
             </button>
+            <button
+              onClick={() => setIsDocsModalOpen(!isDocsModalOpen)}
+              className="p-2 rounded-md hover:bg-accent focus:outline-none focus:ring-2 focus:ring-ring"
+              aria-label="Open documentation"
+            >
+              <HelpCircle className="h-6 w-6 text-foreground" />
+            </button>
           </div>
         </div>
       </div>
+      {isDocsModalOpen && <DocumentationModal onClose={() => setIsDocsModalOpen(false)} />} {/* Render DocumentationModal */}
     </nav>
   );
 };

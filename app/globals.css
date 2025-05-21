@@ -1,3 +1,4 @@
+/* tailwindcss directives - https://tailwindcss.com/docs */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -53,4 +54,20 @@
   body {
     @apply bg-background text-foreground;
   }
+}
+
+/* Modal helpers */
+.modal-backdrop {
+  z-index: 9999 !important;
+  position: fixed !important;
+  inset: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  pointer-events: all !important;
+  isolation: isolate !important;
+}
+
+.modal-content {
+  z-index: 10000 !important;
+  pointer-events: auto !important;
 }
