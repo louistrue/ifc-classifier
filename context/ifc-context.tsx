@@ -417,6 +417,7 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
 
   const buildSearchRegex = useCallback((query: string): RegExp => {
     const trimmed = query.trim();
+    // Support for explicit regex with /pattern/ syntax
     if (trimmed.startsWith('/') && trimmed.endsWith('/')) {
       try {
         return new RegExp(trimmed.slice(1, -1), 'i');
@@ -424,6 +425,22 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
         console.warn('Invalid regex pattern:', trimmed, e);
       }
     }
+
+    // Support for multi-word queries by splitting on spaces and requiring all terms to match
+    if (trimmed.includes(' ')) {
+      const terms = trimmed.split(' ')
+        .filter(t => t.trim() !== '')
+        .map(term => {
+          // Handle wildcards in each term
+          const parts = term.split('*').map(p => p.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+          return parts.join('.*');
+        });
+
+      // Create a regex that requires all terms to be present (in any order)
+      return new RegExp(terms.map(t => `(?=.*${t})`).join(''), 'i');
+    }
+
+    // Handle simple wildcard search (original behavior)
     const parts = trimmed.split('*').map((p) => p.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
     const pattern = parts.join('.*');
     return new RegExp(pattern, 'i');
@@ -910,10 +927,10 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
           } catch (error) {
             console.error(
               "IFCContext: Error processing element " +
-                elementNode.expressID +
-                " for rule " +
-                rule.name +
-                ":",
+              elementNode.expressID +
+              " for rule " +
+              rule.name +
+              ":",
               error,
             );
           }
@@ -1041,10 +1058,10 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
           } catch (error) {
             console.error(
               "Error previewing element " +
-                elementNode.expressID +
-                " for rule " +
-                rule.name +
-                ":",
+              elementNode.expressID +
+              " for rule " +
+              rule.name +
+              ":",
               error,
             );
           }
@@ -1056,10 +1073,10 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
       setShowAllClassificationColors(false);
       console.log(
         'Previewing rule "' +
-          rule.name +
-          '". Found ' +
-          matchingElements.length +
-          " elements.",
+        rule.name +
+        '". Found ' +
+        matchingElements.length +
+        " elements.",
       );
     },
     [
@@ -1152,7 +1169,7 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
       if (
         selectedElement &&
         loadedModels.find((m) => m.id === id)?.modelID ===
-          selectedElement.modelID
+        selectedElement.modelID
       ) {
         setSelectedElement(null);
         setElementPropertiesInternal(null);
@@ -1249,8 +1266,8 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
           setHighlightedElements([]);
           console.warn(
             "Classification " +
-              classificationCode +
-              " or its elements not found for highlight.",
+            classificationCode +
+            " or its elements not found for highlight.",
           );
         }
       }
@@ -1710,7 +1727,69 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
           try {
             const props = await ifcApiInternal.properties.getItemProperties(model.modelID, node.expressID, true);
             const mats = await ifcApiInternal.properties.getMaterialsProperties(model.modelID, node.expressID, true, true);
-            dataString = JSON.stringify({ node, props, mats }).toLowerCase();
+
+            // Create a more searchable string representation that's easier to match on specific properties
+            // This includes adding property paths like "Pset_WallCommon.FireRating: 60"
+            let enhancedSearchData = {
+              // Include basic node properties
+              type: node.type,
+              name: node.Name?.value || node.Name || '',
+              id: node.expressID,
+              // Include direct properties (flattened with paths)
+              properties: {}
+            };
+
+            // Process property sets to make them more searchable
+            if (props) {
+              // Add direct attributes
+              for (const key in props) {
+                if (key === 'type' || key === 'expressID') continue;
+
+                const val = props[key];
+                if (typeof val === 'object' && val !== null) {
+                  // Handle IfcValue objects
+                  if (val.value !== undefined) {
+                    enhancedSearchData.properties[key] = val.value;
+                  }
+                } else {
+                  enhancedSearchData.properties[key] = val;
+                }
+              }
+
+              // Extract property sets
+              if (props.PropertySets) {
+                for (const pset of props.PropertySets) {
+                  if (pset.Name && pset.HasProperties) {
+                    const psetName = pset.Name.value;
+                    for (const prop of pset.HasProperties) {
+                      if (prop.Name) {
+                        const propName = prop.Name.value;
+                        let propValue = '';
+
+                        // Extract property value considering different formats
+                        if (prop.NominalValue) {
+                          propValue = prop.NominalValue.value !== undefined
+                            ? prop.NominalValue.value
+                            : prop.NominalValue;
+                        }
+
+                        // Add as both direct property and with pset.property path
+                        enhancedSearchData.properties[propName] = propValue;
+                        enhancedSearchData.properties[`${psetName}.${propName}`] = propValue;
+                      }
+                    }
+                  }
+                }
+              }
+            }
+
+            // Add materials data
+            if (mats) {
+              enhancedSearchData.materials = mats;
+            }
+
+            // Convert to string for searching
+            dataString = JSON.stringify(enhancedSearchData).toLowerCase();
           } catch (e) {
             console.warn('Search property fetch failed', e);
           }
