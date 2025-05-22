@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/tooltip";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Trash2, Check, Plus, Library } from "lucide-react";
+import { Trash2, Check, Plus, Library, Sparkles } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
 interface ModelSource {
@@ -143,7 +143,8 @@ export function SettingsPanel({ onSettingsChanged }: SettingsPanelProps) {
             <div className="grid grid-cols-3 items-center gap-4">
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Label htmlFor="autoload" className="col-span-1 cursor-help">
+                  <Label htmlFor="autoload" className="col-span-1 cursor-help flex items-center gap-1">
+                    <Sparkles className="h-4 w-4 text-yellow-500" />
                     {t('settings.alwaysApplyOnLoad')}
                   </Label>
                 </TooltipTrigger>
