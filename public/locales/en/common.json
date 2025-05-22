@@ -79,6 +79,7 @@
     "clearFromAll": "Clear from All Classifications",
     "export": "Export",
     "load": "Load",
+    "loading": "Loading...",
     "removeAllClassifications": "Remove All Classifications",
     "loadUniclass": "Load Uniclass Pr ({{count}})",
     "loadEbkph": "Load eBKP-H ({{count}})",
