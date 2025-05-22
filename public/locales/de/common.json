@@ -79,6 +79,7 @@
     "clearFromAll": "Aus allen Klassifizierungen entfernen",
     "export": "Exportieren",
     "load": "Laden",
+    "loading": "Wird geladen...",
     "removeAllClassifications": "Alle Klassifizierungen entfernen",
     "loadUniclass": "Uniclass Pr laden ({{count}})",
     "loadEbkph": "eBKP-H laden ({{count}})",
@@ -94,7 +95,8 @@
     "editRule": "Regel bearbeiten",
     "deleteRule": "Regel löschen",
     "previewRule": "Regelauswirkung anzeigen",
-    "clearPreview": "Vorschau zurücksetzen"
+    "clearPreview": "Vorschau zurücksetzen",
+    "mapFromModel": "Aus Modell übernehmen"
   },
   "messages": {
     "loading": "Wird geladen...",
@@ -130,7 +132,9 @@
     "modelUrls": "Verwalten Sie eine Liste von IFC-Modell-URLs. Sie können benutzerdefinierte URLs hinzufügen oder Demo-Modelle verwenden.",
     "originalColors": "Zeigt die ursprünglichen Modellfarben an (blendet alle Klassifizierungsfarben aus).",
     "classificationColors": "Wendet alle Klassifizierungsfarben auf das Modell an.",
-    "canvasSearch": "Elemente nach Eigenschaften filtern. Unterstützt * Platzhalter und Regex."
+    "canvasSearch": "Elemente nach Eigenschaften filtern. Unterstützt * Platzhalter und Regex.",
+    "psetNameHelp": "Der exakte Name des Eigenschaftssatzes, der die Klassifizierungswerte enthält.",
+    "propertyNameHelp": "Der exakte Name der Eigenschaft, die den Klassifizierungscode oder Kennung enthält."
   },
   "sections": {
     "defaultSets": "Standard-Sets",
@@ -162,7 +166,11 @@
     "searchPlaceholder": "Klassifizierungen durchsuchen...",
     "noSearchResults": "Keine Klassifizierungen entsprechen Ihrer Suche.",
     "noClassificationFound": "Keine Klassifizierung gefunden. Tippen Sie, um zu erstellen.",
-    "createNewClassification": "Neue Klassifizierung \"{{value}}\" erstellen"
+    "createNewClassification": "Neue Klassifizierung \"{{value}}\" erstellen",
+    "mapFromModelTitle": "Klassifizierungen aus Modell übernehmen",
+    "mapFromModelDescription": "Extrahiere Klassifizierungen aus Eigenschaftswerten im Modell.",
+    "psetName": "Eigenschaftssatz-Name",
+    "propertyName": "Eigenschaftsname"
   },
   "rules": {
     "addNew": "Neue Regel hinzufügen",
@@ -202,5 +210,10 @@
     "contains": "Enthält",
     "greaterThan": "Größer als",
     "lessThan": "Kleiner als"
+  },
+  "errors": {
+    "psetNameRequired": "Eigenschaftssatz-Name ist erforderlich",
+    "propertyNameRequired": "Eigenschaftsname ist erforderlich",
+    "unknownMappingError": "Ein unbekannter Fehler ist während der Zuordnung aufgetreten"
   }
 }
