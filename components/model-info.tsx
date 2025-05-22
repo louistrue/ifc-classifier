@@ -147,13 +147,18 @@ interface PropertyRowProps {
   propKey: string;
   propValue: any;
   icon?: React.ReactNode;
+  copyValue?: string;
 }
 
 const PropertyRow: React.FC<PropertyRowProps> = ({
   propKey,
   propValue,
   icon,
+  copyValue,
 }) => {
+  const handleCopy = () => {
+    if (copyValue !== undefined) navigator.clipboard.writeText(copyValue);
+  };
   return (
     <div className="grid grid-cols-[auto_1fr] gap-x-3 items-start py-1.5 border-b border-border/50 last:border-b-0">
       <div className="flex items-center text-muted-foreground text-xs font-medium">
@@ -163,7 +168,7 @@ const PropertyRow: React.FC<PropertyRowProps> = ({
         </span>
       </div>
       <div
-        className="text-xs truncate text-right font-medium"
+        className="text-xs truncate text-right font-medium flex items-center justify-end gap-1"
         title={
           typeof propValue === "string" || typeof propValue === "number"
             ? String(propValue)
@@ -171,6 +176,11 @@ const PropertyRow: React.FC<PropertyRowProps> = ({
         }
       >
         {renderPropertyValue(propValue, propKey)}
+        {copyValue !== undefined && (
+          <button onClick={handleCopy} className="opacity-60 hover:opacity-100">
+            <Copy className="w-3 h-3" />
+          </button>
+        )}
       </div>
     </div>
   );
@@ -304,17 +314,24 @@ export function ModelInfo() {
   // Always compute processedProps, but handle null case
   const processedProps = useMemo(() => {
     if (!elementProperties) {
-      return { attributes: {}, propertySets: {} };
+      return {
+        attributes: {},
+        propertySets: {},
+        typeSets: {},
+        materialSets: {},
+      };
     }
 
     const { attributes, propertySets } = elementProperties;
     const displayableAttributes: Record<string, any> = {};
+    const instanceSets: Record<string, any> = {};
+    const typeSets: Record<string, any> = {};
+    const materialSets: Record<string, any> = {};
 
     // Extract direct attributes
     if (attributes) {
       for (const key in attributes) {
         if (Object.prototype.hasOwnProperty.call(attributes, key)) {
-          // Filter out already displayed common headers
           if (
             [
               "expressID",
@@ -325,22 +342,63 @@ export function ModelInfo() {
               "Description",
               "ObjectType",
             ].includes(key)
-          )
+          ) {
             continue;
-          if (key.startsWith("_")) continue; // Internal web-ifc props
+          }
+          if (key.startsWith("_")) continue;
 
           const value = attributes[key];
           if (
-            typeof value !== "object" ||
-            value === null ||
-            (value.value !== undefined && value.type !== undefined)
+            (typeof value !== "object" || value === null ||
+              (value.value !== undefined && value.type !== undefined)) &&
+            value !== null &&
+            value !== undefined &&
+            value !== ""
           ) {
             displayableAttributes[key] = value;
           }
         }
       }
     }
-    return { attributes: displayableAttributes, propertySets };
+
+    if (propertySets) {
+      for (const [psetName, props] of Object.entries(propertySets)) {
+        const filtered: Record<string, any> = {};
+        if (props && typeof props === "object") {
+          for (const [k, v] of Object.entries(props)) {
+            if (v !== null && v !== undefined && v !== "") {
+              filtered[k] = v;
+            }
+          }
+        }
+        if (Object.keys(filtered).length === 0) continue;
+
+        const lower = psetName.toLowerCase();
+        if (
+          lower.startsWith("material") ||
+          lower.startsWith("layerset") ||
+          lower.startsWith("materiallist") ||
+          lower.startsWith("material properties") ||
+          lower.startsWith("materialinfo")
+        ) {
+          materialSets[psetName] = filtered;
+        } else if (
+          psetName.startsWith("Type Attributes:") ||
+          psetName.includes("(from Type:")
+        ) {
+          typeSets[psetName] = filtered;
+        } else {
+          instanceSets[psetName] = filtered;
+        }
+      }
+    }
+
+    return {
+      attributes: displayableAttributes,
+      propertySets: instanceSets,
+      typeSets,
+      materialSets,
+    };
   }, [elementProperties]);
 
   // Skip showing the "no models" message in the properties panel since it's already shown in the tree panel
@@ -391,7 +449,12 @@ export function ModelInfo() {
   const currentModel = loadedModels.find((m) => m.modelID === modelID);
   const modelDisplayName = currentModel?.name || `Model (ID: ${modelID})`;
 
-  const { attributes: displayableAttributes, propertySets } = processedProps;
+  const {
+    attributes: displayableAttributes,
+    propertySets,
+    typeSets,
+    materialSets,
+  } = processedProps;
 
   // Render the detailed property information
   return (
@@ -407,7 +470,7 @@ export function ModelInfo() {
             <TooltipTrigger asChild>
               <div className="grid grid-cols-[auto_1fr] gap-x-3 items-start py-1.5 border-b border-border/50 last:border-b-0 cursor-default">
                 <div className="flex items-center text-muted-foreground text-xs font-medium">
-                  <Type className="w-3.5 h-3.5 mr-1.5 opacity-80" />
+                  <Box className="w-3.5 h-3.5 mr-1.5 opacity-80" />
                   <span>{t('IFC Class')}:</span>
                 </div>
                 <div className="text-xs truncate text-right font-medium">
@@ -461,7 +524,7 @@ export function ModelInfo() {
         )}
         <PropertyRow
           propKey="Express ID"
-          propValue={expressID}
+          propValue={`${expressID}`}
           icon={<Hash className="w-3.5 h-3.5" />}
         />
         <PropertyRow
@@ -474,8 +537,17 @@ export function ModelInfo() {
             propKey="Global ID"
             propValue={rawAttributes.GlobalId.value || rawAttributes.GlobalId}
             icon={<Hash className="w-3.5 h-3.5" />}
+            copyValue={rawAttributes.GlobalId.value || rawAttributes.GlobalId}
           />
         )}
+        {Object.entries(displayableAttributes).map(([key, value]) => (
+          <PropertyRow
+            key={key}
+            propKey={key}
+            propValue={value}
+            icon={getPropertyIcon(key)}
+          />
+        ))}
       </CollapsibleSection>
 
       {elementClassifications.length > 0 && (
@@ -501,24 +573,26 @@ export function ModelInfo() {
         </CollapsibleSection>
       )}
 
-      {/* Direct attributes section */}
-      {Object.keys(displayableAttributes).length > 0 && (
+
+      {/* Materials section */}
+      {materialSets && Object.keys(materialSets).length > 0 && (
         <CollapsibleSection
-          title={t("sections.attributes")}
+          title="Materials"
           defaultOpen={true}
-          icon={<Type className="w-4 h-4" />}
-          propertyCount={Object.keys(displayableAttributes).length}
-          countUnitSingular="attribute"
-          countUnitPlural="attributes"
+          icon={<Palette className="w-4 h-4" />}
+          propertyCount={Object.keys(materialSets).length}
+          countUnitSingular="set"
+          countUnitPlural="sets"
         >
-          {Object.entries(displayableAttributes).map(([key, value]) => (
-            <PropertyRow
-              key={key}
-              propKey={key}
-              propValue={value}
-              icon={getPropertyIcon(key)}
-            />
-          ))}
+          <MaterialSectionDisplay
+            materialPropertyGroups={Object.entries(materialSets).map(
+              ([name, props]) => ({
+                setName: name,
+                properties: props,
+                isLayerSet: name.toLowerCase().startsWith("layerset"),
+              }),
+            )}
+          />
         </CollapsibleSection>
       )}
 
@@ -547,37 +621,51 @@ export function ModelInfo() {
             >
               {props && typeof props === "object"
                 ? Object.entries(props as Record<string, any>).map(
-                  ([propName, propValue]) => (
-                    <PropertyRow
-                      key={propName}
-                      propKey={propName}
-                      propValue={propValue}
-                      icon={getPropertyIcon(propName)}
-                    />
-                  ),
-                )
+                    ([propName, propValue]) => (
+                      <PropertyRow
+                        key={propName}
+                        propKey={propName}
+                        propValue={propValue}
+                        icon={getPropertyIcon(propName)}
+                      />
+                    ),
+                  )
                 : null}
             </CollapsibleSection>
           ))}
         </CollapsibleSection>
       )}
 
-      {/* Materials section (if present in property sets) */}
-      {propertySets && propertySets.Material && propertySets.MaterialList && (
-        <MaterialSectionDisplay
-          materialPropertyGroups={[
-            {
-              setName: "Material",
-              properties: propertySets.Material,
-              isLayerSet: false,
-            },
-            {
-              setName: "Material List",
-              properties: propertySets.MaterialList,
-              isLayerSet: true,
-            },
-          ]}
-        />
+      {/* Type information section */}
+      {typeSets && Object.keys(typeSets).length > 0 && (
+        <CollapsibleSection
+          title="Type Information"
+          defaultOpen={false}
+          icon={<ALargeSmall className="w-4 h-4" />}
+          propertyCount={Object.keys(typeSets).length}
+          countUnitSingular="set"
+          countUnitPlural="sets"
+        >
+          {Object.entries(typeSets).map(([psetName, props]) => (
+            <CollapsibleSection
+              key={psetName}
+              title={psetName}
+              defaultOpen={false}
+              icon={getPropertyIcon(psetName)}
+              propertyCount={Object.keys(props).length}
+              isSubSection={true}
+            >
+              {Object.entries(props).map(([propName, propValue]) => (
+                <PropertyRow
+                  key={propName}
+                  propKey={propName}
+                  propValue={propValue}
+                  icon={getPropertyIcon(propName)}
+                />
+              ))}
+            </CollapsibleSection>
+          ))}
+        </CollapsibleSection>
       )}
     </div>
   );
