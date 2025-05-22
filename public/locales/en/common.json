@@ -94,7 +94,8 @@
     "editRule": "Edit Rule",
     "deleteRule": "Delete Rule",
     "previewRule": "Preview Rule Impact",
-    "clearPreview": "Clear Preview"
+    "clearPreview": "Clear Preview",
+    "mapFromModel": "Map From Model"
   },
   "messages": {
     "loading": "Loading...",
@@ -160,7 +161,10 @@
     "classificationSingular": "classification",
     "classificationPlural": "classifications",
     "searchPlaceholder": "Search classifications...",
-    "noSearchResults": "No classifications match your search."
+    "noSearchResults": "No classifications match your search.",
+    "mapFromModelTitle": "Map Classifications from Model",
+    "psetName": "PSet Name",
+    "propertyName": "Property Name"
   },
   "rules": {
     "addNew": "Add New Rule",
