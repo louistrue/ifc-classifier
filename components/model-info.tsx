@@ -20,6 +20,7 @@ import {
   ExternalLink,
   Construction,
   Box,
+  SquareStack,
   Tag,
 } from "lucide-react";
 import React, { useState, useMemo } from "react";
@@ -143,17 +144,37 @@ const renderPropertyValue = (value: any, keyHint?: string): React.ReactNode => {
   return String(value); // Last resort
 };
 
+const isEmptyValue = (value: any): boolean => {
+  if (value === null || value === undefined) return true;
+  if (typeof value === 'object') {
+    if ('value' in value) {
+      return value.value === null || value.value === undefined || value.value === '';
+    }
+    return Object.keys(value).length === 0;
+  }
+  if (value === '') return true;
+  return false;
+};
+
 interface PropertyRowProps {
   propKey: string;
   propValue: any;
   icon?: React.ReactNode;
+  copyable?: boolean;
 }
 
 const PropertyRow: React.FC<PropertyRowProps> = ({
   propKey,
   propValue,
   icon,
+  copyable = false,
 }) => {
+  const { t } = useTranslation();
+  const handleCopy = () => {
+    if (propValue !== null && propValue !== undefined) {
+      navigator.clipboard.writeText(String(propValue));
+    }
+  };
   return (
     <div className="grid grid-cols-[auto_1fr] gap-x-3 items-start py-1.5 border-b border-border/50 last:border-b-0">
       <div className="flex items-center text-muted-foreground text-xs font-medium">
@@ -162,15 +183,13 @@ const PropertyRow: React.FC<PropertyRowProps> = ({
           {propKey}:
         </span>
       </div>
-      <div
-        className="text-xs truncate text-right font-medium"
-        title={
-          typeof propValue === "string" || typeof propValue === "number"
-            ? String(propValue)
-            : undefined
-        }
-      >
+      <div className="text-xs truncate text-right font-medium flex items-center justify-end" title={typeof propValue === 'string' || typeof propValue === 'number' ? String(propValue) : undefined}>
         {renderPropertyValue(propValue, propKey)}
+        {copyable && propValue !== null && propValue !== undefined && (
+          <button onClick={handleCopy} title={t('buttons.copy')} className="ml-1 hover:text-primary">
+            <Copy className="w-3 h-3" />
+          </button>
+        )}
       </div>
     </div>
   );
@@ -392,6 +411,17 @@ export function ModelInfo() {
   const modelDisplayName = currentModel?.name || `Model (ID: ${modelID})`;
 
   const { attributes: displayableAttributes, propertySets } = processedProps;
+  const instancePropertySets: Record<string, any> = {};
+  const typePropertySets: Record<string, any> = {};
+  if (propertySets) {
+    for (const [name, props] of Object.entries(propertySets)) {
+      if (name.includes('(from Type:') || name.startsWith('Type Attributes')) {
+        typePropertySets[name] = props;
+      } else {
+        instancePropertySets[name] = props;
+      }
+    }
+  }
 
   // Render the detailed property information
   return (
@@ -407,7 +437,7 @@ export function ModelInfo() {
             <TooltipTrigger asChild>
               <div className="grid grid-cols-[auto_1fr] gap-x-3 items-start py-1.5 border-b border-border/50 last:border-b-0 cursor-default">
                 <div className="flex items-center text-muted-foreground text-xs font-medium">
-                  <Type className="w-3.5 h-3.5 mr-1.5 opacity-80" />
+                  <SquareStack className="w-3.5 h-3.5 mr-1.5 opacity-80" />
                   <span>{t('IFC Class')}:</span>
                 </div>
                 <div className="text-xs truncate text-right font-medium">
@@ -461,7 +491,7 @@ export function ModelInfo() {
         )}
         <PropertyRow
           propKey="Express ID"
-          propValue={expressID}
+          propValue={String(expressID)}
           icon={<Hash className="w-3.5 h-3.5" />}
         />
         <PropertyRow
@@ -474,8 +504,19 @@ export function ModelInfo() {
             propKey="Global ID"
             propValue={rawAttributes.GlobalId.value || rawAttributes.GlobalId}
             icon={<Hash className="w-3.5 h-3.5" />}
+            copyable
           />
         )}
+        {Object.entries(displayableAttributes)
+          .filter(([, v]) => !isEmptyValue(v))
+          .map(([key, value]) => (
+            <PropertyRow
+              key={key}
+              propKey={key}
+              propValue={value}
+              icon={getPropertyIcon(key)}
+            />
+          ))}
       </CollapsibleSection>
 
       {elementClassifications.length > 0 && (
@@ -501,38 +542,47 @@ export function ModelInfo() {
         </CollapsibleSection>
       )}
 
-      {/* Direct attributes section */}
-      {Object.keys(displayableAttributes).length > 0 && (
-        <CollapsibleSection
-          title={t("sections.attributes")}
-          defaultOpen={true}
-          icon={<Type className="w-4 h-4" />}
-          propertyCount={Object.keys(displayableAttributes).length}
-          countUnitSingular="attribute"
-          countUnitPlural="attributes"
-        >
-          {Object.entries(displayableAttributes).map(([key, value]) => (
-            <PropertyRow
-              key={key}
-              propKey={key}
-              propValue={value}
-              icon={getPropertyIcon(key)}
+
+      {/* Materials section (if present in property sets) */}
+      {instancePropertySets &&
+        (instancePropertySets.Material || instancePropertySets.MaterialList) && (
+          <CollapsibleSection
+            title={t("sections.materials")}
+            defaultOpen={false}
+            icon={<Palette className="w-4 h-4" />}
+          >
+            <MaterialSectionDisplay
+              materialPropertyGroups={[
+                instancePropertySets.Material && {
+                  setName: "Material",
+                  properties: instancePropertySets.Material,
+                  isLayerSet: false,
+                },
+                instancePropertySets.MaterialList && {
+                  setName: "Material List",
+                  properties: instancePropertySets.MaterialList,
+                  isLayerSet: true,
+                },
+              ].filter(Boolean) as Array<{
+                setName: string;
+                properties: Record<string, any>;
+                isLayerSet: boolean;
+              }>}
             />
-          ))}
-        </CollapsibleSection>
-      )}
+          </CollapsibleSection>
+        )}
 
       {/* Property Sets section */}
-      {propertySets && Object.keys(propertySets).length > 0 && (
+      {Object.keys(instancePropertySets).length > 0 && (
         <CollapsibleSection
           title={t("sections.propertySets")}
           defaultOpen={true}
           icon={<Layers className="w-4 h-4" />}
-          propertyCount={Object.keys(propertySets).length}
+          propertyCount={Object.keys(instancePropertySets).length}
           countUnitSingular="set"
           countUnitPlural="sets"
         >
-          {Object.entries(propertySets).map(([psetName, props]) => (
+          {Object.entries(instancePropertySets).map(([psetName, props]) => (
             <CollapsibleSection
               key={psetName}
               title={psetName}
@@ -546,38 +596,58 @@ export function ModelInfo() {
               isSubSection={true}
             >
               {props && typeof props === "object"
-                ? Object.entries(props as Record<string, any>).map(
-                  ([propName, propValue]) => (
-                    <PropertyRow
-                      key={propName}
-                      propKey={propName}
-                      propValue={propValue}
-                      icon={getPropertyIcon(propName)}
-                    />
-                  ),
-                )
+                ? Object.entries(props as Record<string, any>)
+                    .filter(([, v]) => !isEmptyValue(v))
+                    .map(([propName, propValue]) => (
+                      <PropertyRow
+                        key={propName}
+                        propKey={propName}
+                        propValue={propValue}
+                        icon={getPropertyIcon(propName)}
+                      />
+                    ))
                 : null}
             </CollapsibleSection>
           ))}
         </CollapsibleSection>
       )}
 
-      {/* Materials section (if present in property sets) */}
-      {propertySets && propertySets.Material && propertySets.MaterialList && (
-        <MaterialSectionDisplay
-          materialPropertyGroups={[
-            {
-              setName: "Material",
-              properties: propertySets.Material,
-              isLayerSet: false,
-            },
-            {
-              setName: "Material List",
-              properties: propertySets.MaterialList,
-              isLayerSet: true,
-            },
-          ]}
-        />
+      {/* Type properties section */}
+      {Object.keys(typePropertySets).length > 0 && (
+        <CollapsibleSection
+          title={t("sections.typeProperties")}
+          defaultOpen={false}
+          icon={<ALargeSmall className="w-4 h-4" />}
+          propertyCount={Object.keys(typePropertySets).length}
+          countUnitSingular="set"
+          countUnitPlural="sets"
+        >
+          {Object.entries(typePropertySets).map(([psetName, props]) => (
+            <CollapsibleSection
+              key={psetName}
+              title={psetName}
+              defaultOpen={false}
+              icon={getPropertyIcon(psetName)}
+              propertyCount={
+                props && typeof props === "object" ? Object.keys(props).length : 0
+              }
+              isSubSection={true}
+            >
+              {props && typeof props === "object"
+                ? Object.entries(props as Record<string, any>)
+                    .filter(([, v]) => !isEmptyValue(v))
+                    .map(([propName, propValue]) => (
+                      <PropertyRow
+                        key={propName}
+                        propKey={propName}
+                        propValue={propValue}
+                        icon={getPropertyIcon(propName)}
+                      />
+                    ))
+                : null}
+            </CollapsibleSection>
+          ))}
+        </CollapsibleSection>
       )}
     </div>
   );
