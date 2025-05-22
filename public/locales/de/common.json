@@ -133,7 +133,7 @@
     "originalColors": "Zeigt die ursprünglichen Modellfarben an (blendet alle Klassifizierungsfarben aus).",
     "classificationColors": "Wendet alle Klassifizierungsfarben auf das Modell an.",
     "canvasSearch": "Elemente nach Eigenschaften filtern. Unterstützt * Platzhalter und Regex.",
-    "psetNameHelp": "Der exakte Name des Eigenschaftssatzes, der die Klassifizierungswerte enthält.",
+    "psetNameHelp": "Name des Eigenschaftssatzes mit Klassifizierungswerten. Unterstützt * Platzhalter.",
     "propertyNameHelp": "Der exakte Name der Eigenschaft, die den Klassifizierungscode oder Kennung enthält."
   },
   "sections": {
