@@ -12,7 +12,10 @@ import React, {
 } from "react";
 import type { IfcAPI } from "web-ifc"; // Import IfcAPI type
 import { Properties } from "web-ifc"; // Ensure Properties is imported
-import { ParsedElementProperties } from "@/services/ifc-properties";
+import {
+  ParsedElementProperties,
+  getAllElementProperties,
+} from "@/services/ifc-properties";
 import type {
   Components as OBCComponents,
   IfcRelationsIndexer,
@@ -1328,88 +1331,26 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
   );
 
   const getElementPropertiesUsingIndexer = useCallback(
-    async (modelID: number, expressID: number): Promise<ParsedElementProperties | null> => {
-      if (!ifcApiInternal || !relationsIndexer) return null;
-      const relationMap = modelRelations[modelID];
-      if (!relationMap) return null;
+    async (
+      modelID: number,
+      expressID: number,
+    ): Promise<ParsedElementProperties | null> => {
+      if (!ifcApiInternal) return null;
       try {
-        const elem = await ifcApiInternal.GetLine(modelID, expressID, true);
-        const ifcType = ifcApiInternal.GetNameFromTypeCode(elem.type);
-        const propertySets: Record<string, Record<string, any>> = {};
-
-        const psetRels = relationsIndexer.getEntityRelations(relationMap, expressID, "IsDefinedBy") || [];
-        for (const relID of psetRels) {
-          const rel = await ifcApiInternal.GetLine(modelID, relID, true);
-          const psetId = rel.RelatingPropertyDefinition?.value;
-          if (!psetId) continue;
-          const pset = await ifcApiInternal.GetLine(modelID, psetId, true);
-          const psetName = pset.Name?.value || `Pset_${psetId}`;
-          propertySets[psetName] = {};
-          if (Array.isArray(pset.HasProperties)) {
-            for (const propRef of pset.HasProperties) {
-              const prop = await ifcApiInternal.GetLine(modelID, propRef.value, true);
-              const propName = prop.Name?.value;
-              if (!propName) continue;
-              let val: any = undefined;
-              if (prop.NominalValue?.value !== undefined) val = prop.NominalValue.value;
-              else if (prop.NominalValue !== undefined) val = prop.NominalValue;
-              else if (prop.HasProperties) {
-                // nested property, skip for simplicity
-              }
-              if (val !== undefined) propertySets[psetName][propName] = val;
-            }
-          }
+        if (!ifcApiInternal.properties) {
+          ifcApiInternal.properties = new Properties(ifcApiInternal as any);
         }
-
-        const typeRels = relationsIndexer.getEntityRelations(relationMap, expressID, "IsTypedBy") || [];
-        for (const relID of typeRels) {
-          const rel = await ifcApiInternal.GetLine(modelID, relID, true);
-          const typeId = rel.RelatingType?.value;
-          if (!typeId) continue;
-          const typeObj = await ifcApiInternal.GetLine(modelID, typeId, true);
-          const typeName = typeObj.Name?.value || `Type_${typeId}`;
-          const attrGroup = `Type Attributes: ${typeName}`;
-          propertySets[attrGroup] = {};
-          for (const key in typeObj) {
-            if (key === "expressID" || key === "type") continue;
-            const val = typeObj[key];
-            if (val?.value !== undefined) propertySets[attrGroup][key] = val.value;
-            else if (typeof val !== "object") propertySets[attrGroup][key] = val;
-          }
-          if (Array.isArray(typeObj.HasPropertySets)) {
-            for (const psRef of typeObj.HasPropertySets) {
-              const ps = await ifcApiInternal.GetLine(modelID, psRef.value, true);
-              const psName = ps.Name?.value || `Pset_${ps.expressID}`;
-              const finalName = `${psName} (from Type: ${typeName})`;
-              propertySets[finalName] = {};
-              if (Array.isArray(ps.HasProperties)) {
-                for (const propRef of ps.HasProperties) {
-                  const prop = await ifcApiInternal.GetLine(modelID, propRef.value, true);
-                  const propName = prop.Name?.value;
-                  if (!propName) continue;
-                  let val: any = undefined;
-                  if (prop.NominalValue?.value !== undefined) val = prop.NominalValue.value;
-                  else if (prop.NominalValue !== undefined) val = prop.NominalValue;
-                  if (val !== undefined) propertySets[finalName][propName] = val;
-                }
-              }
-            }
-          }
-        }
-
-        return {
-          modelID,
-          expressID,
-          ifcType,
-          attributes: elem,
-          propertySets,
-        };
+      } catch (e) {
+        console.warn("Failed to initialize properties helper", e);
+      }
+      try {
+        return await getAllElementProperties(ifcApiInternal, modelID, expressID);
       } catch (err) {
-        console.warn('Failed to get properties via indexer', err);
+        console.warn("Failed to get element properties", err);
         return null;
       }
     },
-    [ifcApiInternal, relationsIndexer, modelRelations],
+    [ifcApiInternal],
   );
 
   const getElementPropertiesCached = useCallback(
