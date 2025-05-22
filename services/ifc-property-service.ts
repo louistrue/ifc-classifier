@@ -20,6 +20,67 @@ async function ensureProps(api: IfcAPI) {
   }
 }
 
+async function extractPropertyValue(
+  api: IfcAPI,
+  modelID: number,
+  prop: any,
+  visited: Set<number>,
+): Promise<any> {
+  const unit = prop.Unit?.value;
+
+  if (prop.NominalValue?.value !== undefined) {
+    const val = prop.NominalValue.value;
+    return unit ? { value: val, unit } : val;
+  }
+  if (prop.Value?.value !== undefined) {
+    const val = prop.Value.value;
+    return unit ? { value: val, unit } : val;
+  }
+  if (prop.ListValues?.value !== undefined && Array.isArray(prop.ListValues.value)) {
+    const vals = prop.ListValues.value.map((v: any) => (v?.value !== undefined ? v.value : v));
+    return unit ? { values: vals, unit } : vals;
+  }
+  if (prop.EnumerationValues?.value !== undefined && Array.isArray(prop.EnumerationValues.value)) {
+    const vals = prop.EnumerationValues.value.map((v: any) => (v?.value !== undefined ? v.value : v));
+    return unit ? { values: vals, unit } : vals;
+  }
+  if (
+    prop.LowerBoundValue?.value !== undefined ||
+    prop.UpperBoundValue?.value !== undefined
+  ) {
+    const result: Record<string, any> = {};
+    if (prop.LowerBoundValue?.value !== undefined) {
+      result.LowerBound = prop.LowerBoundValue.value;
+    }
+    if (prop.UpperBoundValue?.value !== undefined) {
+      result.UpperBound = prop.UpperBoundValue.value;
+    }
+    if (unit) result.Unit = unit;
+    return result;
+  }
+  if (prop.NominalValue === null) {
+    return `(${api.GetNameFromTypeCode(prop.type as number)})`;
+  }
+
+  // Complex property with nested properties
+  if (prop.HasProperties && Array.isArray(prop.HasProperties)) {
+    const nested: Record<string, any> = {};
+    for (const subRef of prop.HasProperties) {
+      const id = subRef?.value ?? subRef?.expressID;
+      if (!id || visited.has(id)) continue;
+      visited.add(id);
+      const sub = await api.GetLine(modelID, id, true);
+      if (!sub?.Name?.value) continue;
+      nested[sub.Name.value] = await extractPropertyValue(api, modelID, sub, visited);
+    }
+    return nested;
+  }
+
+  // fallback: try simple value
+  if (prop.value !== undefined) return prop.value;
+  return null;
+}
+
 async function loadPset(
   api: IfcAPI,
   modelID: number,
@@ -35,13 +96,7 @@ async function loadPset(
       if (!prop?.Name?.value) continue;
       visited.add(id);
       const name = prop.Name.value;
-      if (prop.NominalValue?.value !== undefined) {
-        target[name] = prop.NominalValue.value;
-      } else if (prop.HasProperties) {
-        const sub: Record<string, any> = {};
-        await loadPset(api, modelID, prop, sub, visited);
-        target[name] = sub;
-      }
+      target[name] = await extractPropertyValue(api, modelID, prop, visited);
     }
   }
 }
