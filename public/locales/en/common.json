@@ -19,6 +19,7 @@
   "settingsPanel": "Settings",
   "original": "Original",
   "colors": "Colors",
+  "IFC Class": "IFC Class",
   "ifcModelViewer": "IFC Model Viewer",
   "uploadIFCFile": "Upload an IFC file to get started or choose a demo model",
   "loadIFCFile": "Load IFC File",

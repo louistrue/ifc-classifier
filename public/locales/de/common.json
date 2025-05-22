@@ -19,6 +19,7 @@
   "settingsPanel": "Einstellungen",
   "original": "Original",
   "colors": "Farben",
+  "IFC Class": "IFC-Klasse",
   "ifcModelViewer": "IFC Modell-Viewer",
   "uploadIFCFile": "Laden Sie eine IFC-Datei hoch oder wählen Sie ein Demomodell",
   "loadIFCFile": "IFC-Datei laden",

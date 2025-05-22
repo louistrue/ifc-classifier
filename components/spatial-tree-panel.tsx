@@ -228,7 +228,7 @@ const TreeNode: React.FC<TreeNodeProps> = ({
   };
 
   const originalIfcType = node.type;
-  const naturalNameResult = getNaturalIfcClassName(originalIfcType);
+  const naturalNameResult = getNaturalIfcClassName(originalIfcType, lang);
   const naturalIfcName = naturalNameResult?.name ?? "";
   const schemaUrl = naturalNameResult?.schemaUrl ?? "";
 
@@ -400,7 +400,8 @@ export function SpatialTreePanel() {
     removeIFCModel,
     getNaturalIfcClassName,
   } = useIFCContext();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const lang = i18n.language.startsWith("de") ? "de" : "en";
   const [isConfirmRemoveOpen, setIsConfirmRemoveOpen] = useState(false);
   const [modelToRemove, setModelToRemove] = useState<{
     id: string;
@@ -479,7 +480,7 @@ export function SpatialTreePanel() {
       keys: Set<string>
     ): SpatialStructureNode | null => {
       const norm = query.toLowerCase();
-      const naturalResult = getNaturalIfcClassName(node.type);
+      const naturalResult = getNaturalIfcClassName(node.type, lang);
       const natural = naturalResult && naturalResult.name ? naturalResult.name.toLowerCase() : "";
       const name = (node.Name || "").toLowerCase();
       const expressIdString = String(node.expressID);
@@ -501,7 +502,7 @@ export function SpatialTreePanel() {
       }
       return null;
     },
-    [getNaturalIfcClassName]
+    [getNaturalIfcClassName, lang]
   );
 
   const filteredModels = useMemo(() => {
