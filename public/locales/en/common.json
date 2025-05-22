@@ -55,6 +55,8 @@
   "settings": {
     "defaultClassification": "Default Classification",
     "alwaysApplyOnLoad": "Always apply on load",
+    "alwaysApplyOnLoadCombined": "Always apply on load",
+    "alwaysApplyOnLoadCombinedShort": "Always apply on load",
     "modelUrls": "Model URLs",
     "demoModels": "Demo Models",
     "name": "Name",
@@ -126,8 +128,10 @@
     "searchCanvasPlaceholder": "Search elements..."
   },
   "tooltips": {
-    "defaultClassification": "Sets the default classification system.",
+    "defaultClassification": "Sets the default classification system. This system will be used if automatic application is enabled below.",
     "autoLoad": "If enabled, the selected 'Default Classification' will be automatically applied on load.",
+    "alwaysApplyOnLoadCombinedTitle": "Automatic Application on Load",
+    "alwaysApplyOnLoadCombinedDescription": "If enabled, the selected 'Default Classification' system above will be automatically applied when a new model is loaded via URL or file upload.",
     "modelUrls": "Manage a list of IFC model URLs. You can add custom URLs or use the demo models.",
     "originalColors": "Show original model colors (hides all classification colors).",
     "classificationColors": "Apply all classification colors to the model.",
