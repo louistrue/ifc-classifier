@@ -542,7 +542,6 @@ export function ModelInfo() {
         </CollapsibleSection>
       )}
 
-
       {/* Materials section (if present in property sets) */}
       {instancePropertySets &&
         (instancePropertySets.Material || instancePropertySets.MaterialList) && (
@@ -592,6 +591,43 @@ export function ModelInfo() {
                 props && typeof props === "object"
                   ? Object.keys(props).length
                   : 0
+              }
+              isSubSection={true}
+            >
+              {props && typeof props === "object"
+                ? Object.entries(props as Record<string, any>)
+                    .filter(([, v]) => !isEmptyValue(v))
+                    .map(([propName, propValue]) => (
+                      <PropertyRow
+                        key={propName}
+                        propKey={propName}
+                        propValue={propValue}
+                        icon={getPropertyIcon(propName)}
+                      />
+                    ))
+                : null}
+            </CollapsibleSection>
+          ))}
+        </CollapsibleSection>
+      )}
+      {/* Type properties section */}
+      {Object.keys(typePropertySets).length > 0 && (
+        <CollapsibleSection
+          title={t("sections.typeProperties")}
+          defaultOpen={false}
+          icon={<ALargeSmall className="w-4 h-4" />}
+          propertyCount={Object.keys(typePropertySets).length}
+          countUnitSingular="set"
+          countUnitPlural="sets"
+        >
+          {Object.entries(typePropertySets).map(([psetName, props]) => (
+            <CollapsibleSection
+              key={psetName}
+              title={psetName}
+              defaultOpen={false}
+              icon={getPropertyIcon(psetName)}
+              propertyCount={
+                props && typeof props === "object" ? Object.keys(props).length : 0
               }
               isSubSection={true}
             >
