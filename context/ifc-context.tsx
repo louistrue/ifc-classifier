@@ -1425,7 +1425,9 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
           modelMap = new Map();
           elementPropsCache.current.set(modelID, modelMap);
         }
-        modelMap.set(expressID, props);
+        if (props !== null) {
+          modelMap.set(expressID, props);
+        }
         return props;
       } catch (e) {
         console.warn('Failed to fetch element properties', e);
@@ -1615,11 +1617,11 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
             if (psetName.includes('*')) {
               const regex = new RegExp(
                 '^' +
-                  psetName
-                    .split('*')
-                    .map((s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
-                    .join('.*') +
-                  '$',
+                psetName
+                  .split('*')
+                  .map((s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+                  .join('.*') +
+                '$',
                 'i',
               );
               for (const key of Object.keys(props.propertySets || {})) {
