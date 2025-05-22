@@ -12,7 +12,10 @@ import React, {
 } from "react";
 import type { IfcAPI } from "web-ifc"; // Import IfcAPI type
 import { Properties } from "web-ifc"; // Ensure Properties is imported
-import { getAllElementProperties, ParsedElementProperties } from "@/services/ifc-properties";
+import {
+  getAllElementProperties,
+  ParsedElementProperties,
+} from "@/services/ifc-properties";
 import { parseRulesFromExcel } from "@/services/rule-import-service";
 import { exportRulesToExcel } from "@/services/rule-export-service";
 import { exportClassificationsToExcel } from "@/services/classification-export-service";
@@ -93,24 +96,24 @@ interface IFCContextType {
   > | null; // Added schema to type
   getNaturalIfcClassName: (
     ifcClass: string,
-    lang?: "en" | "de",
+    lang?: "en" | "de"
   ) => { name: string; schemaUrl?: string }; // Updated return type
 
   replaceIFCModel: (
     url: string,
     name: string,
-    fileId?: string,
+    fileId?: string
   ) => Promise<number | null>; // Returns modelID or null
   addIFCModel: (
     url: string,
     name: string,
-    fileId?: string,
+    fileId?: string
   ) => Promise<number | null>; // Returns modelID or null
   removeIFCModel: (id: string) => void; // id is LoadedModelData.id
   setModelIDForLoadedModel: (loadedModelId: string, ifcModelId: number) => void;
   setSpatialTreeForModel: (
     modelID: number,
-    tree: SpatialStructureNode | null,
+    tree: SpatialStructureNode | null
   ) => void;
   setRawBufferForModel: (id: string, buffer: ArrayBuffer) => void; // Keep this one
 
@@ -119,12 +122,12 @@ interface IFCContextType {
   setElementProperties: (properties: any | null) => void;
   setAvailableCategoriesForModel: (
     modelID: number,
-    categories: string[],
+    categories: string[]
   ) => void;
   setIfcApi: (api: IfcAPI | null) => void;
   getElementPropertiesCached: (
     modelID: number,
-    expressID: number,
+    expressID: number
   ) => Promise<ParsedElementProperties | null>;
   toggleShowAllClassificationColors: () => void; // Added new toggle function
 
@@ -139,7 +142,7 @@ interface IFCContextType {
   previewRuleHighlight: (ruleId: string) => Promise<void>;
   applyClassificationsFromModelProperty: (
     psetName: string,
-    propertyName: string,
+    propertyName: string
   ) => Promise<void>;
 
   exportClassificationsAsJson: () => string;
@@ -154,11 +157,11 @@ interface IFCContextType {
 
   assignClassificationToElement: (
     classificationCode: string,
-    element: SelectedElementInfo,
+    element: SelectedElementInfo
   ) => void;
   unassignClassificationFromElement: (
     classificationCode: string,
-    element: SelectedElementInfo,
+    element: SelectedElementInfo
   ) => void;
   unassignElementFromAllClassifications: (element: SelectedElementInfo) => void;
 
@@ -170,7 +173,7 @@ interface IFCContextType {
   hideElements: (elements: SelectedElementInfo[]) => void;
   showElements: (elements: SelectedElementInfo[]) => void;
   getClassificationsForElement: (
-    element: SelectedElementInfo | null,
+    element: SelectedElementInfo | null
   ) => ClassificationItem[];
 }
 
@@ -222,7 +225,37 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
   });
   const [rules, setRules] = useState<Rule[]>([]);
   const [ifcApiInternal, setIfcApiInternal] = useState<IfcAPI | null>(null);
-  const elementPropsCache = useRef<Map<number, Map<number, ParsedElementProperties>>>(new Map());
+  const elementPropsCache = useRef<
+    Map<number, Map<number, ParsedElementProperties>>
+  >(new Map());
+
+  // Move getElementPropertiesCached function before it's used
+  const getElementPropertiesCached = useCallback(
+    async (modelID: number, expressID: number) => {
+      if (!ifcApiInternal) return null;
+      let modelMap = elementPropsCache.current.get(modelID);
+      if (modelMap && modelMap.has(expressID)) {
+        return modelMap.get(expressID)!;
+      }
+      try {
+        const props = await getAllElementProperties(
+          ifcApiInternal,
+          modelID,
+          expressID
+        );
+        if (!modelMap) {
+          modelMap = new Map();
+          elementPropsCache.current.set(modelID, modelMap);
+        }
+        modelMap.set(expressID, props);
+        return props;
+      } catch (e) {
+        console.warn("Failed to fetch element properties", e);
+        return null;
+      }
+    },
+    [ifcApiInternal]
+  );
 
   // Fetch natural IFC class names
   useEffect(() => {
@@ -231,7 +264,7 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
         const response = await fetch("/data/natural_ifcclass.json");
         if (!response.ok) {
           throw new Error(
-            `Failed to fetch natural_ifcclass.json: ${response.statusText}`,
+            `Failed to fetch natural_ifcclass.json: ${response.statusText}`
           );
         }
         const data = await response.json();
@@ -240,7 +273,7 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
       } catch (error) {
         console.error(
           "IFCContext: Error loading natural IFC class names:",
-          error,
+          error
         );
         setNaturalIfcClassNames({}); // Set to empty object on error to prevent repeated attempts
       }
@@ -252,7 +285,7 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
   const getNaturalIfcClassName = useCallback(
     (
       ifcClass: string,
-      lang: "en" | "de" = "en",
+      lang: "en" | "de" = "en"
     ): { name: string; schemaUrl?: string } => {
       if (!ifcClass) return { name: "Unknown Type", schemaUrl: undefined };
 
@@ -285,7 +318,7 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
       // Default to original name if no mapping or prefix stripping applies
       return { name: ifcClass, schemaUrl: undefined };
     },
-    [naturalIfcClassNames],
+    [naturalIfcClassNames]
   );
 
   // Effect to collect and set available properties from all loaded models
@@ -299,7 +332,7 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
         } catch (e) {
           console.error(
             "IFCContext: Failed to initialize ifcApi.properties",
-            e,
+            e
           );
           return;
         }
@@ -333,7 +366,7 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
               model.modelID,
               0, // Get for all elements/types in the model
               true, // Recursive
-              true, // Include type properties
+              true // Include type properties
             );
             psets.forEach((pset: any) => {
               if (pset.Name?.value && pset.HasProperties) {
@@ -351,7 +384,7 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
               await ifcApiInternal.properties.getTypeProperties(
                 model.modelID,
                 0, // Get all type objects
-                true, // Recursive for their properties
+                true // Recursive for their properties
               );
             typeObjects.forEach((typeObj: any) => {
               // Add direct properties of the type object itself if they are simple
@@ -384,7 +417,7 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
           } catch (error) {
             console.error(
               `Error fetching properties for model ${model.modelID}:`,
-              error,
+              error
             );
           }
         }
@@ -394,7 +427,7 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
       if (sortedProps.length > 0) {
         console.log(
           "IFCContext: Updated available properties for rule creation:",
-          sortedProps,
+          sortedProps
         );
       }
     };
@@ -410,13 +443,13 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
         elements.push(node);
         if (node.children && node.children.length > 0) {
           elements = elements.concat(
-            getAllElementsFromSpatialTreeNodesRecursive(node.children),
+            getAllElementsFromSpatialTreeNodesRecursive(node.children)
           );
         }
       }
       return elements;
     },
-    [],
+    []
   );
 
   const matchesAllConditionsCallback = useCallback(
@@ -424,11 +457,11 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
       elementNode: SpatialStructureNode,
       conditions: RuleCondition[],
       modelID: number,
-      api: IfcAPI, // Passed explicitly, not from context state directly in this func
+      api: IfcAPI // Passed explicitly, not from context state directly in this func
     ): Promise<boolean> => {
       if (!api.properties) {
         console.warn(
-          "API properties not initialized in matchesAllConditionsCallback",
+          "API properties not initialized in matchesAllConditionsCallback"
         );
         return false;
       }
@@ -448,12 +481,12 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
               itemProps = await api.properties.getItemProperties(
                 modelID,
                 elementNode.expressID,
-                true,
+                true
               );
             } catch (e) {
               console.warn(
                 `Error fetching item properties for ${elementNode.expressID}:`,
-                e,
+                e
               );
               return false; // If properties can't be fetched, condition can't be reliably checked
             }
@@ -462,7 +495,7 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
           if (!itemProps) {
             // Should not happen if expressID is valid and getItemProperties was called
             console.warn(
-              `No itemProps available for ${elementNode.expressID} to check ${condition.property}`,
+              `No itemProps available for ${elementNode.expressID} to check ${condition.property}`
             );
             return false;
           }
@@ -481,7 +514,7 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
               psetObject = itemProps[psetName];
             } else if (itemProps && Array.isArray(itemProps.PropertySets)) {
               psetObject = itemProps.PropertySets.find(
-                (ps: any) => ps.Name?.value === psetName,
+                (ps: any) => ps.Name?.value === psetName
               );
             } else if (itemProps) {
               for (const key in itemProps) {
@@ -503,14 +536,14 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
               if (condition.property === "Pset_WallCommon.IsExternal") {
                 // Debug for this specific property
                 console.log(
-                  `[DEBUG RULE TRACE - Type Fetch] Element ID: ${elementNode.expressID}, PSet ${psetName} not in itemProps. Attempting type property fetch.`,
+                  `[DEBUG RULE TRACE - Type Fetch] Element ID: ${elementNode.expressID}, PSet ${psetName} not in itemProps. Attempting type property fetch.`
                 );
               }
               try {
                 const typeObjects = await api.properties.getTypeProperties(
                   modelID,
                   elementNode.expressID,
-                  true,
+                  true
                 );
                 for (const typeObj of typeObjects) {
                   if (
@@ -518,7 +551,7 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
                     Array.isArray(typeObj.HasPropertySets)
                   ) {
                     const foundPsetInType = typeObj.HasPropertySets.find(
-                      (ps: any) => ps.Name?.value === psetName,
+                      (ps: any) => ps.Name?.value === psetName
                     );
                     if (foundPsetInType) {
                       psetObject = foundPsetInType;
@@ -527,7 +560,7 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
                           `[DEBUG RULE TRACE - Type Fetch] Element ID: ${elementNode.expressID}, Found PSet ${psetName} in Type Object:`,
                           psetObject
                             ? JSON.parse(JSON.stringify(psetObject))
-                            : "undefined",
+                            : "undefined"
                         );
                       }
                       break; // Found the PSet in a type object
@@ -537,14 +570,14 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
               } catch (e) {
                 console.warn(
                   `[RULE ENGINE] Error fetching type properties for ${elementNode.expressID} while looking for PSet ${psetName}:`,
-                  e,
+                  e
                 );
               }
             }
 
             if (psetObject && psetObject.HasProperties) {
               const targetProp = psetObject.HasProperties.find(
-                (p: any) => p.Name?.value === propName,
+                (p: any) => p.Name?.value === propName
               );
               if (targetProp) {
                 elementValue =
@@ -555,24 +588,24 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
               // DEBUG LOGGING START
               if (condition.property === "Pset_WallCommon.IsExternal") {
                 console.log(
-                  `[DEBUG RULE TRACE] Element ID: ${elementNode.expressID}, Property: ${condition.property}`,
+                  `[DEBUG RULE TRACE] Element ID: ${elementNode.expressID}, Property: ${condition.property}`
                 );
                 console.log(
                   `[DEBUG RULE TRACE] PSet Object (itemProps["${psetName}"]):`,
                   psetObject
                     ? JSON.parse(JSON.stringify(psetObject))
-                    : "undefined",
+                    : "undefined"
                 );
                 console.log(
                   `[DEBUG RULE TRACE] Target Prop (${propName}):`,
                   targetProp
                     ? JSON.parse(JSON.stringify(targetProp))
-                    : "undefined",
+                    : "undefined"
                 );
                 console.log(
                   `[DEBUG RULE TRACE] Raw elementValue:`,
                   elementValue,
-                  `(type: ${typeof elementValue})`,
+                  `(type: ${typeof elementValue})`
                 );
               }
               // DEBUG LOGGING END
@@ -582,14 +615,14 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
               // DEBUG LOGGING START for fallback path
               if (condition.property === "Pset_WallCommon.IsExternal") {
                 console.log(
-                  `[DEBUG RULE TRACE - Fallback] Element ID: ${elementNode.expressID}, Property: ${condition.property}`,
+                  `[DEBUG RULE TRACE - Fallback] Element ID: ${elementNode.expressID}, Property: ${condition.property}`
                 );
                 console.log(
                   `[DEBUG RULE TRACE - Fallback] itemProps keys:`,
-                  itemProps ? Object.keys(itemProps) : "itemProps undefined",
+                  itemProps ? Object.keys(itemProps) : "itemProps undefined"
                 );
                 console.log(
-                  `[DEBUG RULE TRACE - Fallback] PSet Object for ${psetName} was not found directly or lacked HasProperties.`,
+                  `[DEBUG RULE TRACE - Fallback] PSet Object for ${psetName} was not found directly or lacked HasProperties.`
                 );
               }
               // DEBUG LOGGING END for fallback path
@@ -646,15 +679,15 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
           console.log(
             `[DEBUG RULE TRACE] normElementValue:`,
             normElementValue,
-            `(type: ${typeof normElementValue})`,
+            `(type: ${typeof normElementValue})`
           );
           console.log(
             `[DEBUG RULE TRACE] valFromElement (boolean):`,
-            valFromElement,
+            valFromElement
           );
           console.log(
             `[DEBUG RULE TRACE] normRuleValue (user input):`,
-            normRuleValue,
+            normRuleValue
           );
           console.log(`[DEBUG RULE TRACE] valFromRule (boolean):`, valFromRule);
         }
@@ -684,7 +717,7 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
             if (condition.property === "Pset_WallCommon.IsExternal") {
               console.log(
                 `[DEBUG RULE TRACE] Final conditionMet for ${condition.operator}:`,
-                conditionMet,
+                conditionMet
               );
             }
             // DEBUG LOGGING END
@@ -712,7 +745,7 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
             if (condition.property === "Pset_WallCommon.IsExternal") {
               console.log(
                 `[DEBUG RULE TRACE] Final conditionMet for ${condition.operator}:`,
-                conditionMet,
+                conditionMet
               );
             }
             // DEBUG LOGGING END
@@ -726,7 +759,7 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
             if (condition.property === "Pset_WallCommon.IsExternal") {
               console.log(
                 `[DEBUG RULE TRACE] Final conditionMet for ${condition.operator}:`,
-                conditionMet,
+                conditionMet
               );
             }
             // DEBUG LOGGING END
@@ -761,13 +794,13 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
       }
       return true;
     },
-    [],
+    []
   );
 
   const applyAllActiveRules = useCallback(async () => {
     if (!ifcApiInternal) {
       console.log(
-        "IFC API not available, skipping rule application that might need it.",
+        "IFC API not available, skipping rule application that might need it."
       );
       // Only clear elements if there are no models. Definitions should persist.
       if (loadedModels.length === 0) {
@@ -786,7 +819,7 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
           }
           if (actuallyClearedSomething) {
             console.log(
-              "IFCContext: IFC API not available & no models: Ensured all classification elements are empty.",
+              "IFCContext: IFC API not available & no models: Ensured all classification elements are empty."
             );
           }
           return newCleared;
@@ -802,7 +835,7 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
       } catch (e) {
         console.error(
           "IFCContext: Failed to initialize ifcApi.properties in applyAllActiveRules",
-          e,
+          e
         );
         return; // Cannot proceed without properties
       }
@@ -831,7 +864,7 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
         }
         if (actuallyClearedSomething) {
           console.log(
-            "IFCContext: No models ready, ensured rule-based elements from classifications are empty.",
+            "IFCContext: No models ready, ensured rule-based elements from classifications are empty."
           );
         }
         // else {
@@ -845,7 +878,7 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
     // Proceed with rule application if models are ready
     const currentClassificationsForProcessing = classifications;
     const currentClassificationCodes = Object.keys(
-      currentClassificationsForProcessing,
+      currentClassificationsForProcessing
     );
     const newElementsPerClassification: Record<string, SelectedElementInfo[]> =
       {};
@@ -857,13 +890,13 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
     const activeRules = rules.filter(
       (rule) =>
         rule.active &&
-        currentClassificationsForProcessing[rule.classificationCode],
+        currentClassificationsForProcessing[rule.classificationCode]
     );
 
     for (const model of loadedModels) {
       if (model.modelID == null || !model.spatialTree) continue;
       const allModelElements = getAllElementsFromSpatialTreeNodesRecursive(
-        model.spatialTree ? [model.spatialTree] : [],
+        model.spatialTree ? [model.spatialTree] : []
       );
       for (const rule of activeRules) {
         if (!newElementsPerClassification[rule.classificationCode]) {
@@ -877,7 +910,7 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
               elementNode,
               rule.conditions,
               model.modelID,
-              ifcApiInternal,
+              ifcApiInternal
             );
             if (matches) {
               const elementInfo: SelectedElementInfo = {
@@ -889,22 +922,22 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
                 !newElementsPerClassification[rule.classificationCode].some(
                   (el) =>
                     el.modelID === elementInfo.modelID &&
-                    el.expressID === elementInfo.expressID,
+                    el.expressID === elementInfo.expressID
                 )
               ) {
                 newElementsPerClassification[rule.classificationCode].push(
-                  elementInfo,
+                  elementInfo
                 );
               }
             }
           } catch (error) {
             console.error(
               "IFCContext: Error processing element " +
-              elementNode.expressID +
-              " for rule " +
-              rule.name +
-              ":",
-              error,
+                elementNode.expressID +
+                " for rule " +
+                rule.name +
+                ":",
+              error
             );
           }
         }
@@ -930,11 +963,11 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
       }
       if (changed) {
         console.log(
-          "IFCContext: Finished applying all active rules. Classifications updated.",
+          "IFCContext: Finished applying all active rules. Classifications updated."
         );
       } else {
         console.log(
-          "IFCContext: Finished applying all active rules. No changes to classifications elements.",
+          "IFCContext: Finished applying all active rules. No changes to classifications elements."
         );
       }
       return updatedClassifications;
@@ -949,7 +982,7 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
 
   const classificationCodesKey = useMemo(
     () => Object.keys(classifications).sort().join(","),
-    [classifications],
+    [classifications]
   );
   const rulesKey = useMemo(
     () =>
@@ -959,20 +992,20 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
           active: r.active,
           conditions: r.conditions,
           classificationCode: r.classificationCode,
-        })),
+        }))
       ),
-    [rules],
+    [rules]
   );
   const modelsReadyKey = useMemo(
     () =>
       loadedModels.filter((m) => m.modelID !== null && m.spatialTree !== null)
         .length,
-    [loadedModels],
+    [loadedModels]
   );
 
   useEffect(() => {
     console.log(
-      "Main effect for applyAllActiveRules triggered by changes in models, rules, or classification codes.",
+      "Main effect for applyAllActiveRules triggered by changes in models, rules, or classification codes."
     );
     applyAllActiveRules();
   }, [modelsReadyKey, rulesKey, classificationCodesKey, applyAllActiveRules]);
@@ -1011,7 +1044,7 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
       for (const model of loadedModels) {
         if (model.modelID == null || !model.spatialTree) continue;
         const allModelElements = getAllElementsFromSpatialTreeNodesRecursive(
-          model.spatialTree ? [model.spatialTree] : [],
+          model.spatialTree ? [model.spatialTree] : []
         );
         for (const elementNode of allModelElements) {
           if (elementNode.expressID === undefined) continue;
@@ -1020,7 +1053,7 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
               elementNode,
               rule.conditions,
               model.modelID,
-              ifcApiInternal,
+              ifcApiInternal
             );
             if (matches) {
               matchingElements.push({
@@ -1031,11 +1064,11 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
           } catch (error) {
             console.error(
               "Error previewing element " +
-              elementNode.expressID +
-              " for rule " +
-              rule.name +
-              ":",
-              error,
+                elementNode.expressID +
+                " for rule " +
+                rule.name +
+                ":",
+              error
             );
           }
         }
@@ -1046,10 +1079,10 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
       setShowAllClassificationColors(false);
       console.log(
         'Previewing rule "' +
-        rule.name +
-        '". Found ' +
-        matchingElements.length +
-        " elements.",
+          rule.name +
+          '". Found ' +
+          matchingElements.length +
+          " elements."
       );
     },
     [
@@ -1062,7 +1095,7 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
       setHighlightedClassificationCode,
       setHighlightedElements,
       setShowAllClassificationColors,
-    ],
+    ]
   ); // Added previewingRuleId to deps
 
   const applyClassificationsFromModelProperty = useCallback(
@@ -1073,12 +1106,18 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
         try {
           ifcApiInternal.properties = new Properties(ifcApiInternal);
         } catch (e) {
-          console.error("Failed to init properties for model classification", e);
+          console.error(
+            "Failed to init properties for model classification",
+            e
+          );
           return;
         }
       }
 
-      const newElementsPerClassification: Record<string, SelectedElementInfo[]> = {};
+      const newElementsPerClassification: Record<
+        string,
+        SelectedElementInfo[]
+      > = {};
       const codes = Object.keys(classifications);
       codes.forEach((c) => {
         newElementsPerClassification[c] = [];
@@ -1093,7 +1132,7 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
           if (node.expressID === undefined) continue;
           const props = await getElementPropertiesCached(
             model.modelID,
-            node.expressID,
+            node.expressID
           );
           if (!props) continue;
           let val: any = undefined;
@@ -1112,7 +1151,8 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
             const info = { modelID: model.modelID, expressID: node.expressID };
             if (
               !newElementsPerClassification[code].some(
-                (el) => el.modelID === info.modelID && el.expressID === info.expressID,
+                (el) =>
+                  el.modelID === info.modelID && el.expressID === info.expressID
               )
             ) {
               newElementsPerClassification[code].push(info);
@@ -1144,12 +1184,12 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
       getAllElementsFromSpatialTreeNodesRecursive,
       getElementPropertiesCached,
       setClassifications,
-    ],
+    ]
   );
 
   const generateFileId = useCallback(
     () => `model-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
-    [],
+    []
   );
   const commonLoadLogic = useCallback(
     (url: string, name: string, fileIdToUse?: string): LoadedModelData => {
@@ -1171,31 +1211,31 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
       setSelectedElement,
       setElementPropertiesInternal,
       setHighlightedElements,
-    ],
+    ]
   );
 
   const addIFCModel = useCallback(
     async (
       url: string,
       name: string,
-      fileId?: string,
+      fileId?: string
     ): Promise<number | null> => {
       setLoadedModels((prev) => [...prev, commonLoadLogic(url, name, fileId)]);
       return null;
     },
-    [commonLoadLogic],
+    [commonLoadLogic]
   );
 
   const replaceIFCModel = useCallback(
     async (
       url: string,
       name: string,
-      fileId?: string,
+      fileId?: string
     ): Promise<number | null> => {
       setLoadedModels([commonLoadLogic(url, name, fileId)]);
       return null;
     },
-    [commonLoadLogic],
+    [commonLoadLogic]
   );
 
   const removeIFCModel = useCallback(
@@ -1224,7 +1264,7 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
       if (
         selectedElement &&
         loadedModels.find((m) => m.id === id)?.modelID ===
-        selectedElement.modelID
+          selectedElement.modelID
       ) {
         setSelectedElement(null);
         setElementPropertiesInternal(null);
@@ -1238,38 +1278,38 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
       setAvailableCategoriesInternal,
       setSelectedElement,
       setElementPropertiesInternal,
-    ],
+    ]
   );
 
   const setModelIDForLoadedModel = useCallback(
     (loadedModelId: string, ifcModelId: number) => {
       setLoadedModels((prev) =>
         prev.map((m) =>
-          m.id === loadedModelId ? { ...m, modelID: ifcModelId } : m,
-        ),
+          m.id === loadedModelId ? { ...m, modelID: ifcModelId } : m
+        )
       );
     },
-    [setLoadedModels],
+    [setLoadedModels]
   );
 
   const setSpatialTreeForModel = useCallback(
     (modelID: number, tree: SpatialStructureNode | null) => {
       setLoadedModels((prevModels) =>
         prevModels.map((m) =>
-          m.modelID === modelID ? { ...m, spatialTree: tree } : m,
-        ),
+          m.modelID === modelID ? { ...m, spatialTree: tree } : m
+        )
       );
     },
-    [setLoadedModels],
+    [setLoadedModels]
   );
 
   const setRawBufferForModel = useCallback(
     (id: string, buffer: ArrayBuffer) => {
       setLoadedModels((prevModels) =>
-        prevModels.map((m) => (m.id === id ? { ...m, rawBuffer: buffer } : m)),
+        prevModels.map((m) => (m.id === id ? { ...m, rawBuffer: buffer } : m))
       );
     },
-    [],
+    []
   );
 
   const selectElement = useCallback(
@@ -1296,7 +1336,7 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
       setShowAllClassificationColors,
       setElementPropertiesInternal,
       setPreviewingRuleId,
-    ],
+    ]
   );
 
   const toggleClassificationHighlight = useCallback(
@@ -1321,8 +1361,8 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
           setHighlightedElements([]);
           console.warn(
             "Classification " +
-            classificationCode +
-            " or its elements not found for highlight.",
+              classificationCode +
+              " or its elements not found for highlight."
           );
         }
       }
@@ -1335,65 +1375,42 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
       setShowAllClassificationColors,
       previewingRuleId,
       setPreviewingRuleId,
-    ],
+    ]
   );
 
   const setElementProperties = useCallback(
     (properties: any | null) => {
       setElementPropertiesInternal(properties);
     },
-    [setElementPropertiesInternal],
+    [setElementPropertiesInternal]
   );
 
   const setAvailableProperties = useCallback(
     (props: string[]) => {
       setAvailablePropertiesInternal(props);
     },
-    [setAvailablePropertiesInternal],
+    [setAvailablePropertiesInternal]
   );
 
   const setBaseCoordinationMatrixFn = useCallback(
     (matrix: number[] | null) => {
       setBaseCoordinationMatrix(matrix);
     },
-    [setBaseCoordinationMatrix],
+    [setBaseCoordinationMatrix]
   );
 
   const setAvailableCategoriesForModel = useCallback(
     (modelID: number, cats: string[]) => {
       setAvailableCategoriesInternal((prev) => ({ ...prev, [modelID]: cats }));
     },
-    [setAvailableCategoriesInternal],
+    [setAvailableCategoriesInternal]
   );
 
   const setIfcApi = useCallback(
     (api: IfcAPI | null) => {
       setIfcApiInternal(api);
     },
-    [setIfcApiInternal],
-  );
-
-  const getElementPropertiesCached = useCallback(
-    async (modelID: number, expressID: number) => {
-      if (!ifcApiInternal) return null;
-      let modelMap = elementPropsCache.current.get(modelID);
-      if (modelMap && modelMap.has(expressID)) {
-        return modelMap.get(expressID)!;
-      }
-      try {
-        const props = await getAllElementProperties(ifcApiInternal, modelID, expressID);
-        if (!modelMap) {
-          modelMap = new Map();
-          elementPropsCache.current.set(modelID, modelMap);
-        }
-        modelMap.set(expressID, props);
-        return props;
-      } catch (e) {
-        console.warn('Failed to fetch element properties', e);
-        return null;
-      }
-    },
-    [ifcApiInternal],
+    [setIfcApiInternal]
   );
 
   const toggleShowAllClassificationColors = useCallback(() => {
@@ -1421,7 +1438,7 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
         [classificationItem.code]: classificationItem,
       }));
     },
-    [setClassifications],
+    [setClassifications]
   );
 
   const removeClassification = useCallback(
@@ -1432,7 +1449,7 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
         return updated;
       });
     },
-    [setClassifications],
+    [setClassifications]
   );
 
   const removeAllClassifications = useCallback(() => {
@@ -1443,7 +1460,7 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
     (code: string, classificationItem: any) => {
       setClassifications((prev) => ({ ...prev, [code]: classificationItem }));
     },
-    [setClassifications],
+    [setClassifications]
   );
 
   const assignClassificationToElement = useCallback(
@@ -1453,8 +1470,7 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
         if (!current) return prev;
         const already = current.elements?.some(
           (el: SelectedElementInfo) =>
-            el.modelID === element.modelID &&
-            el.expressID === element.expressID,
+            el.modelID === element.modelID && el.expressID === element.expressID
         );
         if (already) return prev;
         const updated = {
@@ -1467,7 +1483,7 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
         return updated;
       });
     },
-    [setClassifications],
+    [setClassifications]
   );
 
   const unassignClassificationFromElement = useCallback(
@@ -1480,7 +1496,7 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
             !(
               el.modelID === element.modelID &&
               el.expressID === element.expressID
-            ),
+            )
         );
         if (newElements.length === current.elements.length) return prev;
         return {
@@ -1489,7 +1505,7 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
         };
       });
     },
-    [setClassifications],
+    [setClassifications]
   );
 
   const unassignElementFromAllClassifications = useCallback(
@@ -1504,7 +1520,7 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
                 !(
                   el.modelID === element.modelID &&
                   el.expressID === element.expressID
-                ),
+                )
             );
             if (newEls.length !== item.elements.length) {
               changed = true;
@@ -1519,7 +1535,7 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
         return changed ? updated : prev;
       });
     },
-    [setClassifications],
+    [setClassifications]
   );
 
   const getClassificationsForElement = useCallback(
@@ -1532,7 +1548,7 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
           item.elements?.some(
             (el) =>
               el.modelID === element.modelID &&
-              el.expressID === element.expressID,
+              el.expressID === element.expressID
           )
         ) {
           result.push(item);
@@ -1540,30 +1556,30 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
       }
       return result;
     },
-    [classifications],
+    [classifications]
   );
 
   const addRule = useCallback(
     (ruleItem: Rule) => {
       setRules((prev) => [...prev, ruleItem]);
     },
-    [setRules],
+    [setRules]
   );
 
   const removeRule = useCallback(
     (id: string) => {
       setRules((prev) => prev.filter((r) => r.id !== id));
     },
-    [setRules],
+    [setRules]
   );
 
   const updateRule = useCallback(
     (updatedRuleItem: Rule) => {
       setRules((prev) =>
-        prev.map((r) => (r.id === updatedRuleItem.id ? updatedRuleItem : r)),
+        prev.map((r) => (r.id === updatedRuleItem.id ? updatedRuleItem : r))
       );
     },
-    [setRules],
+    [setRules]
   );
 
   const exportClassificationsAsJson = useCallback((): string => {
@@ -1592,7 +1608,7 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
         console.error("Failed to import classifications", e);
       }
     },
-    [setClassifications],
+    [setClassifications]
   );
 
   const exportClassificationsAsExcel = useCallback((): ArrayBuffer => {
@@ -1616,7 +1632,7 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
         console.error("Failed to import classifications from Excel", e);
       }
     },
-    [setClassifications],
+    [setClassifications]
   );
 
   const exportRulesAsJson = useCallback((): string => {
@@ -1640,7 +1656,7 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
         console.error("Failed to import rules", e);
       }
     },
-    [setRules],
+    [setRules]
   );
 
   const importRulesFromExcel = useCallback(
@@ -1652,7 +1668,7 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
         console.error("Failed to import rules from Excel", e);
       }
     },
-    [setRules],
+    [setRules]
   );
 
   const removeAllRules = useCallback(() => {
@@ -1663,30 +1679,30 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
     (elementToToggle: SelectedElementInfo) => {
       console.log(
         "IFCContext: toggleUserHideElement called for",
-        elementToToggle,
+        elementToToggle
       );
       setUserHiddenElements((prevHidden) => {
         const isAlreadyHidden = prevHidden.some(
           (el) =>
             el.modelID === elementToToggle.modelID &&
-            el.expressID === elementToToggle.expressID,
+            el.expressID === elementToToggle.expressID
         );
         if (isAlreadyHidden) {
           console.log(
             "IFCContext: Element was hidden, now showing:",
-            elementToToggle,
+            elementToToggle
           );
           return prevHidden.filter(
             (el) =>
               !(
                 el.modelID === elementToToggle.modelID &&
                 el.expressID === elementToToggle.expressID
-              ),
+              )
           );
         } else {
           console.log(
             "IFCContext: Element was visible, now hiding:",
-            elementToToggle,
+            elementToToggle
           );
           // Check if the element being hidden is the currently selected element
           if (
@@ -1695,7 +1711,7 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
             selectedElement.expressID === elementToToggle.expressID
           ) {
             console.log(
-              "IFCContext: Deselecting element because it is now hidden.",
+              "IFCContext: Deselecting element because it is now hidden."
             );
             setSelectedElement(null); // Deselect
             setElementPropertiesInternal(null); // Clear its properties
@@ -1704,7 +1720,7 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
         }
       });
     },
-    [selectedElement, setSelectedElement, setElementPropertiesInternal],
+    [selectedElement, setSelectedElement, setElementPropertiesInternal]
   );
 
   const unhideLastElement = useCallback(() => {
@@ -1717,7 +1733,7 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
       const newHidden = prevHidden.slice(0, -1); // Remove the last element
       console.log(
         "IFCContext: Unhid last element. Remaining hidden:",
-        newHidden.length,
+        newHidden.length
       );
       return newHidden;
     });
@@ -1733,17 +1749,24 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
     setHiddenModelIds((prev) =>
       prev.includes(modelId)
         ? prev.filter((id) => id !== modelId)
-        : [...prev, modelId],
+        : [...prev, modelId]
     );
   }, []);
 
   const hideElements = useCallback(
     (elements: SelectedElementInfo[]) => {
-      console.log("IFCContext: hideElements called with", elements.length, "elements");
+      console.log(
+        "IFCContext: hideElements called with",
+        elements.length,
+        "elements"
+      );
 
       // DEBUG: Log sample elements
       if (elements.length > 0) {
-        console.log("IFCContext: First 3 elements to hide:", elements.slice(0, 3));
+        console.log(
+          "IFCContext: First 3 elements to hide:",
+          elements.slice(0, 3)
+        );
       }
 
       setUserHiddenElements((prev) => {
@@ -1754,7 +1777,7 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
         elements.forEach((el) => {
           if (
             !newHidden.some(
-              (h) => h.modelID === el.modelID && h.expressID === el.expressID,
+              (h) => h.modelID === el.modelID && h.expressID === el.expressID
             )
           ) {
             if (
@@ -1762,7 +1785,10 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
               selectedElement.modelID === el.modelID &&
               selectedElement.expressID === el.expressID
             ) {
-              console.log("IFCContext: Deselecting element that's being hidden:", el);
+              console.log(
+                "IFCContext: Deselecting element that's being hidden:",
+                el
+              );
               setSelectedElement(null);
               setElementPropertiesInternal(null);
             }
@@ -1771,11 +1797,14 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
           }
         });
 
-        console.log(`IFCContext: Added ${addedCount} elements to hidden list. New total:`, newHidden.length);
+        console.log(
+          `IFCContext: Added ${addedCount} elements to hidden list. New total:`,
+          newHidden.length
+        );
         return newHidden;
       });
     },
-    [selectedElement, setSelectedElement, setElementPropertiesInternal],
+    [selectedElement, setSelectedElement, setElementPropertiesInternal]
   );
 
   const showElements = useCallback((elements: SelectedElementInfo[]) => {
@@ -1783,9 +1812,9 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
       prev.filter(
         (el) =>
           !elements.some(
-            (e) => e.modelID === el.modelID && e.expressID === el.expressID,
-          ),
-      ),
+            (e) => e.modelID === el.modelID && e.expressID === el.expressID
+          )
+      )
     );
   }, []);
 
