@@ -22,6 +22,7 @@ import {
   IFCRELASSOCIATESMATERIAL,
   Properties,
 } from "web-ifc"; // Import IfcAPI type and constants
+import { IfcRelationsIndexer } from "@/lib/relations-indexer";
 
 interface IFCModelProps {
   modelData: LoadedModelData;
@@ -56,6 +57,7 @@ async function getElementData(
 async function buildSpatialTree(
   ifcApi: IfcAPI,
   modelID: number,
+  relations: IfcRelationsIndexer,
   elementID: number,
   parentType?: string
 ): Promise<SpatialStructureNode | null> {
@@ -73,27 +75,20 @@ async function buildSpatialTree(
   };
 
   // 1. Decomposed elements (IfcRelAggregates)
-  const relAggregatesIDs = await ifcApi.GetLineIDsWithType(
+  const decomposed = relations.getEntityRelations(
     modelID,
-    IFCRELAGGREGATES
+    elementID,
+    "IsDecomposedBy"
   );
-  for (let i = 0; i < relAggregatesIDs.size(); i++) {
-    const relAggID = relAggregatesIDs.get(i);
-    const relAgg = await ifcApi.GetLine(modelID, relAggID, false);
-    if (relAgg.RelatingObject?.value === elementID) {
-      const relatedObjects = relAgg.RelatedObjects;
-      if (relatedObjects && Array.isArray(relatedObjects)) {
-        for (const relatedObject of relatedObjects) {
-          const childNode = await buildSpatialTree(
-            ifcApi,
-            modelID,
-            relatedObject.value,
-            element.type
-          );
-          if (childNode) node.children.push(childNode);
-        }
-      }
-    }
+  for (const childID of decomposed) {
+    const childNode = await buildSpatialTree(
+      ifcApi,
+      modelID,
+      relations,
+      childID,
+      element.type
+    );
+    if (childNode) node.children.push(childNode);
   }
 
   // 2. Contained elements (IfcRelContainedInSpatialStructure)
@@ -105,50 +100,32 @@ async function buildSpatialTree(
     element.type === "IFCBUILDING" ||
     element.type === "IFCSITE"
   ) {
-    const relContainedIDs = await ifcApi.GetLineIDsWithType(
+    const contained = relations.getEntityRelations(
       modelID,
-      IFCRELCONTAINEDINSPATIALSTRUCTURE
+      elementID,
+      "ContainsElements"
     );
-    for (let i = 0; i < relContainedIDs.size(); i++) {
-      const relContID = relContainedIDs.get(i);
-      const relCont = await ifcApi.GetLine(modelID, relContID, false);
-      if (relCont.RelatingStructure?.value === elementID) {
-        const relatedElements = relCont.RelatedElements;
-        if (relatedElements && Array.isArray(relatedElements)) {
-          for (const relatedElement of relatedElements) {
-            // These are typically non-spatial elements (walls, slabs, etc.) or could be spaces in storeys
-            // We treat them as children but might not recurse further for their spatial decomposition unless they are IfcSpatialElement themselves
-            const childData = await getElementData(
-              ifcApi,
-              modelID,
-              relatedElement.value
-            );
-            if (childData.type) {
-              // If it's a spatial element like IFCSPACE, recurse fully
-              if (
-                childData.type === "IFCSPACE" ||
-                childData.type.includes("SPATIAL")
-              ) {
-                const childNode = await buildSpatialTree(
-                  ifcApi,
-                  modelID,
-                  relatedElement.value,
-                  element.type
-                );
-                if (childNode) node.children.push(childNode);
-              } else {
-                // For other elements, create a simpler node without further spatial children search
-                node.children.push({
-                  expressID: relatedElement.value,
-                  type: childData.type,
-                  Name: childData.Name,
-                  GlobalId: childData.GlobalId,
-                  children: [],
-                  ...childData,
-                });
-              }
-            }
-          }
+    for (const relatedID of contained) {
+      const childData = await getElementData(ifcApi, modelID, relatedID);
+      if (childData.type) {
+        if (childData.type === "IFCSPACE" || childData.type.includes("SPATIAL")) {
+          const childNode = await buildSpatialTree(
+            ifcApi,
+            modelID,
+            relations,
+            relatedID,
+            element.type
+          );
+          if (childNode) node.children.push(childNode);
+        } else {
+          node.children.push({
+            expressID: relatedID,
+            type: childData.type,
+            Name: childData.Name,
+            GlobalId: childData.GlobalId,
+            children: [],
+            ...childData,
+          });
         }
       }
     }
@@ -166,7 +143,9 @@ async function fetchFullSpatialStructure(
     return null;
   }
   const projectID = projectIDs.get(0); // Assume single project
-  return buildSpatialTree(ifcApi, modelID, projectID);
+  const relations = new IfcRelationsIndexer();
+  await relations.processFromWebIfc(ifcApi, modelID);
+  return buildSpatialTree(ifcApi, modelID, relations, projectID);
 }
 
 // New helper function to recursively extract property values, handling complex properties (Restored)
