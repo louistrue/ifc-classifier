@@ -20,6 +20,119 @@ async function ensureProps(api: IfcAPI) {
   }
 }
 
+async function extractPropertyValueRecursive(
+  api: IfcAPI,
+  modelID: number,
+  propertyEntity: any,
+  targetObject: Record<string, any>,
+  namePrefix = "",
+  processedCache: Map<number, any>,
+  recursionPath: Set<number>,
+) {
+  if (!propertyEntity || !propertyEntity.Name?.value) return;
+
+  const propExpressID = propertyEntity.expressID;
+
+  if (propExpressID !== undefined) {
+    if (recursionPath.has(propExpressID)) {
+      targetObject[
+        namePrefix
+          ? `${namePrefix}.${propertyEntity.Name.value}`
+          : propertyEntity.Name.value
+      ] = "[Cycle Detected]";
+      return;
+    }
+    if (processedCache.has(propExpressID)) {
+      return;
+    }
+    recursionPath.add(propExpressID);
+  }
+
+  const propName = propertyEntity.Name.value;
+  const fullPropName = namePrefix ? `${namePrefix}.${propName}` : propName;
+  const propIfcType =
+    typeof propertyEntity.type === "number"
+      ? api.GetNameFromTypeCode(propertyEntity.type)
+      : String(propertyEntity.type);
+
+  if (propIfcType === "IFCCOMPLEXPROPERTY") {
+    if (propertyEntity.HasProperties && Array.isArray(propertyEntity.HasProperties)) {
+      for (const subPropRef of propertyEntity.HasProperties) {
+        let subEntity: any = null;
+        if (subPropRef?.value !== undefined && typeof subPropRef.value === "number") {
+          try {
+            subEntity = await api.GetLine(modelID, subPropRef.value, true);
+          } catch {
+            continue;
+          }
+        } else if (subPropRef?.expressID !== undefined) {
+          subEntity = subPropRef;
+        }
+        if (subEntity) {
+          await extractPropertyValueRecursive(
+            api,
+            modelID,
+            subEntity,
+            targetObject,
+            fullPropName,
+            processedCache,
+            recursionPath,
+          );
+        }
+      }
+    }
+  } else {
+    let extractedValue: any = `(Unhandled ${propIfcType})`;
+    const unit = propertyEntity.Unit?.value;
+
+    if (propertyEntity.NominalValue?.value !== undefined) {
+      extractedValue = propertyEntity.NominalValue.value;
+    } else if (propertyEntity.Value?.value !== undefined) {
+      extractedValue = propertyEntity.Value.value;
+    } else if (
+      propertyEntity.ListValues?.value !== undefined &&
+      Array.isArray(propertyEntity.ListValues.value)
+    ) {
+      extractedValue = propertyEntity.ListValues.value.map((i: any) =>
+        i.value !== undefined ? i.value : i,
+      );
+    } else if (
+      propertyEntity.EnumerationValues?.value !== undefined &&
+      Array.isArray(propertyEntity.EnumerationValues.value)
+    ) {
+      extractedValue = propertyEntity.EnumerationValues.value.map((i: any) =>
+        i.value !== undefined ? i.value : i,
+      );
+    } else if (
+      propertyEntity.LowerBoundValue?.value !== undefined ||
+      propertyEntity.UpperBoundValue?.value !== undefined
+    ) {
+      extractedValue = {} as Record<string, any>;
+      if (propertyEntity.LowerBoundValue?.value !== undefined)
+        extractedValue.LowerBound = propertyEntity.LowerBoundValue.value;
+      if (propertyEntity.UpperBoundValue?.value !== undefined)
+        extractedValue.UpperBound = propertyEntity.UpperBoundValue.value;
+    } else if (propertyEntity.NominalValue === null) {
+      extractedValue = `(${propIfcType})`;
+    }
+
+    if (unit) {
+      if (typeof extractedValue === "object" && !Array.isArray(extractedValue)) {
+        extractedValue.Unit = unit;
+      } else {
+        extractedValue = { value: extractedValue, unit };
+      }
+    }
+
+    targetObject[fullPropName] = extractedValue;
+  }
+
+  if (propExpressID !== undefined) {
+    processedCache.set(propExpressID, true);
+    recursionPath.delete(propExpressID);
+  }
+}
+
 async function loadPset(
   api: IfcAPI,
   modelID: number,
@@ -28,20 +141,28 @@ async function loadPset(
   visited: Set<number>,
 ) {
   if (psetEntity.HasProperties && Array.isArray(psetEntity.HasProperties)) {
+    const processedCache = new Map<number, any>();
     for (const propRef of psetEntity.HasProperties) {
       const id = propRef?.value ?? propRef?.expressID;
       if (!id || visited.has(id)) continue;
-      const prop = await api.GetLine(modelID, id, true);
+      let prop: any = null;
+      try {
+        prop = await api.GetLine(modelID, id, true);
+      } catch {
+        continue;
+      }
       if (!prop?.Name?.value) continue;
       visited.add(id);
-      const name = prop.Name.value;
-      if (prop.NominalValue?.value !== undefined) {
-        target[name] = prop.NominalValue.value;
-      } else if (prop.HasProperties) {
-        const sub: Record<string, any> = {};
-        await loadPset(api, modelID, prop, sub, visited);
-        target[name] = sub;
-      }
+      const recursionPath = new Set<number>();
+      await extractPropertyValueRecursive(
+        api,
+        modelID,
+        prop,
+        target,
+        "",
+        processedCache,
+        recursionPath,
+      );
     }
   }
 }
