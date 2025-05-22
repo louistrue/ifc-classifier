@@ -298,7 +298,6 @@ export async function getAllElementProperties(
         groupName = `Material: ${materialName}`;
         if (!psetsData[groupName]) psetsData[groupName] = {};
         extractDirectAttributes(matDef, psetsData[groupName], ["Name", "Description"]);
-        if (Object.keys(psetsData[groupName]).length === 0) delete psetsData[groupName];
       } else if (matDefType === "IFCMATERIALLAYERSET") {
         const layerSetName = matDefNameFromIFC || `MatLayerSet_${matDef.expressID}`;
         groupName = `LayerSet: ${layerSetName}`;
