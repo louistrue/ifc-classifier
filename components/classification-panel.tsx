@@ -129,6 +129,7 @@ export function ClassificationPanel() {
     exportClassificationsAsExcel,
     importClassificationsFromJson,
     importClassificationsFromExcel,
+    mapClassificationsFromModel,
   } = useIFCContext();
   const { t } = useTranslation();
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
@@ -140,6 +141,9 @@ export function ClassificationPanel() {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [currentClassificationForEdit, setCurrentClassificationForEdit] =
     useState<ClassificationItem | null>(null);
+  const [isMapFromModelDialogOpen, setIsMapFromModelDialogOpen] = useState(false);
+  const [mapPsetName, setMapPsetName] = useState("");
+  const [mapPropertyName, setMapPropertyName] = useState("");
   const [defaultUniclassPr, setDefaultUniclassPr] = useState<
     ClassificationItem[]
   >([]);
@@ -228,6 +232,11 @@ export function ClassificationPanel() {
 
   const triggerImport = () => fileInputRef.current?.click();
   const triggerExcelImport = () => excelInputRef.current?.click();
+
+  const handleMapFromModel = async () => {
+    await mapClassificationsFromModel(mapPsetName, mapPropertyName);
+    setIsMapFromModelDialogOpen(false);
+  };
 
   const handleImportJson = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -958,6 +967,9 @@ export function ClassificationPanel() {
                     </DropdownMenuItem>
                   </DropdownMenuSubContent>
                 </DropdownMenuSub>
+                <DropdownMenuItem onSelect={() => setIsMapFromModelDialogOpen(true)}>
+                  <FileInput className="mr-2 h-4 w-4" /> {t('buttons.mapFromModel')}
+                </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
                   className="text-destructive focus:bg-destructive/10 focus:text-destructive"
@@ -1054,6 +1066,43 @@ export function ClassificationPanel() {
         </Dialog>
         {/* The old "Row 2 Management Dropdown section" is now fully replaced by the 3-dot menu in the header and this restored dialog. */}
         {/* The hidden file input for import is kept at the end of the component. */}
+        <Dialog open={isMapFromModelDialogOpen} onOpenChange={setIsMapFromModelDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>{t('classifications.mapFromModelTitle')}</DialogTitle>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="map-pset" className="text-right">
+                  {t('classifications.psetName')}
+                </Label>
+                <Input
+                  id="map-pset"
+                  value={mapPsetName}
+                  onChange={(e) => setMapPsetName(e.target.value)}
+                  className="col-span-3"
+                />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="map-prop" className="text-right">
+                  {t('classifications.propertyName')}
+                </Label>
+                <Input
+                  id="map-prop"
+                  value={mapPropertyName}
+                  onChange={(e) => setMapPropertyName(e.target.value)}
+                  className="col-span-3"
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setIsMapFromModelDialogOpen(false)}>
+                {t('buttons.cancel')}
+              </Button>
+              <Button onClick={handleMapFromModel}>{t('buttons.apply')}</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
 
       {/* Edit Classification Dialog */}
