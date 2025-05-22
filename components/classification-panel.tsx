@@ -711,7 +711,6 @@ export function ClassificationPanel() {
           : originalFileName;
         const newFileName = `${baseName}_classified.ifc`;
         downloadFile(modifiedIfcData, newFileName, "application/octet-stream");
-        alert("IFC model exported successfully!");
       } else {
         alert("IFC export failed. Please check the console for more details.");
       }
