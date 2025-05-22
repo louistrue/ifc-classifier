@@ -52,7 +52,27 @@ export async function getElementProperties(
   expressID: number,
 ): Promise<ElementProperties> {
   let mCache = cache.get(modelID);
-  if (mCache?.has(expressID)) return mCache.get(expressID)!;
+
+  if (mCache) {
+    cache.delete(modelID);
+    cache.set(modelID, mCache);
+
+    if (mCache.has(expressID)) {
+      const cachedResult = mCache.get(expressID)!;
+      mCache.delete(expressID);
+      mCache.set(expressID, cachedResult);
+      return cachedResult;
+    }
+  } else {
+    if (cache.size >= MAX_MODELS_IN_CACHE && MAX_MODELS_IN_CACHE > 0) {
+      const oldestModelID = cache.keys().next().value;
+      if (oldestModelID !== undefined) {
+        cache.delete(oldestModelID);
+      }
+    }
+    mCache = new Map<number, ElementProperties>();
+    cache.set(modelID, mCache);
+  }
 
   await ensureProps(api);
 
@@ -137,7 +157,6 @@ export async function getElementProperties(
             `Error loading pset from type for modelID: ${modelID}, expressID: ${expressID}, pset ID: ${id}`,
             error,
           );
-          // If pset itself failed, we might not have a name yet, store error under a generic key or skip
           const errorKey = `Error_TypePset_${id}`;
           propertySets[errorKey] = { error: "Failed to load pset from type" };
         }
@@ -188,23 +207,16 @@ export async function getElementProperties(
   }
 
   const result: ElementProperties = { modelID, expressID, ifcType, attributes, propertySets };
-  if (!mCache) {
-    mCache = new Map();
-    cache.set(modelID, mCache);
-    if (cache.size > MAX_MODELS_IN_CACHE) {
-      const oldestModelID = cache.keys().next().value;
-      if (oldestModelID !== undefined) {
-        cache.delete(oldestModelID);
-      }
-    }
-  }
-  mCache.set(expressID, result);
-  if (mCache.size > MAX_CACHE_ENTRIES) {
+  mCache.delete(expressID);
+
+  if (mCache.size >= MAX_CACHE_ENTRIES && MAX_CACHE_ENTRIES > 0) {
     const oldestExpressID = mCache.keys().next().value;
     if (oldestExpressID !== undefined) {
       mCache.delete(oldestExpressID);
     }
   }
+  mCache.set(expressID, result);
+
   return result;
 }
 
