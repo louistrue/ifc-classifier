@@ -73,7 +73,7 @@ export default function I18nClientProvider({
               callback(null, { data, status: response.status });
             } catch (e) {
               console.error("i18next-http-backend request error:", e);
-              callback(e, { data: null as any, status: 0 });
+              callback(e, { data: {}, status: 0 });
             }
           },
         },
