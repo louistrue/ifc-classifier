@@ -23,7 +23,11 @@ import {
   Properties,
 } from "web-ifc"; // Import IfcAPI type and constants
 
-import { getElementProperties } from "@/services/ifc-property-service";
+import {
+  clearElementPropertiesCache,
+  getElementProperties,
+} from "../services/ifc-property-service";
+
 interface IFCModelProps {
   modelData: LoadedModelData;
   outlineLayer: number; // New prop for the outline layer number
@@ -241,6 +245,7 @@ export function IFCModel({ modelData, outlineLayer }: IFCModelProps) {
             ownModelID.current
           );
           ifcApi.CloseModel(ownModelID.current);
+          clearElementPropertiesCache(ownModelID.current);
         } catch (error) {
           console.error(
             `IFCModel (${modelData.id}): Error closing model:`,

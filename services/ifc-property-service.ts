@@ -19,19 +19,22 @@ async function loadPset(
   modelID: number,
   psetEntity: any,
   target: Record<string, any>,
+  visited: Set<number>,
 ) {
   if (psetEntity.HasProperties && Array.isArray(psetEntity.HasProperties)) {
     for (const propRef of psetEntity.HasProperties) {
       const id = propRef?.value ?? propRef?.expressID;
       if (!id) continue;
+      if (visited.has(id)) continue;
       const prop = await api.GetLine(modelID, id, true);
       if (!prop || !prop.Name?.value) continue;
+      visited.add(id);
       const name = prop.Name.value;
       if (prop.NominalValue?.value !== undefined) {
         target[name] = prop.NominalValue.value;
       } else if (prop.HasProperties) {
         const sub: Record<string, any> = {};
-        await loadPset(api, modelID, prop, sub);
+        await loadPset(api, modelID, prop, sub, visited);
         target[name] = sub;
       }
     }
@@ -58,7 +61,9 @@ export async function getElementProperties(
     if (pset.Name?.value) {
       const name = pset.Name.value;
       propertySets[name] = {};
-      await loadPset(api, modelID, pset, propertySets[name]);
+      const visited = new Set<number>();
+      visited.add(pset.expressID);
+      await loadPset(api, modelID, pset, propertySets[name], visited);
     }
   }
 
@@ -81,7 +86,9 @@ export async function getElementProperties(
         if (pset && pset.Name?.value) {
           const name = `${pset.Name.value} (from Type: ${tName})`;
           propertySets[name] = {};
-          await loadPset(api, modelID, pset, propertySets[name]);
+          const visited = new Set<number>();
+          visited.add(pset.expressID);
+          await loadPset(api, modelID, pset, propertySets[name], visited);
         }
       }
     }
