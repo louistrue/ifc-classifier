@@ -13926,9 +13926,9 @@ export declare namespace IFC4 {
     class IfcStructuralLoadConfiguration extends IfcStructuralLoad {
         Name: IfcLabel | null;
         Values: (Handle<IfcStructuralLoadOrResult> | IfcStructuralLoadOrResult)[];
-        Locations: IfcLengthMeasure[] | null;
+        Locations: IfcLengthMeasure[][] | null;
         type: number;
-        constructor(Name: IfcLabel | null, Values: (Handle<IfcStructuralLoadOrResult> | IfcStructuralLoadOrResult)[], Locations: IfcLengthMeasure[] | null);
+        constructor(Name: IfcLabel | null, Values: (Handle<IfcStructuralLoadOrResult> | IfcStructuralLoadOrResult)[], Locations: IfcLengthMeasure[][] | null);
     }
     class IfcStructuralLoadOrResult extends IfcStructuralLoad {
         Name: IfcLabel | null;
@@ -14157,9 +14157,9 @@ export declare namespace IFC4 {
         constructor(Coordinates: IfcParameterValue[]);
     }
     class IfcTextureVertexList extends IfcPresentationItem {
-        TexCoordsList: IfcParameterValue[];
+        TexCoordsList: IfcParameterValue[][];
         type: number;
-        constructor(TexCoordsList: IfcParameterValue[]);
+        constructor(TexCoordsList: IfcParameterValue[][]);
     }
     class IfcTimePeriod extends IfcLineObject {
         StartTime: IfcTime;
@@ -14302,9 +14302,9 @@ export declare namespace IFC4 {
         constructor(Location: IfcURIReference | null, Identification: IfcIdentifier | null, Name: IfcLabel | null, ReferencedSource: IfcClassificationReferenceSelect | null, Description: IfcText | null, Sort: IfcIdentifier | null);
     }
     class IfcColourRgbList extends IfcPresentationItem {
-        ColourList: IfcNormalisedRatioMeasure[];
+        ColourList: IfcNormalisedRatioMeasure[][];
         type: number;
-        constructor(ColourList: IfcNormalisedRatioMeasure[]);
+        constructor(ColourList: IfcNormalisedRatioMeasure[][]);
     }
     class IfcColourSpecification extends IfcPresentationItem {
         Name: IfcLabel | null;
@@ -14612,9 +14612,9 @@ export declare namespace IFC4 {
         Maps: (Handle<IfcSurfaceTexture> | IfcSurfaceTexture)[];
         MappedTo: (Handle<IfcTessellatedFaceSet> | IfcTessellatedFaceSet);
         TexCoords: (Handle<IfcTextureVertexList> | IfcTextureVertexList);
-        TexCoordIndex: IfcPositiveInteger[] | null;
+        TexCoordIndex: IfcPositiveInteger[][] | null;
         type: number;
-        constructor(Maps: (Handle<IfcSurfaceTexture> | IfcSurfaceTexture)[], MappedTo: (Handle<IfcTessellatedFaceSet> | IfcTessellatedFaceSet), TexCoords: (Handle<IfcTextureVertexList> | IfcTextureVertexList), TexCoordIndex: IfcPositiveInteger[] | null);
+        constructor(Maps: (Handle<IfcSurfaceTexture> | IfcSurfaceTexture)[], MappedTo: (Handle<IfcTessellatedFaceSet> | IfcTessellatedFaceSet), TexCoords: (Handle<IfcTextureVertexList> | IfcTextureVertexList), TexCoordIndex: IfcPositiveInteger[][] | null);
     }
     class IfcIrregularTimeSeries extends IfcTimeSeries {
         Name: IfcLabel;
@@ -15525,14 +15525,14 @@ export declare namespace IFC4 {
         constructor();
     }
     class IfcCartesianPointList2D extends IfcCartesianPointList {
-        CoordList: IfcLengthMeasure[];
+        CoordList: IfcLengthMeasure[][];
         type: number;
-        constructor(CoordList: IfcLengthMeasure[]);
+        constructor(CoordList: IfcLengthMeasure[][]);
     }
     class IfcCartesianPointList3D extends IfcCartesianPointList {
-        CoordList: IfcLengthMeasure[];
+        CoordList: IfcLengthMeasure[][];
         type: number;
-        constructor(CoordList: IfcLengthMeasure[]);
+        constructor(CoordList: IfcLengthMeasure[][]);
     }
     class IfcCartesianTransformationOperator extends IfcGeometricRepresentationItem {
         Axis1: (Handle<IfcDirection> | IfcDirection) | null;
@@ -15886,9 +15886,9 @@ export declare namespace IFC4 {
     }
     class IfcIndexedPolygonalFaceWithVoids extends IfcIndexedPolygonalFace {
         CoordIndex: IfcPositiveInteger[];
-        InnerCoordIndices: IfcPositiveInteger[];
+        InnerCoordIndices: IfcPositiveInteger[][];
         type: number;
-        constructor(CoordIndex: IfcPositiveInteger[], InnerCoordIndices: IfcPositiveInteger[]);
+        constructor(CoordIndex: IfcPositiveInteger[], InnerCoordIndices: IfcPositiveInteger[][]);
     }
     class IfcLShapeProfileDef extends IfcParameterizedProfileDef {
         ProfileType: IfcProfileTypeEnum;
@@ -17078,12 +17078,12 @@ export declare namespace IFC4 {
     }
     class IfcTriangulatedFaceSet extends IfcTessellatedFaceSet {
         Coordinates: (Handle<IfcCartesianPointList3D> | IfcCartesianPointList3D);
-        Normals: IfcParameterValue[] | null;
+        Normals: IfcParameterValue[][] | null;
         Closed: IfcBoolean | null;
-        CoordIndex: IfcPositiveInteger[];
+        CoordIndex: IfcPositiveInteger[][];
         PnIndex: IfcPositiveInteger[] | null;
         type: number;
-        constructor(Coordinates: (Handle<IfcCartesianPointList3D> | IfcCartesianPointList3D), Normals: IfcParameterValue[] | null, Closed: IfcBoolean | null, CoordIndex: IfcPositiveInteger[], PnIndex: IfcPositiveInteger[] | null);
+        constructor(Coordinates: (Handle<IfcCartesianPointList3D> | IfcCartesianPointList3D), Normals: IfcParameterValue[][] | null, Closed: IfcBoolean | null, CoordIndex: IfcPositiveInteger[][], PnIndex: IfcPositiveInteger[] | null);
     }
     class IfcWindowLiningProperties extends IfcPreDefinedPropertySet {
         GlobalId: IfcGloballyUniqueId;
@@ -17155,18 +17155,18 @@ export declare namespace IFC4 {
     class IfcBSplineSurface extends IfcBoundedSurface {
         UDegree: IfcInteger;
         VDegree: IfcInteger;
-        ControlPointsList: (Handle<IfcCartesianPoint> | IfcCartesianPoint)[];
+        ControlPointsList: (Handle<IfcCartesianPoint> | IfcCartesianPoint)[][];
         SurfaceForm: IfcBSplineSurfaceForm;
         UClosed: IfcLogical;
         VClosed: IfcLogical;
         SelfIntersect: IfcLogical;
         type: number;
-        constructor(UDegree: IfcInteger, VDegree: IfcInteger, ControlPointsList: (Handle<IfcCartesianPoint> | IfcCartesianPoint)[], SurfaceForm: IfcBSplineSurfaceForm, UClosed: IfcLogical, VClosed: IfcLogical, SelfIntersect: IfcLogical);
+        constructor(UDegree: IfcInteger, VDegree: IfcInteger, ControlPointsList: (Handle<IfcCartesianPoint> | IfcCartesianPoint)[][], SurfaceForm: IfcBSplineSurfaceForm, UClosed: IfcLogical, VClosed: IfcLogical, SelfIntersect: IfcLogical);
     }
     class IfcBSplineSurfaceWithKnots extends IfcBSplineSurface {
         UDegree: IfcInteger;
         VDegree: IfcInteger;
-        ControlPointsList: (Handle<IfcCartesianPoint> | IfcCartesianPoint)[];
+        ControlPointsList: (Handle<IfcCartesianPoint> | IfcCartesianPoint)[][];
         SurfaceForm: IfcBSplineSurfaceForm;
         UClosed: IfcLogical;
         VClosed: IfcLogical;
@@ -17177,7 +17177,7 @@ export declare namespace IFC4 {
         VKnots: IfcParameterValue[];
         KnotSpec: IfcKnotType;
         type: number;
-        constructor(UDegree: IfcInteger, VDegree: IfcInteger, ControlPointsList: (Handle<IfcCartesianPoint> | IfcCartesianPoint)[], SurfaceForm: IfcBSplineSurfaceForm, UClosed: IfcLogical, VClosed: IfcLogical, SelfIntersect: IfcLogical, UMultiplicities: IfcInteger[], VMultiplicities: IfcInteger[], UKnots: IfcParameterValue[], VKnots: IfcParameterValue[], KnotSpec: IfcKnotType);
+        constructor(UDegree: IfcInteger, VDegree: IfcInteger, ControlPointsList: (Handle<IfcCartesianPoint> | IfcCartesianPoint)[][], SurfaceForm: IfcBSplineSurfaceForm, UClosed: IfcLogical, VClosed: IfcLogical, SelfIntersect: IfcLogical, UMultiplicities: IfcInteger[], VMultiplicities: IfcInteger[], UKnots: IfcParameterValue[], VKnots: IfcParameterValue[], KnotSpec: IfcKnotType);
     }
     class IfcBlock extends IfcCsgPrimitive3D {
         Position: (Handle<IfcAxis2Placement3D> | IfcAxis2Placement3D);
@@ -18465,7 +18465,7 @@ export declare namespace IFC4 {
     class IfcRationalBSplineSurfaceWithKnots extends IfcBSplineSurfaceWithKnots {
         UDegree: IfcInteger;
         VDegree: IfcInteger;
-        ControlPointsList: (Handle<IfcCartesianPoint> | IfcCartesianPoint)[];
+        ControlPointsList: (Handle<IfcCartesianPoint> | IfcCartesianPoint)[][];
         SurfaceForm: IfcBSplineSurfaceForm;
         UClosed: IfcLogical;
         VClosed: IfcLogical;
@@ -18475,9 +18475,9 @@ export declare namespace IFC4 {
         UKnots: IfcParameterValue[];
         VKnots: IfcParameterValue[];
         KnotSpec: IfcKnotType;
-        WeightsData: IfcReal[];
+        WeightsData: IfcReal[][];
         type: number;
-        constructor(UDegree: IfcInteger, VDegree: IfcInteger, ControlPointsList: (Handle<IfcCartesianPoint> | IfcCartesianPoint)[], SurfaceForm: IfcBSplineSurfaceForm, UClosed: IfcLogical, VClosed: IfcLogical, SelfIntersect: IfcLogical, UMultiplicities: IfcInteger[], VMultiplicities: IfcInteger[], UKnots: IfcParameterValue[], VKnots: IfcParameterValue[], KnotSpec: IfcKnotType, WeightsData: IfcReal[]);
+        constructor(UDegree: IfcInteger, VDegree: IfcInteger, ControlPointsList: (Handle<IfcCartesianPoint> | IfcCartesianPoint)[][], SurfaceForm: IfcBSplineSurfaceForm, UClosed: IfcLogical, VClosed: IfcLogical, SelfIntersect: IfcLogical, UMultiplicities: IfcInteger[], VMultiplicities: IfcInteger[], UKnots: IfcParameterValue[], VKnots: IfcParameterValue[], KnotSpec: IfcKnotType, WeightsData: IfcReal[][]);
     }
     class IfcReinforcingElement extends IfcElementComponent {
         GlobalId: IfcGloballyUniqueId;
@@ -25918,12 +25918,11 @@ export declare namespace IFC4X3 {
         constructor(GlobalId: IfcGloballyUniqueId, OwnerHistory: (Handle<IfcOwnerHistory> | IfcOwnerHistory) | null, Name: IfcLabel | null, Description: IfcText | null);
     }
     class IfcSIUnit extends IfcNamedUnit {
-        Dimensions: (Handle<IfcDimensionalExponents> | IfcDimensionalExponents);
         UnitType: IfcUnitEnum;
         Prefix: IfcSIPrefix | null;
         Name: IfcSIUnitName;
         type: number;
-        constructor(Dimensions: (Handle<IfcDimensionalExponents> | IfcDimensionalExponents), UnitType: IfcUnitEnum, Prefix: IfcSIPrefix | null, Name: IfcSIUnitName);
+        constructor(UnitType: IfcUnitEnum, Prefix: IfcSIPrefix | null, Name: IfcSIUnitName);
     }
     class IfcSchedulingTime extends IfcLineObject {
         Name: IfcLabel | null;
@@ -25972,9 +25971,9 @@ export declare namespace IFC4X3 {
     class IfcStructuralLoadConfiguration extends IfcStructuralLoad {
         Name: IfcLabel | null;
         Values: (Handle<IfcStructuralLoadOrResult> | IfcStructuralLoadOrResult)[];
-        Locations: IfcLengthMeasure[] | null;
+        Locations: IfcLengthMeasure[][] | null;
         type: number;
-        constructor(Name: IfcLabel | null, Values: (Handle<IfcStructuralLoadOrResult> | IfcStructuralLoadOrResult)[], Locations: IfcLengthMeasure[] | null);
+        constructor(Name: IfcLabel | null, Values: (Handle<IfcStructuralLoadOrResult> | IfcStructuralLoadOrResult)[], Locations: IfcLengthMeasure[][] | null);
     }
     class IfcStructuralLoadOrResult extends IfcStructuralLoad {
         Name: IfcLabel | null;
@@ -26200,9 +26199,9 @@ export declare namespace IFC4X3 {
     class IfcTextureCoordinateIndicesWithVoids extends IfcTextureCoordinateIndices {
         TexCoordIndex: IfcPositiveInteger[];
         TexCoordsOf: (Handle<IfcIndexedPolygonalFace> | IfcIndexedPolygonalFace);
-        InnerTexCoordIndices: IfcPositiveInteger[];
+        InnerTexCoordIndices: IfcPositiveInteger[][];
         type: number;
-        constructor(TexCoordIndex: IfcPositiveInteger[], TexCoordsOf: (Handle<IfcIndexedPolygonalFace> | IfcIndexedPolygonalFace), InnerTexCoordIndices: IfcPositiveInteger[]);
+        constructor(TexCoordIndex: IfcPositiveInteger[], TexCoordsOf: (Handle<IfcIndexedPolygonalFace> | IfcIndexedPolygonalFace), InnerTexCoordIndices: IfcPositiveInteger[][]);
     }
     class IfcTextureMap extends IfcTextureCoordinate {
         Maps: (Handle<IfcSurfaceTexture> | IfcSurfaceTexture)[];
@@ -26217,9 +26216,9 @@ export declare namespace IFC4X3 {
         constructor(Coordinates: IfcParameterValue[]);
     }
     class IfcTextureVertexList extends IfcPresentationItem {
-        TexCoordsList: IfcParameterValue[];
+        TexCoordsList: IfcParameterValue[][];
         type: number;
-        constructor(TexCoordsList: IfcParameterValue[]);
+        constructor(TexCoordsList: IfcParameterValue[][]);
     }
     class IfcTimePeriod extends IfcLineObject {
         StartTime: IfcTime;
@@ -26388,9 +26387,9 @@ export declare namespace IFC4X3 {
         constructor(Location: IfcURIReference | null, Identification: IfcIdentifier | null, Name: IfcLabel | null, ReferencedSource: IfcClassificationReferenceSelect | null, Description: IfcText | null, Sort: IfcIdentifier | null);
     }
     class IfcColourRgbList extends IfcPresentationItem {
-        ColourList: IfcNormalisedRatioMeasure[];
+        ColourList: IfcNormalisedRatioMeasure[][];
         type: number;
-        constructor(ColourList: IfcNormalisedRatioMeasure[]);
+        constructor(ColourList: IfcNormalisedRatioMeasure[][]);
     }
     class IfcColourSpecification extends IfcPresentationItem {
         Name: IfcLabel | null;
@@ -26645,13 +26644,12 @@ export declare namespace IFC4X3 {
     class IfcGeometricRepresentationSubContext extends IfcGeometricRepresentationContext {
         ContextIdentifier: IfcLabel | null;
         ContextType: IfcLabel | null;
-        WorldCoordinateSystem: IfcAxis2Placement;
         ParentContext: (Handle<IfcGeometricRepresentationContext> | IfcGeometricRepresentationContext);
         TargetScale: IfcPositiveRatioMeasure | null;
         TargetView: IfcGeometricProjectionEnum;
         UserDefinedTargetView: IfcLabel | null;
         type: number;
-        constructor(ContextIdentifier: IfcLabel | null, ContextType: IfcLabel | null, WorldCoordinateSystem: IfcAxis2Placement, ParentContext: (Handle<IfcGeometricRepresentationContext> | IfcGeometricRepresentationContext), TargetScale: IfcPositiveRatioMeasure | null, TargetView: IfcGeometricProjectionEnum, UserDefinedTargetView: IfcLabel | null);
+        constructor(ContextIdentifier: IfcLabel | null, ContextType: IfcLabel | null, ParentContext: (Handle<IfcGeometricRepresentationContext> | IfcGeometricRepresentationContext), TargetScale: IfcPositiveRatioMeasure | null, TargetView: IfcGeometricProjectionEnum, UserDefinedTargetView: IfcLabel | null);
     }
     class IfcGeometricSet extends IfcGeometricRepresentationItem {
         Elements: IfcGeometricSetSelect[];
@@ -26700,9 +26698,9 @@ export declare namespace IFC4X3 {
         Maps: (Handle<IfcSurfaceTexture> | IfcSurfaceTexture)[];
         MappedTo: (Handle<IfcTessellatedFaceSet> | IfcTessellatedFaceSet);
         TexCoords: (Handle<IfcTextureVertexList> | IfcTextureVertexList);
-        TexCoordIndex: IfcPositiveInteger[] | null;
+        TexCoordIndex: IfcPositiveInteger[][] | null;
         type: number;
-        constructor(Maps: (Handle<IfcSurfaceTexture> | IfcSurfaceTexture)[], MappedTo: (Handle<IfcTessellatedFaceSet> | IfcTessellatedFaceSet), TexCoords: (Handle<IfcTextureVertexList> | IfcTextureVertexList), TexCoordIndex: IfcPositiveInteger[] | null);
+        constructor(Maps: (Handle<IfcSurfaceTexture> | IfcSurfaceTexture)[], MappedTo: (Handle<IfcTessellatedFaceSet> | IfcTessellatedFaceSet), TexCoords: (Handle<IfcTextureVertexList> | IfcTextureVertexList), TexCoordIndex: IfcPositiveInteger[][] | null);
     }
     class IfcIrregularTimeSeries extends IfcTimeSeries {
         Name: IfcLabel;
@@ -26899,10 +26897,9 @@ export declare namespace IFC4X3 {
         ProfileType: IfcProfileTypeEnum;
         ProfileName: IfcLabel | null;
         ParentProfile: (Handle<IfcProfileDef> | IfcProfileDef);
-        Operator: (Handle<IfcCartesianTransformationOperator2D> | IfcCartesianTransformationOperator2D);
         Label: IfcLabel | null;
         type: number;
-        constructor(ProfileType: IfcProfileTypeEnum, ProfileName: IfcLabel | null, ParentProfile: (Handle<IfcProfileDef> | IfcProfileDef), Operator: (Handle<IfcCartesianTransformationOperator2D> | IfcCartesianTransformationOperator2D), Label: IfcLabel | null);
+        constructor(ProfileType: IfcProfileTypeEnum, ProfileName: IfcLabel | null, ParentProfile: (Handle<IfcProfileDef> | IfcProfileDef), Label: IfcLabel | null);
     }
     class IfcObjectDefinition extends IfcRoot {
         GlobalId: IfcGloballyUniqueId;
@@ -26944,11 +26941,10 @@ export declare namespace IFC4X3 {
         constructor(Name: IfcLabel | null, Description: IfcText | null, RelatingOrganization: (Handle<IfcOrganization> | IfcOrganization), RelatedOrganizations: (Handle<IfcOrganization> | IfcOrganization)[]);
     }
     class IfcOrientedEdge extends IfcEdge {
-        EdgeStart: (Handle<IfcVertex> | IfcVertex);
         EdgeElement: (Handle<IfcEdge> | IfcEdge);
         Orientation: IfcBoolean;
         type: number;
-        constructor(EdgeStart: (Handle<IfcVertex> | IfcVertex), EdgeElement: (Handle<IfcEdge> | IfcEdge), Orientation: IfcBoolean);
+        constructor(EdgeElement: (Handle<IfcEdge> | IfcEdge), Orientation: IfcBoolean);
     }
     class IfcParameterizedProfileDef extends IfcProfileDef {
         ProfileType: IfcProfileTypeEnum;
@@ -27639,16 +27635,16 @@ export declare namespace IFC4X3 {
         constructor();
     }
     class IfcCartesianPointList2D extends IfcCartesianPointList {
-        CoordList: IfcLengthMeasure[];
+        CoordList: IfcLengthMeasure[][];
         TagList: IfcLabel[] | null;
         type: number;
-        constructor(CoordList: IfcLengthMeasure[], TagList: IfcLabel[] | null);
+        constructor(CoordList: IfcLengthMeasure[][], TagList: IfcLabel[] | null);
     }
     class IfcCartesianPointList3D extends IfcCartesianPointList {
-        CoordList: IfcLengthMeasure[];
+        CoordList: IfcLengthMeasure[][];
         TagList: IfcLabel[] | null;
         type: number;
-        constructor(CoordList: IfcLengthMeasure[], TagList: IfcLabel[] | null);
+        constructor(CoordList: IfcLengthMeasure[][], TagList: IfcLabel[] | null);
     }
     class IfcCartesianTransformationOperator extends IfcGeometricRepresentationItem {
         Axis1: (Handle<IfcDirection> | IfcDirection) | null;
@@ -28004,9 +28000,9 @@ export declare namespace IFC4X3 {
     }
     class IfcIndexedPolygonalFaceWithVoids extends IfcIndexedPolygonalFace {
         CoordIndex: IfcPositiveInteger[];
-        InnerCoordIndices: IfcPositiveInteger[];
+        InnerCoordIndices: IfcPositiveInteger[][];
         type: number;
-        constructor(CoordIndex: IfcPositiveInteger[], InnerCoordIndices: IfcPositiveInteger[]);
+        constructor(CoordIndex: IfcPositiveInteger[], InnerCoordIndices: IfcPositiveInteger[][]);
     }
     class IfcIndexedPolygonalTextureMap extends IfcIndexedTextureMap {
         Maps: (Handle<IfcSurfaceTexture> | IfcSurfaceTexture)[];
@@ -29271,21 +29267,21 @@ export declare namespace IFC4X3 {
     class IfcTriangulatedFaceSet extends IfcTessellatedFaceSet {
         Coordinates: (Handle<IfcCartesianPointList3D> | IfcCartesianPointList3D);
         Closed: IfcBoolean | null;
-        Normals: IfcParameterValue[] | null;
-        CoordIndex: IfcPositiveInteger[];
+        Normals: IfcParameterValue[][] | null;
+        CoordIndex: IfcPositiveInteger[][];
         PnIndex: IfcPositiveInteger[] | null;
         type: number;
-        constructor(Coordinates: (Handle<IfcCartesianPointList3D> | IfcCartesianPointList3D), Closed: IfcBoolean | null, Normals: IfcParameterValue[] | null, CoordIndex: IfcPositiveInteger[], PnIndex: IfcPositiveInteger[] | null);
+        constructor(Coordinates: (Handle<IfcCartesianPointList3D> | IfcCartesianPointList3D), Closed: IfcBoolean | null, Normals: IfcParameterValue[][] | null, CoordIndex: IfcPositiveInteger[][], PnIndex: IfcPositiveInteger[] | null);
     }
     class IfcTriangulatedIrregularNetwork extends IfcTriangulatedFaceSet {
         Coordinates: (Handle<IfcCartesianPointList3D> | IfcCartesianPointList3D);
         Closed: IfcBoolean | null;
-        Normals: IfcParameterValue[] | null;
-        CoordIndex: IfcPositiveInteger[];
+        Normals: IfcParameterValue[][] | null;
+        CoordIndex: IfcPositiveInteger[][];
         PnIndex: IfcPositiveInteger[] | null;
         Flags: IfcInteger[];
         type: number;
-        constructor(Coordinates: (Handle<IfcCartesianPointList3D> | IfcCartesianPointList3D), Closed: IfcBoolean | null, Normals: IfcParameterValue[] | null, CoordIndex: IfcPositiveInteger[], PnIndex: IfcPositiveInteger[] | null, Flags: IfcInteger[]);
+        constructor(Coordinates: (Handle<IfcCartesianPointList3D> | IfcCartesianPointList3D), Closed: IfcBoolean | null, Normals: IfcParameterValue[][] | null, CoordIndex: IfcPositiveInteger[][], PnIndex: IfcPositiveInteger[] | null, Flags: IfcInteger[]);
     }
     class IfcVehicleType extends IfcTransportationDeviceType {
         GlobalId: IfcGloballyUniqueId;
@@ -29372,18 +29368,18 @@ export declare namespace IFC4X3 {
     class IfcBSplineSurface extends IfcBoundedSurface {
         UDegree: IfcInteger;
         VDegree: IfcInteger;
-        ControlPointsList: (Handle<IfcCartesianPoint> | IfcCartesianPoint)[];
+        ControlPointsList: (Handle<IfcCartesianPoint> | IfcCartesianPoint)[][];
         SurfaceForm: IfcBSplineSurfaceForm;
         UClosed: IfcLogical;
         VClosed: IfcLogical;
         SelfIntersect: IfcLogical;
         type: number;
-        constructor(UDegree: IfcInteger, VDegree: IfcInteger, ControlPointsList: (Handle<IfcCartesianPoint> | IfcCartesianPoint)[], SurfaceForm: IfcBSplineSurfaceForm, UClosed: IfcLogical, VClosed: IfcLogical, SelfIntersect: IfcLogical);
+        constructor(UDegree: IfcInteger, VDegree: IfcInteger, ControlPointsList: (Handle<IfcCartesianPoint> | IfcCartesianPoint)[][], SurfaceForm: IfcBSplineSurfaceForm, UClosed: IfcLogical, VClosed: IfcLogical, SelfIntersect: IfcLogical);
     }
     class IfcBSplineSurfaceWithKnots extends IfcBSplineSurface {
         UDegree: IfcInteger;
         VDegree: IfcInteger;
-        ControlPointsList: (Handle<IfcCartesianPoint> | IfcCartesianPoint)[];
+        ControlPointsList: (Handle<IfcCartesianPoint> | IfcCartesianPoint)[][];
         SurfaceForm: IfcBSplineSurfaceForm;
         UClosed: IfcLogical;
         VClosed: IfcLogical;
@@ -29394,7 +29390,7 @@ export declare namespace IFC4X3 {
         VKnots: IfcParameterValue[];
         KnotSpec: IfcKnotType;
         type: number;
-        constructor(UDegree: IfcInteger, VDegree: IfcInteger, ControlPointsList: (Handle<IfcCartesianPoint> | IfcCartesianPoint)[], SurfaceForm: IfcBSplineSurfaceForm, UClosed: IfcLogical, VClosed: IfcLogical, SelfIntersect: IfcLogical, UMultiplicities: IfcInteger[], VMultiplicities: IfcInteger[], UKnots: IfcParameterValue[], VKnots: IfcParameterValue[], KnotSpec: IfcKnotType);
+        constructor(UDegree: IfcInteger, VDegree: IfcInteger, ControlPointsList: (Handle<IfcCartesianPoint> | IfcCartesianPoint)[][], SurfaceForm: IfcBSplineSurfaceForm, UClosed: IfcLogical, VClosed: IfcLogical, SelfIntersect: IfcLogical, UMultiplicities: IfcInteger[], VMultiplicities: IfcInteger[], UKnots: IfcParameterValue[], VKnots: IfcParameterValue[], KnotSpec: IfcKnotType);
     }
     class IfcBlock extends IfcCsgPrimitive3D {
         Position: (Handle<IfcAxis2Placement3D> | IfcAxis2Placement3D);
@@ -30970,7 +30966,7 @@ export declare namespace IFC4X3 {
     class IfcRationalBSplineSurfaceWithKnots extends IfcBSplineSurfaceWithKnots {
         UDegree: IfcInteger;
         VDegree: IfcInteger;
-        ControlPointsList: (Handle<IfcCartesianPoint> | IfcCartesianPoint)[];
+        ControlPointsList: (Handle<IfcCartesianPoint> | IfcCartesianPoint)[][];
         SurfaceForm: IfcBSplineSurfaceForm;
         UClosed: IfcLogical;
         VClosed: IfcLogical;
@@ -30980,9 +30976,9 @@ export declare namespace IFC4X3 {
         UKnots: IfcParameterValue[];
         VKnots: IfcParameterValue[];
         KnotSpec: IfcKnotType;
-        WeightsData: IfcReal[];
+        WeightsData: IfcReal[][];
         type: number;
-        constructor(UDegree: IfcInteger, VDegree: IfcInteger, ControlPointsList: (Handle<IfcCartesianPoint> | IfcCartesianPoint)[], SurfaceForm: IfcBSplineSurfaceForm, UClosed: IfcLogical, VClosed: IfcLogical, SelfIntersect: IfcLogical, UMultiplicities: IfcInteger[], VMultiplicities: IfcInteger[], UKnots: IfcParameterValue[], VKnots: IfcParameterValue[], KnotSpec: IfcKnotType, WeightsData: IfcReal[]);
+        constructor(UDegree: IfcInteger, VDegree: IfcInteger, ControlPointsList: (Handle<IfcCartesianPoint> | IfcCartesianPoint)[][], SurfaceForm: IfcBSplineSurfaceForm, UClosed: IfcLogical, VClosed: IfcLogical, SelfIntersect: IfcLogical, UMultiplicities: IfcInteger[], VMultiplicities: IfcInteger[], UKnots: IfcParameterValue[], VKnots: IfcParameterValue[], KnotSpec: IfcKnotType, WeightsData: IfcReal[][]);
     }
     class IfcReferent extends IfcPositioningElement {
         GlobalId: IfcGloballyUniqueId;
