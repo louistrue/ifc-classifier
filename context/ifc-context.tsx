@@ -1491,7 +1491,28 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
           if (!props) continue;
           let val: any = undefined;
           if (psetName) {
-            val = props.propertySets?.[psetName]?.[propertyName];
+            if (psetName.includes('*')) {
+              const regex = new RegExp(
+                '^' +
+                  psetName
+                    .split('*')
+                    .map((s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+                    .join('.*') +
+                  '$',
+                'i',
+              );
+              for (const key of Object.keys(props.propertySets || {})) {
+                if (regex.test(key)) {
+                  const v = props.propertySets?.[key]?.[propertyName];
+                  if (v !== undefined && v !== null) {
+                    val = v;
+                    break;
+                  }
+                }
+              }
+            } else {
+              val = props.propertySets?.[psetName]?.[propertyName];
+            }
           } else {
             val = props.propertySets?.['Element Attributes']?.[propertyName];
             if (val === undefined) val = props.attributes?.[propertyName];

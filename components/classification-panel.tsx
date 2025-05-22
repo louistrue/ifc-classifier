@@ -270,6 +270,9 @@ export function ClassificationPanel() {
       // Now perform the actual mapping operation
       await mapClassificationsFromModel(mapPsetName, mapPropertyName);
       setIsMapFromModelDialogOpen(false);
+      // After mapping, show classification colors and sort by elements count
+      if (!showAllClassificationColors) toggleShowAllClassificationColors();
+      setSortConfig({ key: "elementsCount", direction: "descending" });
       // Reset form on success
       setMapPsetName("");
       setMapPropertyName("");

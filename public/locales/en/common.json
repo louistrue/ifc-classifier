@@ -133,7 +133,7 @@
     "originalColors": "Show original model colors (hides all classification colors).",
     "classificationColors": "Apply all classification colors to the model.",
     "canvasSearch": "Filter elements by properties. Supports * wildcard and regex.",
-    "psetNameHelp": "The exact name of the property set containing classification values",
+    "psetNameHelp": "Name of the property set containing classification values. Supports * wildcard",
     "propertyNameHelp": "The exact name of the property containing the classification code or identifier"
   },
   "sections": {
