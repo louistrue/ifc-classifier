@@ -137,6 +137,10 @@ interface IFCContextType {
   removeRule: (id: string) => void;
   updateRule: (rule: Rule) => void;
   previewRuleHighlight: (ruleId: string) => Promise<void>;
+  applyClassificationsFromModelProperty: (
+    psetName: string,
+    propertyName: string,
+  ) => Promise<void>;
 
   exportClassificationsAsJson: () => string;
   importClassificationsFromJson: (json: string) => void;
@@ -1061,6 +1065,88 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
     ],
   ); // Added previewingRuleId to deps
 
+  const applyClassificationsFromModelProperty = useCallback(
+    async (psetName: string, propertyName: string) => {
+      if (!ifcApiInternal) return;
+
+      if (!ifcApiInternal.properties) {
+        try {
+          ifcApiInternal.properties = new Properties(ifcApiInternal);
+        } catch (e) {
+          console.error("Failed to init properties for model classification", e);
+          return;
+        }
+      }
+
+      const newElementsPerClassification: Record<string, SelectedElementInfo[]> = {};
+      const codes = Object.keys(classifications);
+      codes.forEach((c) => {
+        newElementsPerClassification[c] = [];
+      });
+
+      for (const model of loadedModels) {
+        if (model.modelID == null || !model.spatialTree) continue;
+        const allEls = getAllElementsFromSpatialTreeNodesRecursive([
+          model.spatialTree,
+        ]);
+        for (const node of allEls) {
+          if (node.expressID === undefined) continue;
+          const props = await getElementPropertiesCached(
+            model.modelID,
+            node.expressID,
+          );
+          if (!props) continue;
+          let val: any = undefined;
+          if (psetName === "Element Attributes") {
+            val = props.attributes?.[propertyName];
+          } else {
+            val = props.propertySets?.[psetName]?.[propertyName];
+          }
+          if (val === undefined) continue;
+          if (typeof val === "object" && val !== null && "value" in val) {
+            val = val.value;
+          }
+          const code = String(val).trim();
+          if (!code) continue;
+          if (classifications[code]) {
+            const info = { modelID: model.modelID, expressID: node.expressID };
+            if (
+              !newElementsPerClassification[code].some(
+                (el) => el.modelID === info.modelID && el.expressID === info.expressID,
+              )
+            ) {
+              newElementsPerClassification[code].push(info);
+            }
+          }
+        }
+      }
+
+      setClassifications((prev) => {
+        const updated = { ...prev };
+        let changed = false;
+        for (const code of codes) {
+          const newEls = newElementsPerClassification[code] || [];
+          if (
+            JSON.stringify(updated[code]?.elements || []) !==
+            JSON.stringify(newEls)
+          ) {
+            updated[code] = { ...updated[code], elements: newEls };
+            changed = true;
+          }
+        }
+        return changed ? updated : prev;
+      });
+    },
+    [
+      ifcApiInternal,
+      classifications,
+      loadedModels,
+      getAllElementsFromSpatialTreeNodesRecursive,
+      getElementPropertiesCached,
+      setClassifications,
+    ],
+  );
+
   const generateFileId = useCallback(
     () => `model-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
     [],
@@ -1748,6 +1834,7 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
         removeRule,
         updateRule,
         previewRuleHighlight,
+        applyClassificationsFromModelProperty,
         exportClassificationsAsJson,
         exportClassificationsAsExcel,
         importClassificationsFromJson,

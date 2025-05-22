@@ -129,6 +129,8 @@ export function ClassificationPanel() {
     exportClassificationsAsExcel,
     importClassificationsFromJson,
     importClassificationsFromExcel,
+    applyClassificationsFromModelProperty,
+    availableProperties,
   } = useIFCContext();
   const { t } = useTranslation();
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
@@ -169,6 +171,34 @@ export function ClassificationPanel() {
   const [currentDefaultClassification, setCurrentDefaultClassification] =
     useState<string>("");
   const [searchQuery, setSearchQuery] = useState("");
+
+  const [isModelImportOpen, setIsModelImportOpen] = useState(false);
+  const [importPset, setImportPset] = useState("");
+  const [importProp, setImportProp] = useState("");
+
+  const psetPropertyMap = useMemo(() => {
+    const map: Record<string, string[]> = {};
+    if (availableProperties) {
+      availableProperties.forEach((p) => {
+        const parts = p.split(".");
+        if (parts.length < 2) return;
+        const ps = parts[0];
+        const prop = parts.slice(1).join(".");
+        if (!map[ps]) map[ps] = [];
+        if (!map[ps].includes(prop)) map[ps].push(prop);
+      });
+    }
+    return map;
+  }, [availableProperties]);
+
+  const psetOptions = useMemo(() => Object.keys(psetPropertyMap).sort(), [psetPropertyMap]);
+  const propertyOptionsForPset = useMemo(
+    () =>
+      importPset && psetPropertyMap[importPset]
+        ? [...psetPropertyMap[importPset]].sort()
+        : [],
+    [psetPropertyMap, importPset],
+  );
 
   const filteredClassificationEntries = useMemo(() => {
     const entries = Object.entries(classifications);
@@ -958,6 +988,10 @@ export function ClassificationPanel() {
                     </DropdownMenuItem>
                   </DropdownMenuSubContent>
                 </DropdownMenuSub>
+                <DropdownMenuItem onSelect={() => setIsModelImportOpen(true)}>
+                  <FileInput className="mr-2 h-4 w-4" />
+                  {t('buttons.loadFromModel')}
+                </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
                   className="text-destructive focus:bg-destructive/10 focus:text-destructive"
@@ -1451,6 +1485,74 @@ export function ClassificationPanel() {
                 className="sm:w-auto w-full"
               >
                 Remove All
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
+      {isModelImportOpen && (
+        <Dialog open={isModelImportOpen} onOpenChange={setIsModelImportOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>{t('buttons.loadFromModel')}</DialogTitle>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label className="text-right">{t('classifications.selectPset')}</Label>
+                <Select value={importPset} onValueChange={setImportPset}>
+                  <SelectTrigger className="col-span-3">
+                    <SelectValue placeholder="Pset" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {psetOptions.map((p) => (
+                      <SelectItem key={p} value={p}>
+                        {p}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label className="text-right">{t('classifications.selectProperty')}</Label>
+                <Select
+                  value={importProp}
+                  onValueChange={setImportProp}
+                  disabled={!importPset}
+                >
+                  <SelectTrigger className="col-span-3">
+                    <SelectValue placeholder="Property" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {propertyOptionsForPset.map((pr) => (
+                      <SelectItem key={pr} value={pr}>
+                        {pr}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setIsModelImportOpen(false);
+                  setImportPset("");
+                  setImportProp("");
+                }}
+              >
+                {t('buttons.cancel')}
+              </Button>
+              <Button
+                onClick={() => {
+                  applyClassificationsFromModelProperty(importPset, importProp);
+                  setIsModelImportOpen(false);
+                  setImportPset("");
+                  setImportProp("");
+                }}
+                disabled={!importPset || !importProp}
+              >
+                {t('buttons.apply')}
               </Button>
             </DialogFooter>
           </DialogContent>

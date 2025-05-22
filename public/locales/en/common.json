@@ -94,7 +94,8 @@
     "editRule": "Edit Rule",
     "deleteRule": "Delete Rule",
     "previewRule": "Preview Rule Impact",
-    "clearPreview": "Clear Preview"
+    "clearPreview": "Clear Preview",
+    "loadFromModel": "Load from Model"
   },
   "messages": {
     "loading": "Loading...",
@@ -160,7 +161,9 @@
     "classificationSingular": "classification",
     "classificationPlural": "classifications",
     "searchPlaceholder": "Search classifications...",
-    "noSearchResults": "No classifications match your search."
+    "noSearchResults": "No classifications match your search.",
+    "selectPset": "Property Set",
+    "selectProperty": "Property"
   },
   "rules": {
     "addNew": "Add New Rule",

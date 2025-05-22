@@ -94,7 +94,8 @@
     "editRule": "Regel bearbeiten",
     "deleteRule": "Regel löschen",
     "previewRule": "Regelauswirkung anzeigen",
-    "clearPreview": "Vorschau zurücksetzen"
+    "clearPreview": "Vorschau zurücksetzen",
+    "loadFromModel": "Aus Modell laden"
   },
   "messages": {
     "loading": "Wird geladen...",
@@ -161,6 +162,8 @@
     "classificationPlural": "Klassifikationen",
     "searchPlaceholder": "Klassifizierungen durchsuchen...",
     "noSearchResults": "Keine Klassifizierungen entsprechen Ihrer Suche.",
+    "selectPset": "Property Set",
+    "selectProperty": "Property",
     "noClassificationFound": "Keine Klassifizierung gefunden. Tippen Sie, um zu erstellen.",
     "createNewClassification": "Neue Klassifizierung \"{{value}}\" erstellen"
   },
