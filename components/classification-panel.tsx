@@ -1136,6 +1136,36 @@ export function ClassificationPanel() {
         </Dialog>
       )}
 
+
+      {selectedElement && (
+        <div className="mt-4 space-y-2 border-t pt-4">
+          {highlightedClassificationCode ? (
+            <>
+              <Button className="w-full" onClick={handleAssignSelected}>
+                {t('buttons.assignSelected')}
+              </Button>
+              <Button
+                className="w-full"
+                variant="outline"
+                onClick={handleUnassignSelected}
+              >
+                {t('buttons.removeSelected')}
+              </Button>
+            </>
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              {t('messages.highlightToAssign')}
+            </p>
+          )}
+          <Button
+            className="w-full"
+            variant="outline"
+            onClick={handleClearSelected}
+          >
+            {t('buttons.clearFromAll')}
+          </Button>
+        </div>
+      )}
       {sortedClassificationEntries.length === 0 ? (
         <div className="text-center py-8 flex-grow flex flex-col items-center justify-center">
           {searchQuery ? (
@@ -1290,35 +1320,6 @@ export function ClassificationPanel() {
         </div>
       )}
 
-      {selectedElement && (
-        <div className="mt-4 space-y-2 border-t pt-4">
-          {highlightedClassificationCode ? (
-            <>
-              <Button className="w-full" onClick={handleAssignSelected}>
-                {t('buttons.assignSelected')}
-              </Button>
-              <Button
-                className="w-full"
-                variant="outline"
-                onClick={handleUnassignSelected}
-              >
-                {t('buttons.removeSelected')}
-              </Button>
-            </>
-          ) : (
-            <p className="text-sm text-muted-foreground">
-              {t('messages.highlightToAssign')}
-            </p>
-          )}
-          <Button
-            className="w-full"
-            variant="outline"
-            onClick={handleClearSelected}
-          >
-            {t('buttons.clearFromAll')}
-          </Button>
-        </div>
-      )}
 
       {showExportSection && (
         <div className="mt-auto pt-4 border-t space-y-3">
