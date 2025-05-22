@@ -3,6 +3,12 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Add this to attempt to style select and option elements */
+select,
+option {
+  font-family: var(--font-inter), Inter, sans-serif; /* Attempt to use next/font variable, then direct name */
+}
+
 @layer base {
   :root {
     --background: 0 0% 100%;
