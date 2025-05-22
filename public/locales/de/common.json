@@ -55,6 +55,8 @@
   "settings": {
     "defaultClassification": "Standard-Klassifizierung",
     "alwaysApplyOnLoad": "Beim Laden automatisch anwenden",
+    "alwaysApplyOnLoadCombined": "Beim Laden automatisch anwenden",
+    "alwaysApplyOnLoadCombinedShort": "Beim Laden automatisch anwenden",
     "modelUrls": "Modell-URLs",
     "demoModels": "Demo-Modelle",
     "name": "Name",
@@ -126,8 +128,10 @@
     "searchCanvasPlaceholder": "3D-Elemente suchen..."
   },
   "tooltips": {
-    "defaultClassification": "Legt das Standard-Klassifizierungssystem fest.",
+    "defaultClassification": "Legt das Standard-Klassifizierungssystem fest. Dieses System wird verwendet, wenn die automatische Anwendung unten aktiviert ist.",
     "autoLoad": "Wenn aktiviert, wird die ausgewählte 'Standard-Klassifizierung' beim Laden automatisch angewendet.",
+    "alwaysApplyOnLoadCombinedTitle": "Automatische Anwendung beim Laden",
+    "alwaysApplyOnLoadCombinedDescription": "Wenn aktiviert, wird das oben ausgewählte 'Standard-Klassifizierungssystem' automatisch angewendet, wenn ein neues Modell per URL oder Datei-Upload geladen wird.",
     "modelUrls": "Verwalten Sie eine Liste von IFC-Modell-URLs. Sie können benutzerdefinierte URLs hinzufügen oder Demo-Modelle verwenden.",
     "originalColors": "Zeigt die ursprünglichen Modellfarben an (blendet alle Klassifizierungsfarben aus).",
     "classificationColors": "Wendet alle Klassifizierungsfarben auf das Modell an.",
