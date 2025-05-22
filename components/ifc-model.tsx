@@ -732,6 +732,23 @@ export function IFCModel({ modelData, outlineLayer }: IFCModelProps) {
           allTypesArray.map(String)
         );
         console.log(`IFCModel (${modelData.id}): Available categories set.`);
+
+        // ***** START DIAGNOSTIC LOG FOR getPropertySets *****
+        if (ifcApi && newIfcModelID !== null) {
+          try {
+            const tempPropertiesManager = new Properties(ifcApi);
+            console.log(`IFCModel (${modelData.id}): DIAGNOSTIC - Temp PropertiesManager created for modelID ${newIfcModelID}`);
+            const psets = await tempPropertiesManager.getPropertySets(newIfcModelID, 0, true, true);
+            console.log(`IFCModel (${modelData.id}): DIAGNOSTIC - getPropertySets(modelID: ${newIfcModelID}, 0, true, true) raw result:`, JSON.parse(JSON.stringify(psets)));
+            if (psets.length === 0) {
+              console.warn(`IFCModel (${modelData.id}): DIAGNOSTIC - getPropertySets returned an empty array for modelID ${newIfcModelID}.`);
+            }
+          } catch (e) {
+            console.error(`IFCModel (${modelData.id}): DIAGNOSTIC - Error directly calling getPropertySets:`, e);
+          }
+        }
+        // ***** END DIAGNOSTIC LOG FOR getPropertySets *****
+
         setIsLoading(false);
       } catch (error) {
         console.error(`IFCModel (${modelData.id}): Error loading:`, error);

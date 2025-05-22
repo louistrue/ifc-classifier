@@ -281,112 +281,96 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
   // Effect to collect and set available properties from all loaded models
   useEffect(() => {
     const fetchAllProperties = async () => {
+      console.log("IFCContext: fetchAllProperties called. API available?", !!ifcApiInternal);
       if (!ifcApiInternal) return;
 
-      if (!ifcApiInternal.properties) {
-        try {
-          ifcApiInternal.properties = new Properties(ifcApiInternal);
-        } catch (e) {
-          console.error(
-            "IFCContext: Failed to initialize ifcApi.properties",
-            e,
-          );
-          return;
-        }
+      let propertiesManager: Properties;
+      try {
+        propertiesManager = new Properties(ifcApiInternal);
+        console.log("IFCContext: fetchAllProperties - Properties manager initialized."); // Simplified log
+      } catch (e) {
+        console.error(
+          "IFCContext: Failed to initialize Properties utility in fetchAllProperties",
+          e,
+        );
+        return;
       }
 
       const allProps = new Set<string>();
-      // Add common/direct properties (instance or type)
-      allProps.add("Ifc Class"); // Renamed from ifcType, refers to entity type like IFCWALL
+      // Add common/direct properties that we know might exist and are useful for rules
+      // These will be simple strings, not PSet.Property format
+      allProps.add("Ifc Class");
       allProps.add("Name");
       allProps.add("GlobalId");
       allProps.add("Description");
       allProps.add("ObjectType");
       allProps.add("Tag");
-      allProps.add("PredefinedType"); // Common for many IfcElementType entities
+      allProps.add("PredefinedType");
+      console.log("IFCContext: fetchAllProperties - Initial direct attributes added:", Array.from(allProps));
 
+      console.log(`IFCContext: fetchAllProperties - Processing ${loadedModels.length} loaded models.`);
       for (const model of loadedModels) {
-        // Ensure modelID is present and the model is actually open with the current API instance
+        console.log(`IFCContext: fetchAllProperties - Processing model: ${model.name}, ID: ${model.id}, modelID: ${model.modelID}`);
         if (
           model.modelID === null ||
           !ifcApiInternal ||
           !ifcApiInternal.IsModelOpen(model.modelID)
         ) {
+          console.warn(`IFCContext: fetchAllProperties - Skipping model ${model.name} (modelID: ${model.modelID}, isOpen: ${model.modelID !== null && ifcApiInternal?.IsModelOpen(model.modelID)})`);
           continue;
         }
 
-        if (ifcApiInternal.properties) {
-          // Ensure properties helper is available on the API instance
-          try {
-            // 1. Get Property Sets (including those from types)
-            const psets = await ifcApiInternal.properties.getPropertySets(
-              model.modelID,
-              0, // Get for all elements/types in the model
-              true, // Recursive
-              true, // Include type properties
-            );
-            psets.forEach((pset: any) => {
-              if (pset.Name?.value && pset.HasProperties) {
-                const psetName = pset.Name.value;
-                pset.HasProperties.forEach((prop: any) => {
-                  if (prop.Name?.value) {
-                    allProps.add(`${psetName}.${prop.Name.value}`);
-                  }
-                });
-              }
-            });
+        console.log(`IFCContext: fetchAllProperties - Model ${model.name} is open. Fetching PSet and Type properties...`);
+        try {
+          // 1. Get Property Sets (for instances and types)
+          const psets = await propertiesManager.getPropertySets(
+            model.modelID,
+            0,
+            true,
+            true,
+          );
+          console.log(`IFCContext: fetchAllProperties - Model ${model.name}: Fetched ${psets.length} Psets. Logging first 5 (if any):`, JSON.parse(JSON.stringify(psets.slice(0, 5))));
+          psets.forEach((pset: any) => {
+            // Ensure pset has a Name and HasProperties
+            if (pset.Name?.value && Array.isArray(pset.HasProperties)) {
+              const psetName = pset.Name.value;
+              console.log(`IFCContext: fetchAllProperties - Model ${model.name}: Processing PSet '${psetName}' with ${pset.HasProperties.length} properties.`);
+              pset.HasProperties.forEach((prop: any) => {
+                if (prop.Name?.value) {
+                  const combinedName = `${psetName}.${prop.Name.value}`;
+                  allProps.add(combinedName);
+                  // console.log(`IFCContext: fetchAllProperties - Model ${model.name}: Added PSet property: ${combinedName}`);
+                }
+              });
+            } else {
+              // console.log(`IFCContext: fetchAllProperties - Model ${model.name}: Skipping PSet due to missing Name or HasProperties:`, JSON.parse(JSON.stringify(pset)));
+            }
+          });
 
-            // 2. Get Type Properties (for attributes not in Psets on types)
-            const typeObjects =
-              await ifcApiInternal.properties.getTypeProperties(
-                model.modelID,
-                0, // Get all type objects
-                true, // Recursive for their properties
-              );
-            typeObjects.forEach((typeObj: any) => {
-              // Add direct properties of the type object itself if they are simple
-              // (e.g. if ObjectType, Tag are directly on the type)
-              // This might be duplicative of the initial set but ensures capture.
-              if (typeObj.Name?.value) allProps.add("Name"); // Name of the type
-              if (typeObj.GlobalId?.value) allProps.add("GlobalId");
-              if (typeObj.Description?.value) allProps.add("Description");
-              if (typeObj.ObjectType?.value) allProps.add("ObjectType");
-              if (typeObj.Tag?.value) allProps.add("Tag");
-              if (typeObj.PredefinedType?.value) allProps.add("PredefinedType");
+          // 2. Get Type Properties (specifically for attributes on types not covered by getPropertySets with includeTypeProperties=true)
+          // This part might be largely redundant if getPropertySets with includeTypeProperties=true is comprehensive.
+          // We are already adding common direct attributes initially. 
+          // The main goal here is to ensure PSet properties are correctly formatted and added.
+          // The initial direct attributes (Name, GlobalId, etc.) are already added. 
+          // The `getPropertySets` with `includeTypeProperties = true` should cover Psets defined on types.
 
-              // If type objects themselves have property sets (common for IfcElementType)
-              if (typeObj.HasPropertySets) {
-                typeObj.HasPropertySets.forEach((pset: any) => {
-                  if (pset.Name?.value && pset.HasProperties) {
-                    const psetName = pset.Name.value;
-                    pset.HasProperties.forEach((prop: any) => {
-                      if (prop.Name?.value) {
-                        // To distinguish from instance psets, could prefix, but web-ifc might already handle this
-                        // by returning them via getPropertySets with includeTypeProperties=true.
-                        // For now, just add them; duplicates are handled by the Set.
-                        allProps.add(`${psetName}.${prop.Name.value}`);
-                      }
-                    });
-                  }
-                });
-              }
-            });
-          } catch (error) {
-            console.error(
-              `Error fetching properties for model ${model.modelID}:`,
-              error,
-            );
-          }
+        } catch (error) {
+          console.error(
+            `IFCContext: fetchAllProperties - Error fetching PSet/Type properties for model ${model.name} (ID: ${model.modelID}):`,
+            error,
+          );
         }
       }
       const sortedProps = Array.from(allProps).sort();
-      setAvailablePropertiesInternal(sortedProps);
-      if (sortedProps.length > 0) {
+      if (sortedProps.length <= 7) { // Check if only the initial direct attributes are present
+        console.warn("IFCContext: fetchAllProperties - No PSet properties seem to have been collected. Only direct attributes found:", sortedProps);
+      } else {
         console.log(
-          "IFCContext: Updated available properties for rule creation:",
+          "IFCContext: fetchAllProperties - Final collected and sorted properties (including PSets) for rule creation:",
           sortedProps,
         );
       }
+      setAvailablePropertiesInternal(sortedProps);
     };
 
     fetchAllProperties();
@@ -416,9 +400,12 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
       modelID: number,
       api: IfcAPI, // Passed explicitly, not from context state directly in this func
     ): Promise<boolean> => {
-      if (!api.properties) {
+      let propertiesManagerForRule: Properties;
+      try {
+        propertiesManagerForRule = new Properties(api);
+      } catch (e) {
         console.warn(
-          "API properties not initialized in matchesAllConditionsCallback",
+          "Properties utility not initialized in matchesAllConditionsCallback", e
         );
         return false;
       }
@@ -435,7 +422,7 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
           // Fetch all item properties once if not already fetched for this element
           if (itemProps === null && elementNode.expressID) {
             try {
-              itemProps = await api.properties.getItemProperties(
+              itemProps = await propertiesManagerForRule.getItemProperties(
                 modelID,
                 elementNode.expressID,
                 true,
@@ -497,7 +484,7 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
                 );
               }
               try {
-                const typeObjects = await api.properties.getTypeProperties(
+                const typeObjects = await propertiesManagerForRule.getTypeProperties(
                   modelID,
                   elementNode.expressID,
                   true,
@@ -786,16 +773,15 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
     }
 
     // Ensure properties are initialized if API is available
-    if (ifcApiInternal && !ifcApiInternal.properties) {
-      try {
-        ifcApiInternal.properties = new Properties(ifcApiInternal);
-      } catch (e) {
-        console.error(
-          "IFCContext: Failed to initialize ifcApi.properties in applyAllActiveRules",
-          e,
-        );
-        return; // Cannot proceed without properties
-      }
+    let propertiesManagerForRuleApp: Properties;
+    try {
+      propertiesManagerForRuleApp = new Properties(ifcApiInternal);
+    } catch (e) {
+      console.error(
+        "IFCContext: Failed to initialize Properties utility in applyAllActiveRules",
+        e,
+      );
+      return; // Cannot proceed without properties
     }
 
     console.log("IFCContext: Applying all active rules...");
@@ -970,6 +956,14 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
   const previewRuleHighlight = useCallback(
     async (ruleId: string) => {
       if (!ifcApiInternal) return;
+
+      let propertiesManagerForPreview: Properties;
+      try {
+        propertiesManagerForPreview = new Properties(ifcApiInternal);
+      } catch (e) {
+        console.error("Failed to init Properties utility in previewRuleHighlight", e);
+        return;
+      }
 
       if (previewingRuleId === ruleId) {
         // Clicking active preview again: toggle off
@@ -1401,142 +1395,194 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
             updated[code] = item;
           }
         }
-      return changed ? updated : prev;
-    });
-  },
-  [setClassifications],
-);
+        return changed ? updated : prev;
+      });
+    },
+    [setClassifications],
+  );
 
   const mapClassificationsFromModel = useCallback(
     async (pset: string, property: string) => {
-      if (!ifcApiInternal) return;
+      console.log(`IFCContext: mapClassificationsFromModel called with PSet='${pset}', Property='${property}'`);
+      if (!ifcApiInternal) {
+        console.error("IFCContext: mapClassificationsFromModel - IFC API not available.");
+        return;
+      }
 
-      if (!ifcApiInternal.properties) {
-        try {
-          ifcApiInternal.properties = new Properties(ifcApiInternal);
-        } catch (e) {
-          console.error(
-            "IFCContext: Failed to init properties in mapClassificationsFromModel",
-            e,
-          );
-          return;
-        }
+      let propertiesManagerForMapping: Properties;
+      try {
+        propertiesManagerForMapping = new Properties(ifcApiInternal);
+        console.log("IFCContext: mapClassificationsFromModel - Properties manager initialized.");
+      } catch (e) {
+        console.error(
+          "IFCContext: Failed to init Properties utility in mapClassificationsFromModel",
+          e,
+        );
+        return;
       }
 
       const newElementsPerClassification: Record<string, SelectedElementInfo[]> = {};
       for (const code in classifications) {
-        newElementsPerClassification[code] = [];
+        newElementsPerClassification[code] = []; // Initialize even if no mapping occurs for this code
       }
+      console.log("IFCContext: mapClassificationsFromModel - Initialized newElementsPerClassification:", Object.keys(newElementsPerClassification));
 
       const fetchValue = async (
         modelID: number,
         expressID: number,
       ): Promise<any> => {
+        console.log(`IFCContext: mapClassificationsFromModel.fetchValue - Fetching for modelID: ${modelID}, expressID: ${expressID}`);
         let itemProps: any = null;
         try {
-          itemProps = await ifcApiInternal!.properties!.getItemProperties(
+          itemProps = await propertiesManagerForMapping.getItemProperties(
             modelID,
             expressID,
             true,
           );
+          console.log(`IFCContext: mapClassificationsFromModel.fetchValue - itemProps for ${expressID}:`, JSON.parse(JSON.stringify(itemProps)));
         } catch (e) {
+          console.error(`IFCContext: mapClassificationsFromModel.fetchValue - Error getting itemProps for ${expressID}:`, e);
           return null;
         }
 
-        if (pset) {
+        if (pset) { // pset will be the PSet name string
+          console.log(`IFCContext: mapClassificationsFromModel.fetchValue - Looking for PSet: '${pset}' and Property: '${property}'`);
           let psetObject: any = undefined;
+
+          // Attempt to find PSet directly by its name in itemProps
           if (itemProps[pset]) {
             psetObject = itemProps[pset];
+            console.log(`IFCContext: mapClassificationsFromModel.fetchValue - Found PSet '${pset}' directly in itemProps.`);
           } else if (Array.isArray(itemProps.PropertySets)) {
             psetObject = itemProps.PropertySets.find(
               (ps: any) => ps.Name?.value === pset,
             );
+            if (psetObject) console.log(`IFCContext: mapClassificationsFromModel.fetchValue - Found PSet '${pset}' in itemProps.PropertySets.`);
           } else {
+            // Fallback: Iterate keys if structure is different
             for (const key in itemProps) {
               if (
+                Object.prototype.hasOwnProperty.call(itemProps, key) &&
                 typeof itemProps[key] === "object" &&
                 itemProps[key] !== null &&
-                itemProps[key].Name?.value === pset &&
-                itemProps[key].HasProperties
+                itemProps[key].Name?.value === pset && // Check Name.value if PSet object
+                itemProps[key].HasProperties // Ensure it's a PSet-like object
               ) {
                 psetObject = itemProps[key];
+                console.log(`IFCContext: mapClassificationsFromModel.fetchValue - Found PSet '${pset}' by iterating itemProps keys.`);
                 break;
               }
             }
           }
 
           if (!psetObject) {
+            console.log(`IFCContext: mapClassificationsFromModel.fetchValue - PSet '${pset}' not found in direct properties. Trying Type Properties for element ${expressID}.`);
             try {
-              const typeObjects = await ifcApiInternal!.properties!.getTypeProperties(
+              const typeObjects = await propertiesManagerForMapping.getTypeProperties(
                 modelID,
                 expressID,
                 true,
               );
               for (const typeObj of typeObjects) {
-                if (typeObj.HasPropertySets) {
+                if (typeObj.HasPropertySets && Array.isArray(typeObj.HasPropertySets)) {
                   const found = typeObj.HasPropertySets.find(
                     (ps: any) => ps.Name?.value === pset,
                   );
                   if (found) {
                     psetObject = found;
+                    console.log(`IFCContext: mapClassificationsFromModel.fetchValue - Found PSet '${pset}' in Type Properties.`);
                     break;
                   }
                 }
               }
             } catch (e) {
-              // ignore
+              console.error(`IFCContext: mapClassificationsFromModel.fetchValue - Error fetching type properties for PSet lookup on ${expressID}:`, e);
             }
           }
 
           if (psetObject && psetObject.HasProperties) {
+            console.log(`IFCContext: mapClassificationsFromModel.fetchValue - PSet '${pset}' has properties. Looking for property '${property}'. Properties:`, JSON.parse(JSON.stringify(psetObject.HasProperties)));
             const propObj = psetObject.HasProperties.find(
               (p: any) => p.Name?.value === property,
             );
             if (propObj) {
-              if (propObj.NominalValue?.value !== undefined)
-                return propObj.NominalValue.value;
+              console.log(`IFCContext: mapClassificationsFromModel.fetchValue - Found property '${property}':`, JSON.parse(JSON.stringify(propObj)));
+              if (propObj.NominalValue?.value !== undefined) return propObj.NominalValue.value;
               if (propObj.NominalValue !== undefined) return propObj.NominalValue;
+              // Web-ifc-viewer uses NominalValue, but web-ifc might use Value directly for some IfcPropertySingleValue types
               if (propObj.Value?.value !== undefined) return propObj.Value.value;
               if (propObj.Value !== undefined) return propObj.Value;
+              console.warn(`IFCContext: mapClassificationsFromModel.fetchValue - Property '${property}' found, but NominalValue/Value is undefined.`);
+              return null; // Or some other indicator of value not found
+            } else {
+              console.warn(`IFCContext: mapClassificationsFromModel.fetchValue - Property '${property}' not found in PSet '${pset}'.`);
             }
+          } else {
+            console.warn(`IFCContext: mapClassificationsFromModel.fetchValue - PSet '${pset}' not found or has no properties.`);
           }
-        } else {
-          const direct = itemProps[property];
-          if (direct !== undefined) {
-            if (direct?.value !== undefined) return direct.value;
-            return direct;
+        } else { // No PSet, direct property lookup (e.g., Name, GlobalId)
+          console.log(`IFCContext: mapClassificationsFromModel.fetchValue - Looking for direct property: '${property}'`);
+          const directPropValue = itemProps[property];
+          if (directPropValue !== undefined) {
+            if (directPropValue?.value !== undefined) return directPropValue.value;
+            return directPropValue;
           }
+          console.warn(`IFCContext: mapClassificationsFromModel.fetchValue - Direct property '${property}' not found.`);
         }
         return null;
       };
 
+      console.log(`IFCContext: mapClassificationsFromModel - Iterating ${loadedModels.length} models.`);
       for (const model of loadedModels) {
-        if (!model.modelID || !model.spatialTree) continue;
+        console.log(`IFCContext: mapClassificationsFromModel - Processing model ${model.name} (ID: ${model.modelID})`);
+        if (!model.modelID || !model.spatialTree) {
+          console.warn(`IFCContext: mapClassificationsFromModel - Skipping model ${model.name}, missing modelID or spatialTree.`);
+          continue;
+        }
         const allElements = getAllElementsFromSpatialTreeNodesRecursive([
           model.spatialTree,
         ]);
+        console.log(`IFCContext: mapClassificationsFromModel - Model ${model.name} has ${allElements.length} elements in spatial tree.`);
         for (const node of allElements) {
           if (node.expressID === undefined) continue;
           const val = await fetchValue(model.modelID, node.expressID);
-          if (val === null || val === undefined) continue;
+          if (val === null || val === undefined) {
+            // console.log(`IFCContext: mapClassificationsFromModel - No value found for element ${node.expressID} with PSet '${pset}', Property '${property}'`);
+            continue;
+          }
           const raw = String(val);
+          console.log(`IFCContext: mapClassificationsFromModel - Element ${node.expressID}, Raw value for mapping: '${raw}'`);
           const codes = raw.split(/[,;]+/).map((c) => c.trim()).filter((c) => c);
           for (const code of codes) {
             if (newElementsPerClassification[code]) {
               const arr = newElementsPerClassification[code];
               if (!arr.some((el) => el.modelID === model.modelID && el.expressID === node.expressID)) {
                 arr.push({ modelID: model.modelID, expressID: node.expressID });
+                console.log(`IFCContext: mapClassificationsFromModel - Mapped element ${node.expressID} to classification code '${code}'`);
               }
+            } else {
+              // console.log(`IFCContext: mapClassificationsFromModel - Classification code '${code}' from model not in current classifications list. Cannot map element ${node.expressID}.`);
             }
           }
         }
       }
 
+      console.log("IFCContext: mapClassificationsFromModel - Final newElementsPerClassification before set state:", JSON.parse(JSON.stringify(newElementsPerClassification)));
       setClassifications((prev) => {
         const updated = { ...prev };
+        let changesMade = false;
         for (const code in updated) {
-          const els = newElementsPerClassification[code] || [];
-          updated[code] = { ...updated[code], elements: els };
+          const newEls = newElementsPerClassification[code] || []; // Default to empty array if code had no new mappings
+          // Compare if elements actually changed to avoid unnecessary re-renders
+          if (JSON.stringify(updated[code].elements || []) !== JSON.stringify(newEls)) {
+            updated[code] = { ...updated[code], elements: newEls };
+            changesMade = true;
+          }
+        }
+        if (changesMade) {
+          console.log("IFCContext: mapClassificationsFromModel - Classifications updated with mapped elements.");
+        } else {
+          console.log("IFCContext: mapClassificationsFromModel - No changes to classification elements after mapping.");
         }
         return updated;
       });

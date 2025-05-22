@@ -179,6 +179,10 @@ export function ClassificationPanel() {
     useState<string>("");
   const [searchQuery, setSearchQuery] = useState("");
 
+  useEffect(() => {
+    console.log("ClassificationPanel: availableProperties updated:", JSON.parse(JSON.stringify(availableProperties)));
+  }, [availableProperties]);
+
   const filteredClassificationEntries = useMemo(() => {
     const entries = Object.entries(classifications);
     if (!searchQuery) return entries;
@@ -192,8 +196,6 @@ export function ClassificationPanel() {
     });
   }, [classifications, searchQuery]);
 
-
-
   const listWrapperRef = useRef<HTMLDivElement>(null);
   const [listHeight, setListHeight] = useState(0);
   const [listWidth, setListWidth] = useState(0);
@@ -205,20 +207,30 @@ export function ClassificationPanel() {
   >(undefined);
 
   const psetOptions = useMemo(() => {
+    console.log("ClassificationPanel: Recalculating psetOptions. availableProperties:", JSON.parse(JSON.stringify(availableProperties)));
     const sets = new Set<string>();
     availableProperties.forEach((p) => {
       const parts = p.split(".");
       if (parts.length === 2) sets.add(parts[0]);
     });
-    return Array.from(sets).sort().map((s) => ({ value: s, label: s }));
+    const sortedSets = Array.from(sets).sort();
+    const options = sortedSets.map((s) => ({ value: s, label: s }));
+    console.log("ClassificationPanel: psetOptions calculated:", options);
+    return options;
   }, [availableProperties]);
 
   const propertyOptions = useMemo(() => {
-    if (!selectedPset) return [] as ComboboxOption[];
-    return availableProperties
+    console.log(`ClassificationPanel: Recalculating propertyOptions. selectedPset: '${selectedPset}', availableProperties:`, JSON.parse(JSON.stringify(availableProperties)));
+    if (!selectedPset) {
+      console.log("ClassificationPanel: propertyOptions - no selectedPset, returning empty array.");
+      return [] as ComboboxOption[];
+    }
+    const filtered = availableProperties
       .filter((p) => p.startsWith(selectedPset + "."))
       .map((p) => ({ value: p.split(".")[1], label: p.split(".")[1] }))
       .sort((a, b) => a.label.localeCompare(b.label));
+    console.log("ClassificationPanel: propertyOptions calculated:", filtered);
+    return filtered;
   }, [availableProperties, selectedPset]);
 
   // Determine if any classifications have elements assigned
@@ -579,8 +591,13 @@ export function ClassificationPanel() {
   };
 
   const handleMapFromModelConfirm = async () => {
-    if (!selectedPset || !selectedProperty) return;
+    console.log(`ClassificationPanel: handleMapFromModelConfirm called. PSet: '${selectedPset}', Property: '${selectedProperty}'`);
+    if (!selectedPset || !selectedProperty) {
+      console.warn("ClassificationPanel: handleMapFromModelConfirm - PSet or Property not selected.");
+      return;
+    }
     await mapClassificationsFromModel(selectedPset, selectedProperty);
+    console.log("ClassificationPanel: mapClassificationsFromModel call completed.");
     setIsFromModelDialogOpen(false);
   };
 
@@ -1503,7 +1520,12 @@ export function ClassificationPanel() {
               <CreatableCombobox
                 options={psetOptions}
                 value={selectedPset}
-                onChange={setSelectedPset}
+                onChange={(value) => {
+                  console.log("ClassificationPanel: PSet selection changed to:", value);
+                  setSelectedPset(value);
+                  setSelectedProperty(""); // Reset property when PSet changes
+                  console.log("ClassificationPanel: Property selection reset.");
+                }}
                 className="col-span-3"
                 popoverClassName="w-full max-w-[300px]"
               />
@@ -1513,7 +1535,10 @@ export function ClassificationPanel() {
               <CreatableCombobox
                 options={propertyOptions}
                 value={selectedProperty}
-                onChange={setSelectedProperty}
+                onChange={(value) => {
+                  console.log("ClassificationPanel: Property selection changed to:", value);
+                  setSelectedProperty(value);
+                }}
                 className="col-span-3"
                 popoverClassName="w-full max-w-[300px]"
               />
