@@ -12,7 +12,12 @@ import React, {
 } from "react";
 import type { IfcAPI } from "web-ifc"; // Import IfcAPI type
 import { Properties } from "web-ifc"; // Ensure Properties is imported
-import { getAllElementProperties, ParsedElementProperties } from "@/services/ifc-properties";
+import { ParsedElementProperties } from "@/services/ifc-properties";
+import type {
+  Components as OBCComponents,
+  IfcRelationsIndexer,
+  RelationsMap,
+} from "@thatopen/components";
 import { parseRulesFromExcel } from "@/services/rule-import-service";
 import { exportRulesToExcel } from "@/services/rule-export-service";
 import { exportClassificationsToExcel } from "@/services/classification-export-service";
@@ -87,6 +92,10 @@ interface IFCContextType {
   setAvailableProperties: (props: string[]) => void;
   baseCoordinationMatrix: number[] | null; // Base matrix for aligning multiple models
   setBaseCoordinationMatrix: (matrix: number[] | null) => void;
+  obcComponents: OBCComponents | null;
+  relationsIndexer: IfcRelationsIndexer | null;
+  modelRelations: Record<number, RelationsMap>;
+  processAndStoreModelRelations: (modelID: number) => Promise<void>;
   naturalIfcClassNames: Record<
     string,
     { en: string; de: string; schema?: string }
@@ -208,6 +217,9 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
   const [baseCoordinationMatrix, setBaseCoordinationMatrix] = useState<
     number[] | null
   >(null);
+  const [obcComponents, setObcComponents] = useState<OBCComponents | null>(null);
+  const [relationsIndexer, setRelationsIndexer] = useState<IfcRelationsIndexer | null>(null);
+  const [modelRelations, setModelRelations] = useState<Record<number, RelationsMap>>({});
 
   // Initialize classifications with a default entry
   const [classifications, setClassifications] = useState<Record<string, any>>({
@@ -223,6 +235,17 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
   const [rules, setRules] = useState<Rule[]>([]);
   const [ifcApiInternal, setIfcApiInternal] = useState<IfcAPI | null>(null);
   const elementPropsCache = useRef<Map<number, Map<number, ParsedElementProperties>>>(new Map());
+
+  // Initialize OBC components and relations indexer
+  useEffect(() => {
+    if (!obcComponents) {
+      const comps = new (require("@thatopen/components").Components)() as OBCComponents;
+      const indexer = comps.get(require("@thatopen/components").IfcRelationsIndexer) as IfcRelationsIndexer;
+      comps.init();
+      setObcComponents(comps);
+      setRelationsIndexer(indexer);
+    }
+  }, [obcComponents]);
 
   // Fetch natural IFC class names
   useEffect(() => {
@@ -1291,6 +1314,104 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
     [setIfcApiInternal],
   );
 
+  const processAndStoreModelRelations = useCallback(
+    async (modelID: number) => {
+      if (!ifcApiInternal || !relationsIndexer) return;
+      try {
+        const map = await relationsIndexer.processFromWebIfc(ifcApiInternal as any, modelID);
+        setModelRelations((prev) => ({ ...prev, [modelID]: map }));
+      } catch (e) {
+        console.warn('Failed to process relations for model', modelID, e);
+      }
+    },
+    [ifcApiInternal, relationsIndexer],
+  );
+
+  const getElementPropertiesUsingIndexer = useCallback(
+    async (modelID: number, expressID: number): Promise<ParsedElementProperties | null> => {
+      if (!ifcApiInternal || !relationsIndexer) return null;
+      const relationMap = modelRelations[modelID];
+      if (!relationMap) return null;
+      try {
+        const elem = await ifcApiInternal.GetLine(modelID, expressID, true);
+        const ifcType = ifcApiInternal.GetNameFromTypeCode(elem.type);
+        const propertySets: Record<string, Record<string, any>> = {};
+
+        const psetRels = relationsIndexer.getEntityRelations(relationMap, expressID, "IsDefinedBy") || [];
+        for (const relID of psetRels) {
+          const rel = await ifcApiInternal.GetLine(modelID, relID, true);
+          const psetId = rel.RelatingPropertyDefinition?.value;
+          if (!psetId) continue;
+          const pset = await ifcApiInternal.GetLine(modelID, psetId, true);
+          const psetName = pset.Name?.value || `Pset_${psetId}`;
+          propertySets[psetName] = {};
+          if (Array.isArray(pset.HasProperties)) {
+            for (const propRef of pset.HasProperties) {
+              const prop = await ifcApiInternal.GetLine(modelID, propRef.value, true);
+              const propName = prop.Name?.value;
+              if (!propName) continue;
+              let val: any = undefined;
+              if (prop.NominalValue?.value !== undefined) val = prop.NominalValue.value;
+              else if (prop.NominalValue !== undefined) val = prop.NominalValue;
+              else if (prop.HasProperties) {
+                // nested property, skip for simplicity
+              }
+              if (val !== undefined) propertySets[psetName][propName] = val;
+            }
+          }
+        }
+
+        const typeRels = relationsIndexer.getEntityRelations(relationMap, expressID, "IsTypedBy") || [];
+        for (const relID of typeRels) {
+          const rel = await ifcApiInternal.GetLine(modelID, relID, true);
+          const typeId = rel.RelatingType?.value;
+          if (!typeId) continue;
+          const typeObj = await ifcApiInternal.GetLine(modelID, typeId, true);
+          const typeName = typeObj.Name?.value || `Type_${typeId}`;
+          const attrGroup = `Type Attributes: ${typeName}`;
+          propertySets[attrGroup] = {};
+          for (const key in typeObj) {
+            if (key === "expressID" || key === "type") continue;
+            const val = typeObj[key];
+            if (val?.value !== undefined) propertySets[attrGroup][key] = val.value;
+            else if (typeof val !== "object") propertySets[attrGroup][key] = val;
+          }
+          if (Array.isArray(typeObj.HasPropertySets)) {
+            for (const psRef of typeObj.HasPropertySets) {
+              const ps = await ifcApiInternal.GetLine(modelID, psRef.value, true);
+              const psName = ps.Name?.value || `Pset_${ps.expressID}`;
+              const finalName = `${psName} (from Type: ${typeName})`;
+              propertySets[finalName] = {};
+              if (Array.isArray(ps.HasProperties)) {
+                for (const propRef of ps.HasProperties) {
+                  const prop = await ifcApiInternal.GetLine(modelID, propRef.value, true);
+                  const propName = prop.Name?.value;
+                  if (!propName) continue;
+                  let val: any = undefined;
+                  if (prop.NominalValue?.value !== undefined) val = prop.NominalValue.value;
+                  else if (prop.NominalValue !== undefined) val = prop.NominalValue;
+                  if (val !== undefined) propertySets[finalName][propName] = val;
+                }
+              }
+            }
+          }
+        }
+
+        return {
+          modelID,
+          expressID,
+          ifcType,
+          attributes: elem,
+          propertySets,
+        };
+      } catch (err) {
+        console.warn('Failed to get properties via indexer', err);
+        return null;
+      }
+    },
+    [ifcApiInternal, relationsIndexer, modelRelations],
+  );
+
   const getElementPropertiesCached = useCallback(
     async (modelID: number, expressID: number) => {
       if (!ifcApiInternal) return null;
@@ -1299,7 +1420,7 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
         return modelMap.get(expressID)!;
       }
       try {
-        const props = await getAllElementProperties(ifcApiInternal, modelID, expressID);
+        const props = await getElementPropertiesUsingIndexer(modelID, expressID);
         if (!modelMap) {
           modelMap = new Map();
           elementPropsCache.current.set(modelID, modelMap);
@@ -1311,7 +1432,7 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
         return null;
       }
     },
-    [ifcApiInternal],
+    [ifcApiInternal, getElementPropertiesUsingIndexer],
   );
 
   const toggleShowAllClassificationColors = useCallback(() => {
@@ -1841,6 +1962,10 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
         toggleShowAllClassificationColors,
         baseCoordinationMatrix,
         setBaseCoordinationMatrix: setBaseCoordinationMatrixFn,
+        obcComponents,
+        relationsIndexer,
+        modelRelations,
+        processAndStoreModelRelations,
         addClassification,
         removeClassification,
         removeAllClassifications,

@@ -446,6 +446,7 @@ export function IFCModel({ modelData, outlineLayer }: IFCModelProps) {
     baseCoordinationMatrix,
     setBaseCoordinationMatrix,
     getElementPropertiesCached,
+    processAndStoreModelRelations,
   } = useIFCContext();
 
   const [isLoading, setIsLoading] = useState(true);
@@ -733,6 +734,9 @@ export function IFCModel({ modelData, outlineLayer }: IFCModelProps) {
           allTypesArray.map(String)
         );
         console.log(`IFCModel (${modelData.id}): Available categories set.`);
+        if (processAndStoreModelRelations) {
+          await processAndStoreModelRelations(newIfcModelID);
+        }
         setIsLoading(false);
       } catch (error) {
         console.error(`IFCModel (${modelData.id}): Error loading:`, error);
