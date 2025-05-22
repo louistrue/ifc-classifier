@@ -152,6 +152,136 @@ function extractDirectAttributes(
   }
 }
 
+async function appendMaterialSets(
+  ifcApi: IfcAPI,
+  modelID: number,
+  targetExpressID: number,
+  psetsData: Record<string, Record<string, any>>,
+  processApiPset: (
+    psetEntity: any,
+    targetPSetData: Record<string, any>,
+    name: string,
+  ) => Promise<void>,
+) {
+  let materialsAndDefs = await ifcApi.properties.getMaterialsProperties(
+    modelID,
+    targetExpressID,
+    true,
+    true,
+  );
+  if (!materialsAndDefs || materialsAndDefs.length === 0) {
+    const relAssociatesMaterialIDs = await ifcApi.GetLineIDsWithType(
+      modelID,
+      300348915,
+    ); // IFCRELASSOCIATESMATERIAL
+    const found: any[] = [];
+    for (let i = 0; i < relAssociatesMaterialIDs.size(); i++) {
+      const relID = relAssociatesMaterialIDs.get(i);
+      const rel = await ifcApi.GetLine(modelID, relID, false);
+      if (rel.RelatedObjects && Array.isArray(rel.RelatedObjects)) {
+        const isElementAssociated = rel.RelatedObjects.some(
+          (obj: any) => obj.value === targetExpressID,
+        );
+        if (isElementAssociated && rel.RelatingMaterial?.value) {
+          try {
+            const materialEntity = await ifcApi.GetLine(
+              modelID,
+              rel.RelatingMaterial.value,
+              true,
+            );
+            if (materialEntity) found.push(materialEntity);
+          } catch {
+            /* ignore */
+          }
+        }
+      }
+    }
+    if (found.length > 0) materialsAndDefs = found;
+  }
+
+  if (materialsAndDefs && materialsAndDefs.length > 0) {
+    for (const matDef of materialsAndDefs) {
+      const matDefType = ifcApi.GetNameFromTypeCode(matDef.type);
+      const matDefNameFromIFC = matDef.Name?.value;
+      let groupName = "";
+      if (matDefType === "IFCMATERIAL") {
+        const materialName = matDefNameFromIFC || `Material_${matDef.expressID}`;
+        groupName = `Material: ${materialName}`;
+        if (!psetsData[groupName]) psetsData[groupName] = {};
+        extractDirectAttributes(matDef, psetsData[groupName], ["Name", "Description"]);
+        if (Object.keys(psetsData[groupName]).length === 0)
+          delete psetsData[groupName];
+      } else if (matDefType === "IFCMATERIALLAYERSET") {
+        const layerSetName =
+          matDefNameFromIFC || `MatLayerSet_${matDef.expressID}`;
+        groupName = `LayerSet: ${layerSetName}`;
+        if (!psetsData[groupName]) psetsData[groupName] = {};
+        if (matDef.TotalThickness?.value !== undefined)
+          psetsData[groupName]["TotalThickness"] = matDef.TotalThickness.value;
+        if (matDef.MaterialLayers && Array.isArray(matDef.MaterialLayers)) {
+          for (const [index, layerEntity] of matDef.MaterialLayers.entries()) {
+            psetsData[groupName][`Layer_${index + 1}_Thickness`] =
+              layerEntity.LayerThickness?.value;
+            psetsData[groupName][`Layer_${index + 1}_Material`] =
+              layerEntity.Material?.Name?.value ||
+              layerEntity.Material?.value ||
+              "Unknown Material";
+          }
+        }
+        if (
+          Object.keys(psetsData[groupName]).length === 0 &&
+          !psetsData[groupName]["TotalThickness"]
+        )
+          delete psetsData[groupName];
+        else if (
+          Object.keys(psetsData[groupName]).length === 1 &&
+          psetsData[groupName]["TotalThickness"] &&
+          (!matDef.MaterialLayers || matDef.MaterialLayers.length === 0)
+        )
+          delete psetsData[groupName];
+      } else if (matDefType === "IFCMATERIALPROPERTIES") {
+        const psetName = matDefNameFromIFC || "Material Properties";
+        groupName = `Material Properties: ${psetName}`;
+        if (!psetsData[groupName]) psetsData[groupName] = {};
+        await processApiPset(matDef, psetsData[groupName], groupName);
+        if (Object.keys(psetsData[groupName]).length === 0)
+          delete psetsData[groupName];
+      } else if (matDefType === "IFCMATERIALLIST") {
+        const listName = matDefNameFromIFC || `MatList_${matDef.expressID}`;
+        groupName = `MaterialList: ${listName}`;
+        if (!psetsData[groupName]) psetsData[groupName] = {};
+        if (matDef.Materials && Array.isArray(matDef.Materials)) {
+          for (const [index, materialRef] of matDef.Materials.entries()) {
+            if (materialRef?.value) {
+              try {
+                const material = await ifcApi.GetLine(
+                  modelID,
+                  materialRef.value,
+                  true,
+                );
+                psetsData[groupName][`Material_${index + 1}`] =
+                  material.Name?.value ||
+                  `UnnamedMaterial_${material.expressID}`;
+              } catch {
+                /* ignore */
+              }
+            }
+          }
+        }
+        if (Object.keys(psetsData[groupName]).length === 0)
+          delete psetsData[groupName];
+      } else {
+        const groupNameSuggestion = matDefNameFromIFC || matDefType;
+        groupName = `MaterialInfo: ${groupNameSuggestion}`;
+        if (!psetsData[groupName]) psetsData[groupName] = {};
+        extractDirectAttributes(matDef, psetsData[groupName], ["Name", "Description"]);
+        if (Object.keys(psetsData[groupName]).length === 0)
+          delete psetsData[groupName];
+      }
+    }
+  }
+}
+
 export async function getAllElementProperties(
   ifcApi: IfcAPI,
   modelID: number,
@@ -230,8 +360,8 @@ export async function getAllElementProperties(
       if (Object.keys(psetsData[typeAttributesPSetName]).length === 0)
         delete psetsData[typeAttributesPSetName];
 
-      if (typeObject.HasPropertySets && Array.isArray(typeObject.HasPropertySets)) {
-        for (const propDefRefOrObject of typeObject.HasPropertySets) {
+        if (typeObject.HasPropertySets && Array.isArray(typeObject.HasPropertySets)) {
+          for (const propDefRefOrObject of typeObject.HasPropertySets) {
           let propDefEntity = null;
           if (propDefRefOrObject?.value !== undefined && typeof propDefRefOrObject.value === "number") {
             try {
@@ -262,100 +392,13 @@ export async function getAllElementProperties(
             }
           }
         }
+
+        await appendMaterialSets(ifcApi, modelID, typeObject.expressID, psetsData, processApiPset);
       }
     }
   }
 
-  let materialsAndDefs = await ifcApi.properties.getMaterialsProperties(modelID, expressID, true, true);
-  if (!materialsAndDefs || materialsAndDefs.length === 0) {
-    const relAssociatesMaterialIDs = await ifcApi.GetLineIDsWithType(modelID, 300348915); // IFCRELASSOCIATESMATERIAL
-    const found: any[] = [];
-    for (let i = 0; i < relAssociatesMaterialIDs.size(); i++) {
-      const relID = relAssociatesMaterialIDs.get(i);
-      const rel = await ifcApi.GetLine(modelID, relID, false);
-      if (rel.RelatedObjects && Array.isArray(rel.RelatedObjects)) {
-        const isElementAssociated = rel.RelatedObjects.some((obj: any) => obj.value === expressID);
-        if (isElementAssociated && rel.RelatingMaterial?.value) {
-          try {
-            const materialEntity = await ifcApi.GetLine(modelID, rel.RelatingMaterial.value, true);
-            if (materialEntity) found.push(materialEntity);
-          } catch {
-            /* ignore */
-          }
-        }
-      }
-    }
-    if (found.length > 0) materialsAndDefs = found;
-  }
-
-  if (materialsAndDefs && materialsAndDefs.length > 0) {
-    for (const matDef of materialsAndDefs) {
-      const matDefType = ifcApi.GetNameFromTypeCode(matDef.type);
-      const matDefNameFromIFC = matDef.Name?.value;
-      let groupName = "";
-      if (matDefType === "IFCMATERIAL") {
-        const materialName = matDefNameFromIFC || `Material_${matDef.expressID}`;
-        groupName = `Material: ${materialName}`;
-        if (!psetsData[groupName]) psetsData[groupName] = {};
-        extractDirectAttributes(matDef, psetsData[groupName], ["Name", "Description"]);
-        if (Object.keys(psetsData[groupName]).length === 0) delete psetsData[groupName];
-      } else if (matDefType === "IFCMATERIALLAYERSET") {
-        const layerSetName = matDefNameFromIFC || `MatLayerSet_${matDef.expressID}`;
-        groupName = `LayerSet: ${layerSetName}`;
-        if (!psetsData[groupName]) psetsData[groupName] = {};
-        if (matDef.TotalThickness?.value !== undefined)
-          psetsData[groupName]["TotalThickness"] = matDef.TotalThickness.value;
-        if (matDef.MaterialLayers && Array.isArray(matDef.MaterialLayers)) {
-          for (const [index, layerEntity] of matDef.MaterialLayers.entries()) {
-            psetsData[groupName][`Layer_${index + 1}_Thickness`] = layerEntity.LayerThickness?.value;
-            psetsData[groupName][`Layer_${index + 1}_Material`] =
-              layerEntity.Material?.Name?.value || layerEntity.Material?.value || "Unknown Material";
-          }
-        }
-        if (
-          Object.keys(psetsData[groupName]).length === 0 &&
-          !psetsData[groupName]["TotalThickness"]
-        )
-          delete psetsData[groupName];
-        else if (
-          Object.keys(psetsData[groupName]).length === 1 &&
-          psetsData[groupName]["TotalThickness"] &&
-          (!matDef.MaterialLayers || matDef.MaterialLayers.length === 0)
-        )
-          delete psetsData[groupName];
-      } else if (matDefType === "IFCMATERIALPROPERTIES") {
-        const psetName = matDefNameFromIFC || "Material Properties";
-        groupName = `Material Properties: ${psetName}`;
-        if (!psetsData[groupName]) psetsData[groupName] = {};
-        await processApiPset(matDef, psetsData[groupName], groupName);
-        if (Object.keys(psetsData[groupName]).length === 0) delete psetsData[groupName];
-      } else if (matDefType === "IFCMATERIALLIST") {
-        const listName = matDefNameFromIFC || `MatList_${matDef.expressID}`;
-        groupName = `MaterialList: ${listName}`;
-        if (!psetsData[groupName]) psetsData[groupName] = {};
-        if (matDef.Materials && Array.isArray(matDef.Materials)) {
-          for (const [index, materialRef] of matDef.Materials.entries()) {
-            if (materialRef?.value) {
-              try {
-                const material = await ifcApi.GetLine(modelID, materialRef.value, true);
-                psetsData[groupName][`Material_${index + 1}`] =
-                  material.Name?.value || `UnnamedMaterial_${material.expressID}`;
-              } catch {
-                /* ignore */
-              }
-            }
-          }
-        }
-        if (Object.keys(psetsData[groupName]).length === 0) delete psetsData[groupName];
-      } else {
-        const groupNameSuggestion = matDefNameFromIFC || matDefType;
-        groupName = `MaterialInfo: ${groupNameSuggestion}`;
-        if (!psetsData[groupName]) psetsData[groupName] = {};
-        extractDirectAttributes(matDef, psetsData[groupName], ["Name", "Description"]);
-        if (Object.keys(psetsData[groupName]).length === 0) delete psetsData[groupName];
-      }
-    }
-  }
+  await appendMaterialSets(ifcApi, modelID, expressID, psetsData, processApiPset);
 
   return {
     modelID,
