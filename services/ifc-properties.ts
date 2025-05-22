@@ -266,27 +266,52 @@ export async function getAllElementProperties(
     }
   }
 
-  let materialsAndDefs = await ifcApi.properties.getMaterialsProperties(modelID, expressID, true, true);
-  if (!materialsAndDefs || materialsAndDefs.length === 0) {
+  const materialMap = new Map<number, any>();
+  const appendMaterials = (arr: any[] | null | undefined) => {
+    if (!arr) return;
+    for (const m of arr) {
+      if (m && m.expressID !== undefined && !materialMap.has(m.expressID)) {
+        materialMap.set(m.expressID, m);
+      }
+    }
+  };
+
+  appendMaterials(await ifcApi.properties.getMaterialsProperties(modelID, expressID, true, true));
+
+  if (typeObjects && typeObjects.length > 0) {
+    for (const typeObject of typeObjects) {
+      appendMaterials(
+        await ifcApi.properties.getMaterialsProperties(modelID, typeObject.expressID, true, true)
+      );
+    }
+  }
+
+  if (materialMap.size === 0) {
     const relAssociatesMaterialIDs = await ifcApi.GetLineIDsWithType(modelID, 300348915); // IFCRELASSOCIATESMATERIAL
-    const found: any[] = [];
+    const idsToCheck = [expressID];
+    if (typeObjects && typeObjects.length > 0) {
+      for (const t of typeObjects) idsToCheck.push(t.expressID);
+    }
     for (let i = 0; i < relAssociatesMaterialIDs.size(); i++) {
       const relID = relAssociatesMaterialIDs.get(i);
       const rel = await ifcApi.GetLine(modelID, relID, false);
       if (rel.RelatedObjects && Array.isArray(rel.RelatedObjects)) {
-        const isElementAssociated = rel.RelatedObjects.some((obj: any) => obj.value === expressID);
-        if (isElementAssociated && rel.RelatingMaterial?.value) {
+        const isAssociated = rel.RelatedObjects.some((obj: any) => idsToCheck.includes(obj.value));
+        if (isAssociated && rel.RelatingMaterial?.value) {
           try {
             const materialEntity = await ifcApi.GetLine(modelID, rel.RelatingMaterial.value, true);
-            if (materialEntity) found.push(materialEntity);
+            if (materialEntity && materialEntity.expressID !== undefined) {
+              materialMap.set(materialEntity.expressID, materialEntity);
+            }
           } catch {
             /* ignore */
           }
         }
       }
     }
-    if (found.length > 0) materialsAndDefs = found;
   }
+
+  const materialsAndDefs = Array.from(materialMap.values());
 
   if (materialsAndDefs && materialsAndDefs.length > 0) {
     for (const matDef of materialsAndDefs) {
