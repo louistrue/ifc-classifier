@@ -79,6 +79,7 @@
     "clearFromAll": "Clear from All Classifications",
     "export": "Export",
     "load": "Load",
+    "loading": "Loading...",
     "removeAllClassifications": "Remove All Classifications",
     "loadUniclass": "Load Uniclass Pr ({{count}})",
     "loadEbkph": "Load eBKP-H ({{count}})",
@@ -94,7 +95,8 @@
     "editRule": "Edit Rule",
     "deleteRule": "Delete Rule",
     "previewRule": "Preview Rule Impact",
-    "clearPreview": "Clear Preview"
+    "clearPreview": "Clear Preview",
+    "mapFromModel": "Map From Model"
   },
   "messages": {
     "loading": "Loading...",
@@ -130,7 +132,9 @@
     "modelUrls": "Manage a list of IFC model URLs. You can add custom URLs or use the demo models.",
     "originalColors": "Show original model colors (hides all classification colors).",
     "classificationColors": "Apply all classification colors to the model.",
-    "canvasSearch": "Filter elements by properties. Supports * wildcard and regex."
+    "canvasSearch": "Filter elements by properties. Supports * wildcard and regex.",
+    "psetNameHelp": "The exact name of the property set containing classification values",
+    "propertyNameHelp": "The exact name of the property containing the classification code or identifier"
   },
   "sections": {
     "defaultSets": "Default Sets",
@@ -160,7 +164,11 @@
     "classificationSingular": "classification",
     "classificationPlural": "classifications",
     "searchPlaceholder": "Search classifications...",
-    "noSearchResults": "No classifications match your search."
+    "noSearchResults": "No classifications match your search.",
+    "mapFromModelTitle": "Map Classifications from Model",
+    "mapFromModelDescription": "Extract classifications from property values in the model",
+    "psetName": "PSet Name",
+    "propertyName": "Property Name"
   },
   "rules": {
     "addNew": "Add New Rule",
@@ -200,5 +208,10 @@
     "contains": "Contains",
     "greaterThan": "Greater Than",
     "lessThan": "Less Than"
+  },
+  "errors": {
+    "psetNameRequired": "Property set name is required",
+    "propertyNameRequired": "Property name is required",
+    "unknownMappingError": "An unknown error occurred during mapping"
   }
 }

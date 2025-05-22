@@ -8,9 +8,11 @@ import React, {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
 } from "react";
 import type { IfcAPI } from "web-ifc"; // Import IfcAPI type
 import { Properties } from "web-ifc"; // Ensure Properties is imported
+import { getAllElementProperties, ParsedElementProperties } from "@/services/ifc-properties";
 import { parseRulesFromExcel } from "@/services/rule-import-service";
 import { exportRulesToExcel } from "@/services/rule-export-service";
 import { exportClassificationsToExcel } from "@/services/classification-export-service";
@@ -120,6 +122,10 @@ interface IFCContextType {
     categories: string[],
   ) => void;
   setIfcApi: (api: IfcAPI | null) => void;
+  getElementPropertiesCached: (
+    modelID: number,
+    expressID: number,
+  ) => Promise<ParsedElementProperties | null>;
   toggleShowAllClassificationColors: () => void; // Added new toggle function
 
   // Classification and Rule methods (can remain global or be refactored later if needed per model)
@@ -162,6 +168,10 @@ interface IFCContextType {
   getClassificationsForElement: (
     element: SelectedElementInfo | null,
   ) => ClassificationItem[];
+  mapClassificationsFromModel: (
+    psetName: string,
+    propertyName: string,
+  ) => Promise<void>;
 }
 
 const IFCContext = createContext<IFCContextType | undefined>(undefined);
@@ -212,6 +222,7 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
   });
   const [rules, setRules] = useState<Rule[]>([]);
   const [ifcApiInternal, setIfcApiInternal] = useState<IfcAPI | null>(null);
+  const elementPropsCache = useRef<Map<number, Map<number, ParsedElementProperties>>>(new Map());
 
   // Fetch natural IFC class names
   useEffect(() => {
@@ -1280,6 +1291,29 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
     [setIfcApiInternal],
   );
 
+  const getElementPropertiesCached = useCallback(
+    async (modelID: number, expressID: number) => {
+      if (!ifcApiInternal) return null;
+      let modelMap = elementPropsCache.current.get(modelID);
+      if (modelMap && modelMap.has(expressID)) {
+        return modelMap.get(expressID)!;
+      }
+      try {
+        const props = await getAllElementProperties(ifcApiInternal, modelID, expressID);
+        if (!modelMap) {
+          modelMap = new Map();
+          elementPropsCache.current.set(modelID, modelMap);
+        }
+        modelMap.set(expressID, props);
+        return props;
+      } catch (e) {
+        console.warn('Failed to fetch element properties', e);
+        return null;
+      }
+    },
+    [ifcApiInternal],
+  );
+
   const toggleShowAllClassificationColors = useCallback(() => {
     setShowAllClassificationColors((prev) => {
       const newShowAllState = !prev;
@@ -1425,6 +1459,86 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
       return result;
     },
     [classifications],
+  );
+
+  const mapClassificationsFromModel = useCallback(
+    async (psetName: string, propertyName: string) => {
+      if (!ifcApiInternal) return;
+      if (!ifcApiInternal.properties) {
+        try {
+          ifcApiInternal.properties = new Properties(ifcApiInternal);
+        } catch (e) {
+          console.error('Failed to init properties', e);
+          return;
+        }
+      }
+
+      const classCodes = Object.keys(classifications);
+      const newElements: Record<string, SelectedElementInfo[]> = {};
+      classCodes.forEach((c) => (newElements[c] = []));
+
+      for (const model of loadedModels) {
+        if (model.modelID == null || !model.spatialTree) continue;
+        const elements = getAllElementsFromSpatialTreeNodesRecursive(
+          model.spatialTree ? [model.spatialTree] : []
+        );
+        for (const el of elements) {
+          if (el.expressID === undefined) continue;
+          const props = await getElementPropertiesCached(
+            model.modelID,
+            el.expressID
+          );
+          if (!props) continue;
+          let val: any = undefined;
+          if (psetName) {
+            val = props.propertySets?.[psetName]?.[propertyName];
+          } else {
+            val = props.propertySets?.['Element Attributes']?.[propertyName];
+            if (val === undefined) val = props.attributes?.[propertyName];
+          }
+          if (val && typeof val === 'object' && 'value' in val) val = val.value;
+          if (val === undefined && (el as any)[propertyName] !== undefined) {
+            const direct = (el as any)[propertyName];
+            val = direct?.value !== undefined ? direct.value : direct;
+          }
+          if (val === undefined || val === null) continue;
+          const code = String(val).trim();
+          if (classifications[code]) {
+            const info = { modelID: model.modelID, expressID: el.expressID };
+            if (
+              !newElements[code].some(
+                (e) => e.modelID === info.modelID && e.expressID === info.expressID
+              )
+            ) {
+              newElements[code].push(info);
+            }
+          }
+        }
+      }
+
+      setClassifications((prev) => {
+        const updated = { ...prev };
+        let changed = false;
+        for (const c of classCodes) {
+          const elems = newElements[c] || [];
+          if (JSON.stringify(prev[c].elements || []) !== JSON.stringify(elems)) {
+            updated[c] = { ...prev[c], elements: elems };
+            changed = true;
+          }
+        }
+        if (changed) {
+          console.log('IFCContext: classifications mapped from model');
+        }
+        return updated;
+      });
+    },
+    [
+      ifcApiInternal,
+      classifications,
+      loadedModels,
+      getElementPropertiesCached,
+      getAllElementsFromSpatialTreeNodesRecursive,
+    ]
   );
 
   const addRule = useCallback(
@@ -1702,6 +1816,7 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
         setAvailableCategoriesForModel,
         setAvailableProperties,
         setIfcApi,
+        getElementPropertiesCached,
         toggleShowAllClassificationColors,
         baseCoordinationMatrix,
         setBaseCoordinationMatrix: setBaseCoordinationMatrixFn,
@@ -1732,6 +1847,7 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
         unhideLastElement,
         unhideAllElements,
         toggleModelVisibility,
+        mapClassificationsFromModel,
         naturalIfcClassNames,
         getNaturalIfcClassName,
       }}
