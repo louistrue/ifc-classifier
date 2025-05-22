@@ -90,6 +90,7 @@
     "ebkphError": "eBKP-H Error: {{message}}",
     "addCondition": "Add Condition",
     "saveRule": "Save Rule",
+    "copy": "Copy",
     "copyRule": "Copy Rule",
     "editRule": "Edit Rule",
     "deleteRule": "Delete Rule",
@@ -138,6 +139,7 @@
     "basicInformation": "Basic Information",
     "attributes": "Attributes",
     "propertySets": "Property Sets",
+    "typeProperties": "Type Properties",
     "classifications": "Classifications"
   },
   "classifications": {
