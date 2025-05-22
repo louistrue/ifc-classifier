@@ -8,9 +8,11 @@ import React, {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
 } from "react";
 import type { IfcAPI } from "web-ifc"; // Import IfcAPI type
 import { Properties } from "web-ifc"; // Ensure Properties is imported
+import { getAllElementProperties, ParsedElementProperties } from "@/services/ifc-properties";
 import { parseRulesFromExcel } from "@/services/rule-import-service";
 import { exportRulesToExcel } from "@/services/rule-export-service";
 import { exportClassificationsToExcel } from "@/services/classification-export-service";
@@ -120,6 +122,10 @@ interface IFCContextType {
     categories: string[],
   ) => void;
   setIfcApi: (api: IfcAPI | null) => void;
+  getElementPropertiesCached: (
+    modelID: number,
+    expressID: number,
+  ) => Promise<ParsedElementProperties | null>;
   toggleShowAllClassificationColors: () => void; // Added new toggle function
 
   // Classification and Rule methods (can remain global or be refactored later if needed per model)
@@ -212,6 +218,7 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
   });
   const [rules, setRules] = useState<Rule[]>([]);
   const [ifcApiInternal, setIfcApiInternal] = useState<IfcAPI | null>(null);
+  const elementPropsCache = useRef<Map<number, Map<number, ParsedElementProperties>>>(new Map());
 
   // Fetch natural IFC class names
   useEffect(() => {
@@ -1280,6 +1287,29 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
     [setIfcApiInternal],
   );
 
+  const getElementPropertiesCached = useCallback(
+    async (modelID: number, expressID: number) => {
+      if (!ifcApiInternal) return null;
+      let modelMap = elementPropsCache.current.get(modelID);
+      if (modelMap && modelMap.has(expressID)) {
+        return modelMap.get(expressID)!;
+      }
+      try {
+        const props = await getAllElementProperties(ifcApiInternal, modelID, expressID);
+        if (!modelMap) {
+          modelMap = new Map();
+          elementPropsCache.current.set(modelID, modelMap);
+        }
+        modelMap.set(expressID, props);
+        return props;
+      } catch (e) {
+        console.warn('Failed to fetch element properties', e);
+        return null;
+      }
+    },
+    [ifcApiInternal],
+  );
+
   const toggleShowAllClassificationColors = useCallback(() => {
     setShowAllClassificationColors((prev) => {
       const newShowAllState = !prev;
@@ -1702,6 +1732,7 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
         setAvailableCategoriesForModel,
         setAvailableProperties,
         setIfcApi,
+        getElementPropertiesCached,
         toggleShowAllClassificationColors,
         baseCoordinationMatrix,
         setBaseCoordinationMatrix: setBaseCoordinationMatrixFn,

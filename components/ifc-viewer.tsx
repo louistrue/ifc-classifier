@@ -660,6 +660,7 @@ function ViewerContent() {
     hideElements,
     showElements,
     userHiddenElements,
+    getElementPropertiesCached,
     addIFCModel,
   } = useIFCContext();
   const { t } = useTranslation();
@@ -952,9 +953,8 @@ function ViewerContent() {
           // 2. If no quick match, fetch all properties and do a recursive search
           if (!match) {
             try {
-              // We've already checked model.modelID is not null above
-              const props = await ifcApi.GetLine(model.modelID as number, expressID, true);
-              if (recursiveSearch(props, regex, true)) { // Search keys and values in detailed props
+              const props = await getElementPropertiesCached(model.modelID as number, expressID);
+              if (props && recursiveSearch(props, regex, true)) {
                 match = true;
               }
             } catch (err) {
@@ -962,7 +962,6 @@ function ViewerContent() {
               if (errorCount <= 3) {
                 console.warn(`Error fetching props for ${model.modelID}-${expressID}:`, err);
               }
-              // If props can't be fetched, we can't determine a match, so assume no match
             }
           }
 
