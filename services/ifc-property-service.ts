@@ -9,9 +9,15 @@ export interface ElementProperties {
 }
 
 const cache: Map<number, Map<number, ElementProperties>> = new Map();
+const MAX_MODELS_IN_CACHE = 10;
+const MAX_CACHE_ENTRIES = 1000;
 
 async function ensureProps(api: IfcAPI) {
-  if (!api.properties) api.properties = new Properties(api);
+  if (!api.properties) {
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-ignore – web-ifc does not declare .properties
+    api.properties = new Properties(api);
+  }
 }
 
 async function loadPset(
@@ -24,10 +30,9 @@ async function loadPset(
   if (psetEntity.HasProperties && Array.isArray(psetEntity.HasProperties)) {
     for (const propRef of psetEntity.HasProperties) {
       const id = propRef?.value ?? propRef?.expressID;
-      if (!id) continue;
-      if (visited.has(id)) continue;
+      if (!id || visited.has(id)) continue;
       const prop = await api.GetLine(modelID, id, true);
-      if (!prop || !prop.Name?.value) continue;
+      if (!prop?.Name?.value) continue;
       visited.add(id);
       const name = prop.Name.value;
       if (prop.NominalValue?.value !== undefined) {
@@ -120,7 +125,7 @@ export async function getElementProperties(
         if (!id) continue;
         try {
           const pset = await api.GetLine(modelID, id, true);
-          if (pset && pset.Name?.value) {
+          if (pset?.Name?.value) {
             const name = `${pset.Name.value} (from Type: ${tName})`;
             propertySets[name] = {};
             const visited = new Set<number>();
@@ -168,7 +173,7 @@ export async function getElementProperties(
       );
     }
   }
-  if (mats) {
+  if (mats?.length) {
     for (const m of mats) {
       const name = m.Name?.value || `Material_${m.expressID}`;
       const key = `Material: ${name}`;
@@ -186,8 +191,20 @@ export async function getElementProperties(
   if (!mCache) {
     mCache = new Map();
     cache.set(modelID, mCache);
+    if (cache.size > MAX_MODELS_IN_CACHE) {
+      const oldestModelID = cache.keys().next().value;
+      if (oldestModelID !== undefined) {
+        cache.delete(oldestModelID);
+      }
+    }
   }
   mCache.set(expressID, result);
+  if (mCache.size > MAX_CACHE_ENTRIES) {
+    const oldestExpressID = mCache.keys().next().value;
+    if (oldestExpressID !== undefined) {
+      mCache.delete(oldestExpressID);
+    }
+  }
   return result;
 }
 
