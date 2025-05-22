@@ -51,23 +51,59 @@ export async function getElementProperties(
 
   await ensureProps(api);
 
-  const attributes = await api.GetLine(modelID, expressID, true);
-  const ifcType = api.GetNameFromTypeCode(attributes.type);
+  let attributes: Record<string, any> = {};
+  let ifcType: string = "Unknown";
+
+  try {
+    attributes = await api.GetLine(modelID, expressID, true);
+    ifcType = api.GetNameFromTypeCode(attributes.type);
+  } catch (error) {
+    console.error(
+      `Error fetching attributes for modelID: ${modelID}, expressID: ${expressID}`,
+      error,
+    );
+    attributes = { error: "Failed to load attributes" };
+  }
 
   const propertySets: Record<string, Record<string, any>> = {};
+  let psets: any[] = [];
+  try {
+    psets = await api.properties.getPropertySets(modelID, expressID, true, true);
+  } catch (error) {
+    console.error(
+      `Error fetching property sets for modelID: ${modelID}, expressID: ${expressID}`,
+      error,
+    );
+  }
 
-  const psets = await api.properties.getPropertySets(modelID, expressID, true, true);
   for (const pset of psets ?? []) {
     if (pset.Name?.value) {
       const name = pset.Name.value;
       propertySets[name] = {};
       const visited = new Set<number>();
-      visited.add(pset.expressID);
-      await loadPset(api, modelID, pset, propertySets[name], visited);
+      try {
+        visited.add(pset.expressID);
+        await loadPset(api, modelID, pset, propertySets[name], visited);
+      } catch (error) {
+        console.error(
+          `Error loading pset ${name} for modelID: ${modelID}, expressID: ${expressID}`,
+          error,
+        );
+        propertySets[name] = { error: "Failed to load pset" };
+      }
     }
   }
 
-  const typePsets = await api.properties.getTypeProperties(modelID, expressID, true);
+  let typePsets: any[] = [];
+  try {
+    typePsets = await api.properties.getTypeProperties(modelID, expressID, true);
+  } catch (error) {
+    console.error(
+      `Error fetching type properties for modelID: ${modelID}, expressID: ${expressID}`,
+      error,
+    );
+  }
+
   for (const t of typePsets ?? []) {
     const tName = t.Name?.value || `Type_${t.expressID}`;
     const key = `Type Attributes: ${tName}`;
@@ -82,28 +118,54 @@ export async function getElementProperties(
       for (const ps of t.HasPropertySets) {
         const id = ps?.value ?? ps?.expressID;
         if (!id) continue;
-        const pset = await api.GetLine(modelID, id, true);
-        if (pset && pset.Name?.value) {
-          const name = `${pset.Name.value} (from Type: ${tName})`;
-          propertySets[name] = {};
-          const visited = new Set<number>();
-          visited.add(pset.expressID);
-          await loadPset(api, modelID, pset, propertySets[name], visited);
+        try {
+          const pset = await api.GetLine(modelID, id, true);
+          if (pset && pset.Name?.value) {
+            const name = `${pset.Name.value} (from Type: ${tName})`;
+            propertySets[name] = {};
+            const visited = new Set<number>();
+            visited.add(pset.expressID);
+            await loadPset(api, modelID, pset, propertySets[name], visited);
+          }
+        } catch (error) {
+          console.error(
+            `Error loading pset from type for modelID: ${modelID}, expressID: ${expressID}, pset ID: ${id}`,
+            error,
+          );
+          // If pset itself failed, we might not have a name yet, store error under a generic key or skip
+          const errorKey = `Error_TypePset_${id}`;
+          propertySets[errorKey] = { error: "Failed to load pset from type" };
         }
       }
     }
   }
 
-  let mats = await api.properties.getMaterialsProperties(modelID, expressID, true, true);
+  let mats: any[] = [];
+  try {
+    mats = await api.properties.getMaterialsProperties(modelID, expressID, true, true);
+  } catch (error) {
+    console.error(
+      `Error fetching material properties for modelID: ${modelID}, expressID: ${expressID}`,
+      error,
+    );
+  }
+
   if (!mats || mats.length === 0) {
-    const relIds = await api.GetLineIDsWithType(modelID, IFCRELASSOCIATESMATERIAL);
-    for (let i = 0; i < relIds.size(); i++) {
-      const rel = await api.GetLine(modelID, relIds.get(i), false);
-      if (rel.RelatedObjects?.some((o: any) => o.value === expressID) && rel.RelatingMaterial?.value) {
-        const mat = await api.GetLine(modelID, rel.RelatingMaterial.value, true);
-        mats = mats || [];
-        mats.push(mat);
+    try {
+      const relIds = await api.GetLineIDsWithType(modelID, IFCRELASSOCIATESMATERIAL);
+      for (let i = 0; i < relIds.size(); i++) {
+        const rel = await api.GetLine(modelID, relIds.get(i), false);
+        if (rel.RelatedObjects?.some((o: any) => o.value === expressID) && rel.RelatingMaterial?.value) {
+          const mat = await api.GetLine(modelID, rel.RelatingMaterial.value, true);
+          mats = mats || [];
+          mats.push(mat);
+        }
       }
+    } catch (error) {
+      console.error(
+        `Error fetching related materials for modelID: ${modelID}, expressID: ${expressID}`,
+        error,
+      );
     }
   }
   if (mats) {
