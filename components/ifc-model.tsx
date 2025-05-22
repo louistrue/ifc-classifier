@@ -170,12 +170,6 @@ async function fetchFullSpatialStructure(
   return buildSpatialTree(ifcApi, modelID, projectID);
 }
 
-      // Not attempting to stringify complex objects here to avoid overly verbose/unreadable output.
-      // Specific handlers for known complex attribute structures would be needed if they should be displayed.
-    }
-  }
-}
-
 export function IFCModel({ modelData, outlineLayer }: IFCModelProps) {
   const { scene, camera, controls } = useThree(); // Get controls directly
   const ownModelID = useRef<number | null>(null);
