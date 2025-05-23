@@ -65,7 +65,7 @@ const Menubar = () => {
               <button
                 onClick={() => setIsLangDropdownOpen(!isLangDropdownOpen)}
                 className="p-2 h-[40px] w-[60px] flex items-center justify-center rounded-md bg-background border border-border text-foreground hover:bg-accent focus:outline-none focus:ring-2 focus:ring-ring"
-                aria-label="Language selector"
+                aria-label={t('languageSelector')}
                 type="button"
               >
                 {i18n.language.toUpperCase()}
@@ -111,7 +111,7 @@ const Menubar = () => {
             <button
               onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
               className="p-2 rounded-md hover:bg-accent focus:outline-none focus:ring-2 focus:ring-ring"
-              aria-label="Toggle theme"
+              aria-label={t('toggleTheme')}
             >
               {theme === "dark" ? (
                 <Sun className="h-6 w-6 text-foreground" />

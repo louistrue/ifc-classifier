@@ -1452,8 +1452,8 @@ function ViewerContent() {
     return (
       <div className="flex h-screen w-full items-center justify-center">
         <div className="text-center">
-          <h2 className="text-2xl font-bold mb-4">Loading WebIFC Engine...</h2>
-          <p className="text-muted-foreground">Please wait a moment.</p>
+          <h2 className="text-2xl font-bold mb-4">{t('loadingWebIFCEngine')}</h2>
+          <p className="text-muted-foreground">{t('pleaseWaitMoment')}</p>
         </div>
       </div>
     );
@@ -1464,13 +1464,13 @@ function ViewerContent() {
       <div className="flex h-screen w-full items-center justify-center">
         <div className="text-center p-8 bg-destructive/20 border border-destructive rounded-lg">
           <h2 className="text-2xl font-bold mb-4 text-destructive-foreground">
-            WebGL Context Lost
+            {t('webglContextLost')}
           </h2>
           <p className="text-destructive-foreground/80 mb-4">
-            The 3D rendering context has been lost.
+            {t('webglContextLostMessage')}
           </p>
           <p className="text-destructive-foreground/80">
-            Please try refreshing the page.
+            {t('refreshPage')}
           </p>
         </div>
       </div>
@@ -1870,12 +1870,12 @@ function FileUpload({ isAdding = false }: FileUploadProps) {
     <PlusSquare className="w-4 h-4" />
   ) : (
     <>
-      <UploadCloud className="w-4 h-4 mr-2" /> Load IFC File
+      <UploadCloud className="w-4 h-4 mr-2" /> {t('loadIFCFile')}
     </>
   );
   const commonButtonTitle = isAdding
-    ? "Add another IFC model"
-    : "Load initial IFC model";
+    ? t('addAnotherModel')
+    : t('loadInitialModel');
 
   const hasSavedModels = savedModels.length > 0;
   const savedModelUrls = new Set(savedModels.map(m => m.url));
@@ -1902,11 +1902,11 @@ function FileUpload({ isAdding = false }: FileUploadProps) {
           <DropdownMenuTrigger asChild>{addButton}</DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             <DropdownMenuItem onSelect={() => fileInputRef.current?.click()}>
-              Upload IFC File
+              {t('loadIFCFile')}
             </DropdownMenuItem>
             {/* hasSavedModels is true here */}
             <DropdownMenuSeparator />
-            <DropdownMenuLabel className="text-xs">My Models</DropdownMenuLabel>
+            <DropdownMenuLabel className="text-xs">{t('myModels')}</DropdownMenuLabel>
             {savedModels.map((m) => (
               <DropdownMenuItem key={m.url} onSelect={() => handleLoadModel(m)}>
                 {m.name}
@@ -1915,7 +1915,7 @@ function FileUpload({ isAdding = false }: FileUploadProps) {
             {hasUniqueDemoModels && (
               <>
                 <DropdownMenuSeparator />
-                <DropdownMenuLabel className="text-xs">Demo Models</DropdownMenuLabel>
+                <DropdownMenuLabel className="text-xs">{t('demoModels')}</DropdownMenuLabel>
                 {uniqueDemoModels.map((m) => (
                   <DropdownMenuItem key={m.url} onSelect={() => handleLoadModel(m)}>
                     {m.name}
@@ -1980,11 +1980,11 @@ function FileUpload({ isAdding = false }: FileUploadProps) {
           <DropdownMenuTrigger asChild>{mainPromptButton}</DropdownMenuTrigger>
           <DropdownMenuContent align="end">
             <DropdownMenuItem onSelect={() => fileInputRef.current?.click()}>
-              Upload IFC File
+              {t('loadIFCFile')}
             </DropdownMenuItem>
             {/* hasSavedModels is true here */}
             <DropdownMenuSeparator />
-            <DropdownMenuLabel className="text-xs">My Models</DropdownMenuLabel>
+            <DropdownMenuLabel className="text-xs">{t('myModels')}</DropdownMenuLabel>
             {savedModels.map((m) => (
               <DropdownMenuItem key={m.url} onSelect={() => handleLoadModel(m)}>
                 {m.name}
@@ -1993,7 +1993,7 @@ function FileUpload({ isAdding = false }: FileUploadProps) {
             {hasUniqueDemoModels && (
               <>
                 <DropdownMenuSeparator />
-                <DropdownMenuLabel className="text-xs">Demo Models</DropdownMenuLabel>
+                <DropdownMenuLabel className="text-xs">{t('demoModels')}</DropdownMenuLabel>
                 {uniqueDemoModels.map((m) => (
                   <DropdownMenuItem key={m.url} onSelect={() => handleLoadModel(m)}>
                     {m.name}

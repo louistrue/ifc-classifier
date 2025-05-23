@@ -97,7 +97,7 @@ const DocumentationModal: React.FC<DocumentationModalProps> = ({ onClose }) => {
           <main className="flex-1 p-8 overflow-y-auto">
             <h3 className="text-3xl font-bold mb-2 text-foreground">{currentSection.title}</h3>
             <p className="text-sm text-muted-foreground mb-6">
-              Step {currentStep + 1} of {DOC_SECTIONS.length}
+              {t('stepOf', { current: currentStep + 1, total: DOC_SECTIONS.length })}
             </p>
 
             <div className="prose prose-sm lg:prose-base dark:prose-invert max-w-none text-foreground/90 prose-headings:text-primary prose-a:text-primary prose-strong:text-primary/90 prose-code:bg-muted prose-code:p-1 prose-code:rounded prose-code:text-primary prose-code:before:content-none prose-code:after:content-none">
