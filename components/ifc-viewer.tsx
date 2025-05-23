@@ -370,6 +370,7 @@ const SceneCapture = ({ onSceneCapture }: { onSceneCapture: (scene: THREE.Scene)
 // CameraActionsController Component (child of Canvas)
 const CameraActionsController = forwardRef<CameraActions, {}>((props, ref) => {
   const { scene, camera, controls, clock } = useThree();
+  const { selectedElement } = useIFCContext();
 
   const animationRef = useRef<{
     active: boolean;
@@ -397,6 +398,26 @@ const CameraActionsController = forwardRef<CameraActions, {}>((props, ref) => {
       endTarget,
     };
   };
+
+  useEffect(() => {
+    if (!selectedElement || !controls) return;
+    let targetMesh: THREE.Mesh | null = null;
+    scene.traverse((obj) => {
+      if (targetMesh) return;
+      if (
+        obj instanceof THREE.Mesh &&
+        obj.userData.modelID === selectedElement.modelID &&
+        obj.userData.expressID === selectedElement.expressID
+      ) {
+        targetMesh = obj;
+      }
+    });
+    if (!targetMesh) return;
+    const bbox = new THREE.Box3().setFromObject(targetMesh);
+    const center = bbox.getCenter(new THREE.Vector3());
+    (controls as any).target.copy(center);
+    (controls as any).update();
+  }, [selectedElement, controls, scene]);
 
   useFrame(() => {
     if (!animationRef.current?.active || !controls || !camera) {
