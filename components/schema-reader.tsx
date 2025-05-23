@@ -37,7 +37,6 @@ import {
     Download,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import NextImage from 'next/image';
 
 interface SchemaContent {
     type: 'text' | 'list' | 'table' | 'image' | 'note' | 'reference' | 'code' | 'diagram';
@@ -70,7 +69,7 @@ const MIN_REQUEST_INTERVAL = 3000; // Increased to 3 seconds due to 403 errors
 
 // Persistent cache keys
 const SCHEMA_CACHE_KEY = 'ifc-schema-full-cache';
-const SCHEMA_CACHE_VERSION = 'v1';
+const SCHEMA_CACHE_VERSION = 'v2-local'; // Updated to clear old cache and use local files
 const SCHEMA_CACHE_EXPIRY_HOURS = 48; // Longer cache for full schemas
 
 // Helper function (moved outside component)
@@ -127,6 +126,20 @@ const saveSchemaCacheToStorage = (): void => {
 // Initialize schema cache
 loadSchemaCacheFromStorage();
 
+// Function to clear all cached data (for debugging/forcing refresh)
+const clearAllCaches = (): void => {
+    console.log('🗑️ Clearing all schema and preview caches...');
+    schemaCache.clear();
+    localStorage.removeItem(SCHEMA_CACHE_KEY);
+    localStorage.removeItem('ifc-schema-preview-cache');
+    console.log('✅ All caches cleared');
+};
+
+// Expose cache clearing function globally for debugging
+if (typeof window !== 'undefined') {
+    (window as any).clearIfcCaches = clearAllCaches;
+}
+
 export function SchemaReader({
     isOpen,
     onClose,
@@ -159,88 +172,73 @@ export function SchemaReader({
     }, []);
 
     const resolveImageUrl = useCallback((src: string, baseHref: string, basePath: string): string => {
-        console.log(`Resolving image URL: src="${src}", baseHref="${baseHref}", basePath="${basePath}"`);
+        console.log(`🖼️ Resolving image URL: src="${src}", baseHref="${baseHref}", basePath="${basePath}"`);
 
         if (!src) {
-            console.log('Empty src, returning empty string');
+            console.log('❌ Empty src, returning empty string');
             return '';
         }
 
         // If already absolute URL, return as is
         if (src.startsWith('http://') || src.startsWith('https://')) {
-            console.log('Already absolute URL, returning as-is');
+            console.log('🌐 Already absolute URL, returning as-is');
             return src;
         }
 
         // If starts with //, add protocol
         if (src.startsWith('//')) {
             const resolved = `https:${src}`;
-            console.log(`Protocol-relative URL, resolved to: ${resolved}`);
+            console.log(`🔗 Protocol-relative URL, resolved to: ${resolved}`);
             return resolved;
         }
 
-        // For IFC documentation, we need to handle the specific URL structure
-        // Base URL for IFC4x3 documentation: https://ifc43-docs.standards.buildingsmart.org/IFC/RELEASE/IFC4x3/HTML/
+        // For local documentation (when baseHref is empty or basePath starts with /ifc-docs)
+        const isLocalDoc = !baseHref || baseHref === '' || basePath.startsWith('/ifc-docs');
+
+        if (isLocalDoc) {
+            console.log('🏠 Processing local documentation image');
+
+            // For local documentation, try to construct local asset paths
+            if (src.startsWith('/')) {
+                // Absolute path - use as is for local assets
+                const localAsset = src;
+                console.log(`📁 Local absolute path: ${localAsset}`);
+                return localAsset;
+            } else if (src.startsWith('../figures/') || src.startsWith('figures/')) {
+                // Relative path to figures directory - construct local path
+                const fileName = src.replace('../figures/', '').replace('figures/', '');
+                const localAsset = `/ifc-docs/figures/${fileName}`;
+                console.log(`🖼️ Local figures path constructed: "${src}" -> "${localAsset}"`);
+                return localAsset;
+            } else if (src.includes('../') || src.includes('./')) {
+                // Other relative paths - try to construct local asset
+                const cleanSrc = src.replace('../', '').replace('./', '');
+                const localAsset = `/ifc-docs/${cleanSrc}`;
+                console.log(`🔧 Local relative path: ${localAsset}`);
+                return localAsset;
+            } else {
+                // Simple filename - assume it's in the ifc-docs directory
+                const localAsset = `/ifc-docs/${src}`;
+                console.log(`📄 Local simple filename: ${localAsset}`);
+                return localAsset;
+            }
+        }
+
+        // Fallback: Use original buildingSMART URLs for remote images
         const ifcDocumentationBase = 'https://ifc43-docs.standards.buildingsmart.org/IFC/RELEASE/IFC4x3/HTML';
 
         // If starts with /, it's relative to the IFC documentation root
         if (src.startsWith('/')) {
-            // Remove leading slash since our base URL already includes the path
             const cleanSrc = src.substring(1);
             const resolved = `${ifcDocumentationBase}/${cleanSrc}`;
-            console.log(`Root-relative URL, resolved to: ${resolved}`);
+            console.log(`🌐 Root-relative URL, resolved to: ${resolved}`);
             return resolved;
         }
 
-        // For relative paths (no leading slash), resolve relative to current page
-        // Extract the directory from the current schema URL
-        try {
-            const currentUrl = new URL(baseHref + basePath);
-            console.log(`Current URL constructed: ${currentUrl.href}`);
-
-            if (currentUrl.hostname === 'ifc43-docs.standards.buildingsmart.org') {
-                // For IFC documentation, we need to ensure we maintain the /HTML/ part
-                // Current path might be like: /IFC/RELEASE/IFC4x3/HTML/lexical/
-                // We want to resolve ../figures/ to /IFC/RELEASE/IFC4x3/HTML/figures/
-
-                let currentDir = currentUrl.pathname.substring(0, currentUrl.pathname.lastIndexOf('/'));
-
-                // Handle relative path navigation
-                if (src.startsWith('../')) {
-                    const relativeParts = src.split('/');
-                    let pathParts = currentDir.split('/').filter(part => part.length > 0);
-
-                    for (const part of relativeParts) {
-                        if (part === '..') {
-                            pathParts.pop(); // Go up one directory
-                        } else if (part !== '.') {
-                            pathParts.push(part); // Add directory/filename
-                        }
-                    }
-
-                    const resolvedPath = '/' + pathParts.join('/');
-                    const resolved = `${currentUrl.protocol}//${currentUrl.hostname}${resolvedPath}`;
-                    console.log(`Relative path resolved to: ${resolved}`);
-                    return resolved;
-                } else {
-                    // Simple relative path (no ../)
-                    const resolved = `${currentUrl.protocol}//${currentUrl.hostname}${currentDir}/${src}`;
-                    console.log(`Simple relative path resolved to: ${resolved}`);
-                    return resolved;
-                }
-            } else {
-                // If not an IFC URL, treat as relative to IFC documentation base
-                const resolved = `${ifcDocumentationBase}/${src}`;
-                console.log(`Non-IFC base URL, treating as IFC relative, resolved to: ${resolved}`);
-                return resolved;
-            }
-        } catch (error) {
-            console.error('Error constructing URL:', error);
-            // Fallback to IFC documentation base
-            const resolved = `${ifcDocumentationBase}/${src}`;
-            console.log(`URL construction failed, using IFC base fallback: ${resolved}`);
-            return resolved;
-        }
+        // For relative paths, construct full URL
+        const resolved = `${ifcDocumentationBase}/${src.replace('../', '')}`;
+        console.log(`🔗 Relative path resolved to: ${resolved}`);
+        return resolved;
     }, []);
 
     // Test URL resolution (for debugging)
@@ -264,14 +262,15 @@ export function SchemaReader({
         console.log('=== End Test ===');
     }, [resolveImageUrl]);
 
-    // Check if image URL has a static image format (not animated)
+    // Check if image URL has a static image format (including IFC documentation GIFs)
     const isStaticImageFormat = useCallback((url: string): boolean => {
         const staticFormats = ['.png', '.jpg', '.jpeg', '.svg', '.webp', '.bmp', '.tiff'];
-        const animatedFormats = ['.gif', '.apng', '.webm', '.mp4'];
+        const ifcDiagramFormats = ['.gif']; // IFC documentation uses GIFs for static diagrams
+        const animatedFormats = ['.apng', '.webm', '.mp4']; // Actually animated formats to exclude
 
         const urlLower = url.toLowerCase();
 
-        // Check for animated formats - exclude these
+        // Check for truly animated formats - exclude these
         if (animatedFormats.some(format => urlLower.includes(format))) {
             return false;
         }
@@ -281,8 +280,18 @@ export function SchemaReader({
             return true;
         }
 
+        // Allow GIF files if they're from IFC documentation (these are typically static diagrams)
+        if (ifcDiagramFormats.some(format => urlLower.includes(format))) {
+            const isIfcDocumentation = urlLower.includes('ifc') || urlLower.includes('buildingsmart') ||
+                urlLower.includes('/figures/') || urlLower.includes('/ifc-docs/');
+            if (isIfcDocumentation) {
+                console.log(`✅ Allowing IFC documentation GIF: ${url}`);
+                return true;
+            }
+        }
+
         // If no extension detected, assume it might be static (but log warning)
-        console.warn(`Unknown image format for: ${url}`);
+        console.warn(`❓ Unknown image format for: ${url}`);
         return false; // Be conservative and exclude unknown formats
     }, []);
 
@@ -443,11 +452,30 @@ export function SchemaReader({
         const content: SchemaContent[] = [];
         let el = heading.nextElementSibling;
 
-        const urlBase = new URL(baseUrl);
-        const baseHref = `${urlBase.protocol}//${urlBase.host}`;
-        const basePath = urlBase.pathname.substring(0, urlBase.pathname.lastIndexOf('/'));
+        // Handle both local file paths and full URLs
+        let baseHref: string;
+        let basePath: string;
 
-        console.log(`Extracting content with baseUrl: ${baseUrl}, baseHref: ${baseHref}, basePath: ${basePath}`);
+        if (baseUrl.startsWith('/ifc-docs/') || baseUrl.startsWith('./') || baseUrl.startsWith('../') || !baseUrl.includes('://')) {
+            // Local file path - construct local base values
+            baseHref = '';
+            basePath = '/ifc-docs';
+            console.log(`🏠 Local file detected, using basePath: ${basePath}`);
+        } else {
+            // Full URL - parse normally
+            try {
+                const urlBase = new URL(baseUrl);
+                baseHref = `${urlBase.protocol}//${urlBase.host}`;
+                basePath = urlBase.pathname.substring(0, urlBase.pathname.lastIndexOf('/'));
+                console.log(`🌐 Remote URL detected, baseHref: ${baseHref}, basePath: ${basePath}`);
+            } catch (error) {
+                console.warn(`⚠️ Failed to parse URL ${baseUrl}, using local defaults:`, error);
+                baseHref = '';
+                basePath = '/ifc-docs';
+            }
+        }
+
+        console.log(`📍 Content extraction - baseUrl: ${baseUrl}, baseHref: ${baseHref}, basePath: ${basePath}`);
 
         // Run URL resolution test when processing first element
         if (el && el === heading.nextElementSibling) {
@@ -545,20 +573,25 @@ export function SchemaReader({
 
                     // Check if it's a static image format
                     if (!isStaticImageFormat(imageUrl)) {
-                        console.log(`Skipping non-static image format: ${imageUrl}`);
+                        console.log(`⏭️ Skipping non-static image format: ${imageUrl}`);
                     } else {
-                        console.log(`Image found: raw="${rawSrc}", resolved="${imageUrl}"`);
+                        console.log(`🖼️ Image found: raw="${rawSrc}", resolved="${imageUrl}"`);
 
-                        // Only add images that appear to be valid IFC documentation images
-                        if (imageUrl.includes('ifc43-docs.standards.buildingsmart.org') &&
-                            (imageUrl.includes('/figures/') || imageUrl.includes('/HTML/'))) {
+                        // Add images that appear to be valid IFC documentation images (local or remote)
+                        const isValidIfcImage = imageUrl.includes('/ifc-docs/') || // Local IFC docs
+                            imageUrl.includes('/figures/') || // Figures directory
+                            (imageUrl.includes('ifc43-docs.standards.buildingsmart.org') &&
+                                imageUrl.includes('/HTML/')); // Remote IFC docs
+
+                        if (isValidIfcImage) {
+                            console.log(`✅ Adding valid IFC image: ${imageUrl}`);
                             content.push({
                                 type: 'image',
                                 content: alt,
                                 data: { src: imageUrl, alt, originalSrc: rawSrc }
                             });
                         } else {
-                            console.warn(`Skipping potentially invalid image: ${imageUrl}`);
+                            console.warn(`⚠️ Skipping potentially invalid image: ${imageUrl}`);
                         }
                     }
                 } else {
@@ -593,20 +626,25 @@ export function SchemaReader({
 
                         // Check if it's a static image format
                         if (!isStaticImageFormat(imageUrl)) {
-                            console.log(`Skipping non-static figure image format: ${imageUrl}`);
+                            console.log(`⏭️ Skipping non-static figure image format: ${imageUrl}`);
                         } else {
-                            console.log(`Figure image found: raw="${rawSrc}", resolved="${imageUrl}"`);
+                            console.log(`🖼️ Figure image found: raw="${rawSrc}", resolved="${imageUrl}"`);
 
-                            // Only add images that appear to be valid IFC documentation images
-                            if (imageUrl.includes('ifc43-docs.standards.buildingsmart.org') &&
-                                (imageUrl.includes('/figures/') || imageUrl.includes('/HTML/'))) {
+                            // Add images that appear to be valid IFC documentation images (local or remote)
+                            const isValidIfcImage = imageUrl.includes('/ifc-docs/') || // Local IFC docs
+                                imageUrl.includes('/figures/') || // Figures directory
+                                (imageUrl.includes('ifc43-docs.standards.buildingsmart.org') &&
+                                    imageUrl.includes('/HTML/')); // Remote IFC docs
+
+                            if (isValidIfcImage) {
+                                console.log(`✅ Adding valid IFC figure image: ${imageUrl}`);
                                 content.push({
                                     type: 'image',
                                     content: caption || alt,
                                     data: { src: imageUrl, alt: caption || alt, originalSrc: rawSrc }
                                 });
                             } else {
-                                console.warn(`Skipping potentially invalid figure image: ${imageUrl}`);
+                                console.warn(`⚠️ Skipping potentially invalid figure image: ${imageUrl}`);
                             }
                         }
                     } else {
@@ -881,114 +919,143 @@ export function SchemaReader({
         return sections;
     }, []);
 
-    // Load schema with multiple fallback strategies
+    // Load schema with local-only strategy
     const loadSchemaWithFallbacks = useCallback(async (url: string): Promise<SchemaSection[]> => {
-        // Strategy 1: Try enhanced CORS proxies
-        const corsProxies = [
-            {
-                name: "thingproxy.freeboard.io",
-                url: (url: string) => `https://thingproxy.freeboard.io/fetch/${url}`,
-                headers: { 'Accept': 'text/html' }
-            },
-            {
-                name: "crossorigin.me",
-                url: (url: string) => `https://crossorigin.me/${url}`,
-                headers: { 'Accept': 'text/html' }
-            },
-            {
-                name: "cors.sh",
-                url: (url: string) => `https://cors.sh/${url}`,
-                headers: { 'Accept': 'text/html' }
-            },
-            {
-                name: "proxy.cors.sh",
-                url: (url: string) => `https://proxy.cors.sh/${url}`,
-                headers: { 'Accept': 'text/html' }
-            },
-            {
-                name: "corsproxy.io",
-                url: (url: string) => `https://corsproxy.io/?${encodeURIComponent(url)}`,
-                headers: { 'Accept': 'text/html' }
-            },
-        ];
+        console.log(`🔍 loadSchemaWithFallbacks called with URL: ${url}`);
 
-        let lastError: Error | null = null;
-
-        // Try CORS proxies with enhanced error handling
-        for (const proxy of corsProxies) {
+        // Strategy 1: Try local documentation first
+        if (url.startsWith('/ifc-docs/') || url.includes('ifc-docs') || url.includes('buildingsmart.org')) {
             try {
-                setLoadingProxy(proxy.name);
-                console.log(`Trying CORS proxy: ${proxy.name}`);
+                setLoadingProxy("local files");
+                console.log('🏠 Attempting to load local documentation...');
 
-                const proxyUrl = proxy.url(url);
-                const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 15000);
+                // Convert any URL to local path
+                let localUrl = '';
 
-                const res = await throttledRequest(proxyUrl, {
-                    signal: controller.signal,
+                if (url.startsWith('/ifc-docs/')) {
+                    // Already a local URL
+                    localUrl = url;
+                    console.log(`📁 Using direct local URL: ${localUrl}`);
+                } else {
+                    // Extract IFC class name from URL and construct local path
+                    const urlParts = url.split('/');
+                    let fileName = urlParts[urlParts.length - 1]; // e.g., "IfcWall.htm"
+                    console.log(`📝 Extracted filename from URL: ${fileName}`);
+
+                    // Handle file extension conversion
+                    if (fileName.endsWith('.htm')) {
+                        fileName = fileName.replace('.htm', '.html');
+                        console.log(`🔄 Converted .htm to .html: ${fileName}`);
+                    } else if (!fileName.includes('.')) {
+                        fileName = `${fileName}.html`;
+                        console.log(`➕ Added .html extension: ${fileName}`);
+                    }
+
+                    localUrl = `/ifc-docs/${fileName}`;
+                    console.log(`🔧 Constructed local URL: ${localUrl}`);
+                }
+
+                console.log(`📂 Fetching local file: ${localUrl}`);
+
+                const response = await fetch(localUrl, {
+                    method: 'GET',
                     headers: {
-                        ...proxy.headers,
-                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-                        'Origin': window.location.origin,
-                        'Referer': window.location.href,
+                        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
                     }
                 });
 
-                clearTimeout(timeoutId);
+                console.log(`📡 Fetch response status: ${response.status} ${response.statusText}`);
 
-                if (!res.ok) {
-                    if (res.status === 429) {
-                        console.warn(`Rate limited by ${proxy.name}, trying next...`);
-                        await new Promise(resolve => setTimeout(resolve, 5000));
-                        continue;
-                    } else if (res.status === 403) {
-                        console.warn(`Forbidden by ${proxy.name}, trying next...`);
-                        await new Promise(resolve => setTimeout(resolve, 2000));
-                        continue;
+                if (!response.ok) {
+                    if (response.status === 404) {
+                        console.log(`❌ Local file not found: ${localUrl}`);
+                    } else {
+                        console.warn(`⚠️ Local file error ${response.status}: ${localUrl}`);
                     }
-                    throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+                    throw new Error(`Local file not available: ${response.status}`);
                 }
 
-                const text = await res.text();
-                if (text && text.length > 100 && (text.includes('<html') || text.includes('<!DOCTYPE'))) {
+                const text = await response.text();
+                console.log(`📄 File content loaded: ${Math.round(text.length / 1024)}KB (${text.length} characters)`);
+
+                if (text && text.length > 1000) { // Ensure we have substantial content
+                    console.log(`✅ Content size check passed, parsing with parseSchemaContent...`);
                     const parsed = parseSchemaContent(text, url);
+                    console.log(`📖 Parsing completed: ${parsed.length} sections found`);
+
                     if (parsed && parsed.length > 0) {
+                        console.log(`🎉 Successfully parsed local documentation: ${parsed.length} sections`);
+                        parsed.forEach((section, i) => {
+                            console.log(`  Section ${i + 1}: "${section.title}" (${section.type}) - ${section.content.length} content items`);
+                        });
+                        setLoadingProxy(""); // Clear loading proxy indicator
                         return parsed;
+                    } else {
+                        console.warn(`⚠️ Parsing returned empty or invalid result`);
                     }
+                } else {
+                    console.warn(`⚠️ File content too small: ${text?.length || 0} characters (minimum: 1000)`);
                 }
-                throw new Error('Invalid or empty response content');
+                throw new Error('Local file content invalid or empty');
 
             } catch (err) {
-                console.error(`Proxy ${proxy.name} failed:`, err);
-                lastError = err instanceof Error ? err : new Error("Unknown error");
-                await new Promise(resolve => setTimeout(resolve, 1500));
+                console.error('❌ Local documentation failed:', err instanceof Error ? err.message : err);
+                if (err instanceof Error) {
+                    console.error('❌ Error details:', err.stack);
+                }
+                // Fall through to fallback content
             }
+        } else {
+            console.log(`⚠️ URL does not match local file patterns: ${url}`);
         }
 
-        // Strategy 2: Return enhanced fallback content
-        console.log('All proxies failed, using enhanced fallback content');
-        return getEnhancedFallbackSections(ifcClassName, url);
-    }, [throttledRequest, ifcClassName, getEnhancedFallbackSections, parseSchemaContent]);
+        // Strategy 2: Return enhanced fallback content (no CORS proxies)
+        console.log(`🔄 Using enhanced fallback content for: ${ifcClassName}`);
+        setLoadingProxy("");
+        const fallbackSections = getEnhancedFallbackSections(ifcClassName, url);
+        console.log(`📝 Generated ${fallbackSections.length} fallback sections`);
+        return fallbackSections;
+    }, [ifcClassName, getEnhancedFallbackSections, parseSchemaContent]);
 
     // Load full schema content with enhanced extraction and persistent caching
     const loadFullSchema = useCallback(async (): Promise<void> => {
         if (!schemaUrl || loading) return;
 
+        console.log(`🔍 loadFullSchema called for: ${schemaUrl}`);
+
         // Check cache first (both memory and localStorage)
         if (schemaCache.has(schemaUrl)) {
-            console.log('Loading schema from cache:', schemaUrl);
-            setSections(schemaCache.get(schemaUrl)!);
-            return;
+            console.log('📦 Loading schema from cache:', schemaUrl);
+            const cachedSections = schemaCache.get(schemaUrl)!;
+
+            // Check if cached data contains fallback content (indicates old failed attempts)
+            const hasFallbackContent = cachedSections.some(section =>
+                section.content.some(item =>
+                    item.content.includes('temporarily unavailable due to network restrictions') ||
+                    item.content.includes('documentation for this entity is temporarily unavailable')
+                )
+            );
+
+            if (hasFallbackContent) {
+                console.log('⚠️ Found old fallback content in cache, forcing fresh load...');
+                schemaCache.delete(schemaUrl);
+                // Continue to fresh load
+            } else {
+                console.log(`✅ Using valid cached schema data (${cachedSections.length} sections)`);
+                setSections(cachedSections);
+                return;
+            }
         }
 
         // Check if already requesting this URL
         if (requestQueue.has(schemaUrl)) {
-            console.log('Schema request already in progress for:', schemaUrl);
+            console.log('⏳ Schema request already in progress for:', schemaUrl);
             try {
                 const cachedSections = await requestQueue.get(schemaUrl)!;
                 setSections(cachedSections);
                 return;
             } catch (err) {
+                console.log('❌ Cached request failed, starting fresh request');
                 // Continue with new request if cached request failed
             }
         }
@@ -1002,14 +1069,17 @@ export function SchemaReader({
         requestQueue.set(schemaUrl, requestPromise);
 
         try {
+            console.log(`🚀 Starting fresh schema load for: ${schemaUrl}`);
             const extractedSections = await requestPromise;
+            console.log(`✅ Schema load completed: ${extractedSections.length} sections extracted`);
+
             setSections(extractedSections);
             // Cache successful result in both memory and localStorage
             schemaCache.set(schemaUrl, extractedSections);
             saveSchemaCacheToStorage();
             setRetryAttempt(0);
         } catch (err) {
-            console.error("Failed to load schema:", err);
+            console.error("❌ Failed to load schema:", err);
             const errorMessage = err instanceof Error ? err.message : "Failed to load schema";
             setError(errorMessage);
         } finally {
@@ -1242,16 +1312,16 @@ export function SchemaReader({
                     <div key={index} className="mb-6 max-w-full">
                         <div className="rounded-lg border border-border overflow-hidden bg-muted/30 group">
                             <div className="relative">
-                                <NextImage
+                                {/* Use regular img tag for local IFC documentation images to avoid Next.js optimization issues */}
+                                <img
                                     src={item.data?.src}
                                     alt={item.data?.alt || 'Diagram'}
-                                    width={800}
-                                    height={600}
                                     className="w-full h-auto cursor-pointer transition-transform duration-200 group-hover:scale-[1.02] max-w-full"
                                     onClick={() => openImageModal(item.data?.src, item.data?.alt || 'Diagram')}
                                     onError={(e) => {
-                                        console.error(`Failed to load image: ${e.currentTarget.src}`);
-                                        console.error(`Original source: ${item.data?.originalSrc}`);
+                                        console.error(`❌ Failed to load image: ${e.currentTarget.src}`);
+                                        console.error(`📝 Original source: ${item.data?.originalSrc}`);
+                                        console.error(`🔍 Attempted resolution path: ${item.data?.src}`);
 
                                         // Hide the entire image container instead of showing error
                                         const imageContainer = e.currentTarget.closest('.mb-6');
@@ -1259,8 +1329,9 @@ export function SchemaReader({
                                             (imageContainer as HTMLElement).style.display = 'none';
                                         }
                                     }}
-                                    onLoadingComplete={() => {
-                                        console.log(`Successfully loaded image: ${item.data?.src}`);
+                                    onLoad={() => {
+                                        console.log(`✅ Successfully loaded image: ${item.data?.src}`);
+                                        console.log(`📝 Original source was: ${item.data?.originalSrc}`);
                                     }}
                                     data-original-src={item.data?.originalSrc}
                                 />
@@ -1582,11 +1653,9 @@ export function SchemaReader({
 
                         {selectedImage && (
                             <div className="flex flex-col items-center max-w-full max-h-full p-8">
-                                <NextImage
+                                <img
                                     src={selectedImage.src}
                                     alt={selectedImage.alt}
-                                    width={800}
-                                    height={600}
                                     className="max-w-full max-h-[80vh] object-contain animate-in zoom-in duration-300"
                                 />
                                 <div className="text-center text-white mt-4 max-w-2xl">

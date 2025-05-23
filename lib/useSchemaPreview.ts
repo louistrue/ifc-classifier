@@ -8,7 +8,7 @@ const MIN_PREVIEW_REQUEST_INTERVAL = 500; // Much faster for previews - 0.5 seco
 
 // Persistent preview cache keys
 const PREVIEW_CACHE_KEY = 'ifc-schema-preview-cache';
-const PREVIEW_CACHE_VERSION = 'v3'; // Incremented version due to change in fallback behavior
+const PREVIEW_CACHE_VERSION = 'v6-extension-fix'; // Fixed the extension removal bug that caused extra 'l'
 const PREVIEW_CACHE_EXPIRY_HOURS = 24; // 24 hour cache for previews
 
 // Load preview cache from localStorage
@@ -24,7 +24,7 @@ const loadPreviewCacheFromStorage = (): void => {
             previewCache.set(url, entry.preview);
           }
         });
-        console.log(`Loaded ${previewCache.size} cached previews from localStorage (v3)`);
+        console.log(`Loaded ${previewCache.size} cached previews from localStorage (v6)`);
       }
     }
   } catch (error) {
@@ -153,45 +153,127 @@ export function useSchemaPreview(schemaUrl?: string) {
     }
   }, []);
 
-  // Fast preview fetch - only try one quick proxy
-  const fetchPreviewFast = useCallback(async (url: string, ifcClass: string): Promise<string[]> => {
-    console.log(`Fetching preview for: ${url} (Class: ${ifcClass})`);
+  // Generate fallback preview content for IFC classes
+  const generateFallbackPreview = useCallback((ifcClass: string): string[] => {
+    // Remove "Ifc" prefix for natural language
+    const naturalName = ifcClass.startsWith('Ifc') ? ifcClass.substring(3) : ifcClass;
 
-    try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 3000); // 3 second timeout
-      const proxyUrl = `https://thingproxy.freeboard.io/fetch/${url}`;
-
-      const res = await fetch(proxyUrl, {
-        signal: controller.signal,
-        headers: {
-          'Accept': 'text/html',
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-        }
-      });
-
-      clearTimeout(timeoutId);
-
-      if (res.ok) {
-        const text = await res.text();
-        if (text && text.length > 100 && (text.includes('<html') || text.includes('<!DOCTYPE'))) {
-          const parsed = parsePreviewContent(text, ifcClass);
-          if (parsed && parsed !== GENERIC_FAILURE_MESSAGE && parsed !== NO_DEFINITION_MESSAGE) {
-            console.log('Preview fetch successful for', ifcClass);
-            return parsed;
-          }
-          // If specific parsing failed (e.g. no def found for this class), return that specific message
-          return parsed;
-        }
-      }
-      // If response not ok or content invalid, fall through to generic failure
-      console.warn(`Fetch not OK for ${ifcClass} (${res.status})`);
-    } catch (err) {
-      console.log(`Preview fetch failed for ${ifcClass}:`, err);
-      // Fall through to generic failure
+    if (ifcClass.includes('Wall')) {
+      return [`${naturalName} is a vertical construction element that provides structural support and space separation in buildings.`];
+    } else if (ifcClass.includes('Slab')) {
+      return [`${naturalName} is a horizontal structural element that forms floors, roofs, or other flat surfaces in buildings.`];
+    } else if (ifcClass.includes('Beam')) {
+      return [`${naturalName} is a horizontal structural element that carries loads perpendicular to its length.`];
+    } else if (ifcClass.includes('Column')) {
+      return [`${naturalName} is a vertical structural element that transfers loads from upper levels to foundations.`];
+    } else if (ifcClass.includes('Door')) {
+      return [`${naturalName} provides controlled access between spaces and includes frames, panels, and hardware.`];
+    } else if (ifcClass.includes('Window')) {
+      return [`${naturalName} provides natural light, ventilation, and views while maintaining thermal barriers.`];
+    } else if (ifcClass.includes('Space')) {
+      return [`${naturalName} defines functional areas within buildings for specific activities or purposes.`];
+    } else if (ifcClass.includes('Building')) {
+      return [`${naturalName} represents the overall building structure in the IFC hierarchy.`];
+    } else if (ifcClass.includes('Project')) {
+      return [`${naturalName} is the root element of an IFC model, establishing global context and references.`];
+    } else {
+      return [`${naturalName} is an IFC entity used in Building Information Modeling (BIM) for construction industry data exchange.`];
     }
-    return GENERIC_FAILURE_MESSAGE;
-  }, [parsePreviewContent]);
+  }, []);
+
+  // Fast preview fetch - handle local files directly, no CORS proxies
+  const fetchPreviewFast = useCallback(async (url: string, ifcClass: string): Promise<string[]> => {
+    console.log(`🔍 Fetching preview for: ${url} (Class: ${ifcClass})`);
+
+    // Always try local files first - check if URL is local or convert remote to local
+    let localUrl = '';
+
+    if (url.startsWith('/ifc-docs/')) {
+      // Already a local URL
+      localUrl = url;
+      console.log(`📂 Using direct local URL: ${localUrl}`);
+    } else if (url.includes('ifc-docs') || url.includes('buildingsmart.org')) {
+      // Convert remote URL to local path
+      const urlParts = url.split('/');
+      let fileName = urlParts[urlParts.length - 1];
+
+      // Handle both .htm and .html extensions
+      if (fileName.endsWith('.htm')) {
+        fileName = fileName.replace('.htm', '.html');
+      }
+
+      // If no file extension, append .html
+      if (!fileName.includes('.')) {
+        fileName = `${fileName}.html`;
+      }
+
+      localUrl = `/ifc-docs/${fileName}`;
+      console.log(`🔄 Converted to local URL: ${localUrl}`);
+    } else {
+      // Extract IFC class name from URL for more accurate parsing
+      const urlParts = url.split('/');
+      const fileName = urlParts[urlParts.length - 1]?.replace('.html', '').replace('.htm', '');
+      const ifcClassFromUrl = fileName || "UnknownIfcClass";
+
+      // If we can extract a class name, try to construct local path
+      if (ifcClassFromUrl && ifcClassFromUrl.startsWith('Ifc')) {
+        localUrl = `/ifc-docs/${ifcClassFromUrl}.html`;
+        console.log(`🔧 Constructed local URL from class: ${localUrl}`);
+      } else {
+        // Use the passed ifcClass parameter as fallback
+        localUrl = `/ifc-docs/${ifcClass}.html`;
+        console.log(`⚠️ Using ifcClass fallback: ${localUrl}`);
+      }
+    }
+
+    // Try to load the local file
+    if (localUrl) {
+      try {
+        console.log(`🏠 Loading local preview from: ${localUrl}`);
+
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 5000); // Increased timeout
+
+        const res = await fetch(localUrl, {
+          signal: controller.signal,
+          headers: {
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+          }
+        });
+
+        clearTimeout(timeoutId);
+
+        if (res.ok) {
+          const text = await res.text();
+          if (text && text.length > 100) {
+            console.log(`✅ Local file loaded successfully (${Math.round(text.length / 1024)}KB)`);
+            const parsed = parsePreviewContent(text, ifcClass);
+
+            // If parsing was successful and found actual content
+            if (parsed && parsed.length > 0 &&
+              parsed !== GENERIC_FAILURE_MESSAGE &&
+              parsed !== NO_DEFINITION_MESSAGE) {
+              console.log('✅ Local preview parsed successfully for', ifcClass);
+              return parsed;
+            } else {
+              console.log('⚠️ Local file parsed but no semantic definition found, using fallback');
+            }
+          } else {
+            console.log(`⚠️ Local file too small or empty: ${text?.length || 0} bytes`);
+          }
+        } else {
+          console.log(`📁 Local file not found (${res.status}): ${localUrl}`);
+        }
+      } catch (err) {
+        console.log(`📁 Local preview fetch failed for ${ifcClass}:`, err);
+      }
+    }
+
+    // Always fall back to generated preview content instead of showing errors
+    console.log(`🔄 Using generated fallback content for ${ifcClass}`);
+    const fallbackPreview = generateFallbackPreview(ifcClass);
+    return fallbackPreview;
+  }, [parsePreviewContent, generateFallbackPreview]);
 
   useEffect(() => {
     if (!schemaUrl) {
@@ -200,19 +282,29 @@ export function useSchemaPreview(schemaUrl?: string) {
       setError(null);
       return;
     }
+
     // Extract IFC class name from URL for more accurate parsing
     const urlParts = schemaUrl.split('/');
-    const fileName = urlParts[urlParts.length - 1]?.replace('.htm', '');
+    const fileName = urlParts[urlParts.length - 1]?.replace('.html', '').replace('.htm', '');
     const ifcClassFromUrl = fileName || "UnknownIfcClass";
 
     if (previewCache.has(schemaUrl)) {
       console.log('Loading preview from cache:', schemaUrl);
       const cachedData = previewCache.get(schemaUrl)!;
-      // Check if cached data is an error message, if so, reflect it in error state
-      if (cachedData === GENERIC_FAILURE_MESSAGE || cachedData === NO_DEFINITION_MESSAGE) {
-        setError(cachedData[0]);
-        setPreview(null);
+
+      // Check if cached data is old error messages - if so, regenerate with fallback content
+      if (cachedData === GENERIC_FAILURE_MESSAGE || cachedData === NO_DEFINITION_MESSAGE ||
+        (Array.isArray(cachedData) && cachedData.length === 1 &&
+          (cachedData[0] === "Could not load preview." || cachedData[0] === "Semantic definition not found."))) {
+        console.log('Found old cached error, regenerating with fallback content...');
+        const fallbackContent = generateFallbackPreview(ifcClassFromUrl);
+        setPreview(fallbackContent);
+        setError(null);
+        // Update cache with new fallback content
+        previewCache.set(schemaUrl, fallbackContent);
+        saveCacheToStorage();
       } else {
+        // Use cached content normally
         setPreview(cachedData);
         setError(null);
       }
@@ -225,18 +317,16 @@ export function useSchemaPreview(schemaUrl?: string) {
       setLoading(true); // Ensure loading is true while waiting for queued request
       previewRequestQueue.get(schemaUrl)!
         .then(cachedPreview => {
-          if (cachedPreview === GENERIC_FAILURE_MESSAGE || cachedPreview === NO_DEFINITION_MESSAGE) {
-            setError(cachedPreview[0]);
-            setPreview(null);
-          } else {
-            setPreview(cachedPreview);
-            setError(null);
-          }
+          // Always show content, never errors
+          setPreview(cachedPreview);
+          setError(null);
         })
         .catch(err => {
           console.error('Cached preview request failed:', err);
-          setError("Failed to load. Please try again.");
-          setPreview(null);
+          // Generate fallback content for failed requests
+          const fallbackContent = generateFallbackPreview(ifcClassFromUrl);
+          setPreview(fallbackContent);
+          setError(null);
         })
         .finally(() => setLoading(false));
       return;
@@ -267,27 +357,25 @@ export function useSchemaPreview(schemaUrl?: string) {
       try {
         const extractedPreview = await requestPromise;
         if (!cancelled) {
-          if (extractedPreview === GENERIC_FAILURE_MESSAGE) {
-            setError(GENERIC_FAILURE_MESSAGE[0]);
-            setPreview(null);
-          } else if (extractedPreview === NO_DEFINITION_MESSAGE) {
-            setError(NO_DEFINITION_MESSAGE[0]);
-            setPreview(null);
-          } else {
-            setPreview(extractedPreview);
-            setError(null);
-          }
-          // Cache the outcome, even if it's one of the defined error messages (as a string array)
+          // All responses are now valid - either from local files or generated fallback
+          // No longer treating any response as an error since fallback content is intentional
+          setPreview(extractedPreview);
+          setError(null);
+
+          // Cache the result
           previewCache.set(schemaUrl, extractedPreview);
           saveCacheToStorage();
         }
       } catch (err) {
         if (!cancelled) {
           console.error("Preview fetch failed unexpectedly:", err);
-          setError("An unexpected error occurred.");
-          setPreview(null);
-          // Cache generic failure on unexpected error
-          previewCache.set(schemaUrl, GENERIC_FAILURE_MESSAGE);
+          // Generate fallback content even for unexpected errors
+          const fallbackContent = generateFallbackPreview(ifcClassFromUrl);
+          setPreview(fallbackContent);
+          setError(null); // Don't show errors since we have fallback content
+
+          // Cache the fallback content
+          previewCache.set(schemaUrl, fallbackContent);
           saveCacheToStorage();
         }
       } finally {

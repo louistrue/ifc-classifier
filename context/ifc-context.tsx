@@ -228,15 +228,16 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const fetchNaturalNames = async () => {
       try {
-        const response = await fetch("/data/natural_ifcclass.json");
+        // Use local version of IFC class data with local file paths to avoid CORS issues
+        const response = await fetch("/data/natural_ifcclass_local.json");
         if (!response.ok) {
           throw new Error(
-            `Failed to fetch natural_ifcclass.json: ${response.statusText}`,
+            `Failed to fetch natural_ifcclass_local.json: ${response.statusText}`,
           );
         }
         const data = await response.json();
         setNaturalIfcClassNames(data);
-        console.log("IFCContext: Natural IFC class names loaded.", data);
+        console.log("IFCContext: Natural IFC class names loaded from local files.", data);
       } catch (error) {
         console.error(
           "IFCContext: Error loading natural IFC class names:",
@@ -1494,11 +1495,11 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
             if (psetName.includes('*')) {
               const regex = new RegExp(
                 '^' +
-                  psetName
-                    .split('*')
-                    .map((s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
-                    .join('.*') +
-                  '$',
+                psetName
+                  .split('*')
+                  .map((s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+                  .join('.*') +
+                '$',
                 'i',
               );
               for (const key of Object.keys(props.propertySets || {})) {

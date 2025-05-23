@@ -343,6 +343,7 @@ export function ModelInfo() {
   const schemaUrlForHook = elementProperties?.ifcType
     ? getNaturalIfcClassName(elementProperties.ifcType, lang).schemaUrl
     : undefined;
+
   const { preview: schemaPreview, loading: schemaLoading, error: schemaError } = useSchemaPreview(schemaUrlForHook);
 
   const openSchemaReader = () => {
