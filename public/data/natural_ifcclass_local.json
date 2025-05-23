@@ -1,0 +1,202 @@
+{
+  "IfcBeam": {
+    "en": "Beam",
+    "de": "Träger",
+    "schema": "/ifc-docs/IfcBeam.html"
+  },
+  "IfcBearing": {
+    "en": "Bearing",
+    "de": "Lager",
+    "schema": "/ifc-docs/IfcBearing.html"
+  },
+  "IfcBuilding": {
+    "en": "Building",
+    "de": "Gebäude",
+    "schema": "/ifc-docs/IfcBuilding.html"
+  },
+  "IfcBuildingElementPart": {
+    "en": "Building Element Part",
+    "de": "Bauelementteil",
+    "schema": "/ifc-docs/IfcBuildingElementPart.html"
+  },
+  "IfcBuildingElementProxy": {
+    "en": "Element Proxy",
+    "de": "Bauelement-Platzhalter",
+    "schema": "/ifc-docs/IfcBuildingElementProxy.html"
+  },
+  "IfcBuildingStorey": {
+    "en": "Building Storey",
+    "de": "Geschoss",
+    "schema": "/ifc-docs/IfcBuildingStorey.html"
+  },
+  "IfcBuildingSystem": {
+    "en": "Building System",
+    "de": "Gebäudesystem",
+    "schema": "/ifc-docs/IfcBuildingSystem.html"
+  },
+  "IfcChimney": {
+    "en": "Chimney",
+    "de": "Schornstein",
+    "schema": "/ifc-docs/IfcChimney.html"
+  },
+  "IfcColumn": {
+    "en": "Column",
+    "de": "Stütze",
+    "schema": "/ifc-docs/IfcColumn.html"
+  },
+  "IfcCovering": {
+    "en": "Covering",
+    "de": "Bekleidung",
+    "schema": "/ifc-docs/IfcCovering.html"
+  },
+  "IfcCurtainWall": {
+    "en": "Curtain Wall",
+    "de": "Vorhangfassade",
+    "schema": "/ifc-docs/IfcCurtainWall.html"
+  },
+  "IfcDoor": {
+    "en": "Door",
+    "de": "Tür",
+    "schema": "/ifc-docs/IfcDoor.html"
+  },
+  "IfcMember": {
+    "en": "Member",
+    "de": "Bauteil",
+    "schema": "/ifc-docs/IfcMember.html"
+  },
+  "IfcPlate": {
+    "en": "Plate",
+    "de": "Platte",
+    "schema": "/ifc-docs/IfcPlate.html"
+  },
+  "IfcProject": {
+    "en": "Project",
+    "de": "Projekt",
+    "schema": "/ifc-docs/IfcProject.html"
+  },
+  "IfcRailing": {
+    "en": "Railing",
+    "de": "Geländer",
+    "schema": "/ifc-docs/IfcRailing.html"
+  },
+  "IfcRamp": {
+    "en": "Ramp",
+    "de": "Rampe",
+    "schema": "/ifc-docs/IfcRamp.html"
+  },
+  "IfcRampFlight": {
+    "en": "Ramp Flight",
+    "de": "Rampenlauf",
+    "schema": "/ifc-docs/IfcRampFlight.html"
+  },
+  "IfcRoof": {
+    "en": "Roof",
+    "de": "Dach",
+    "schema": "/ifc-docs/IfcRoof.html"
+  },
+  "IfcShadingDevice": {
+    "en": "Shading Device",
+    "de": "Beschattungselement",
+    "schema": "/ifc-docs/IfcShadingDevice.html"
+  },
+  "IfcSite": {
+    "en": "Site",
+    "de": "Grundstück",
+    "schema": "/ifc-docs/IfcSite.html"
+  },
+  "IfcSlab": {
+    "en": "Slab",
+    "de": "Platte",
+    "schema": "/ifc-docs/IfcSlab.html"
+  },
+  "IfcSpace": {
+    "en": "Space",
+    "de": "Raum",
+    "schema": "/ifc-docs/IfcSpace.html"
+  },
+  "IfcStair": {
+    "en": "Stair",
+    "de": "Treppe",
+    "schema": "/ifc-docs/IfcStair.html"
+  },
+  "IfcWall": {
+    "en": "Wall",
+    "de": "Wand",
+    "schema": "/ifc-docs/IfcWall.html"
+  },
+  "IfcWallStandardCase": {
+    "en": "Wall",
+    "de": "Wand",
+    "schema": "/ifc-docs/IfcWallStandardCase.html"
+  },
+  "IfcWindow": {
+    "en": "Window",
+    "de": "Fenster",
+    "schema": "/ifc-docs/IfcWindow.html"
+  },
+  "IfcCaissonFoundation": {
+    "en": "Caisson Foundation",
+    "de": "Caissonfundament",
+    "schema": "/ifc-docs/IfcCaissonFoundation.html"
+  },
+  "IfcDeepFoundation": {
+    "en": "Deep Foundation",
+    "de": "Tiefgründung",
+    "schema": "/ifc-docs/IfcDeepFoundation.html"
+  },
+  "IfcFooting": {
+    "en": "Footing",
+    "de": "Fundament",
+    "schema": "/ifc-docs/IfcFooting.html"
+  },
+  "IfcPile": {
+    "en": "Pile",
+    "de": "Pfahl",
+    "schema": "/ifc-docs/IfcPile.html"
+  },
+  "IfcReinforcementDefinitionProperties": {
+    "en": "Reinforcement Definition Properties",
+    "de": "Bewehrungsdefinitions-eigenschaften",
+    "schema": "/ifc-docs/IfcReinforcementDefinitionProperties.html"
+  },
+  "IfcReinforcingBar": {
+    "en": "Reinforcing Bar",
+    "de": "Bewehrungsstab",
+    "schema": "/ifc-docs/IfcReinforcingBar.html"
+  },
+  "IfcReinforcingElement": {
+    "en": "Reinforcing Element",
+    "de": "Bewehrungselement",
+    "schema": "/ifc-docs/IfcReinforcingElement.html"
+  },
+  "IfcReinforcingMesh": {
+    "en": "Reinforcing Mesh",
+    "de": "Bewehrungsgitter",
+    "schema": "/ifc-docs/IfcReinforcingMesh.html"
+  },
+  "IfcSurfaceFeature": {
+    "en": "Surface Feature",
+    "de": "Oberflächenmerkmal",
+    "schema": "/ifc-docs/IfcSurfaceFeature.html"
+  },
+  "IfcTendon": {
+    "en": "Tendon",
+    "de": "Spannstrang",
+    "schema": "/ifc-docs/IfcTendon.html"
+  },
+  "IfcTendonAnchor": {
+    "en": "Tendon Anchor",
+    "de": "Spannstrangverankerung",
+    "schema": "/ifc-docs/IfcTendonAnchor.html"
+  },
+  "IfcTendonConduit": {
+    "en": "Tendon Conduit",
+    "de": "Spannstrangführung",
+    "schema": "/ifc-docs/IfcTendonConduit.html"
+  },
+  "IfcVoidingFeature": {
+    "en": "Voiding Feature",
+    "de": "Aussparungselement",
+    "schema": "/ifc-docs/IfcVoidingFeature.html"
+  }
+}

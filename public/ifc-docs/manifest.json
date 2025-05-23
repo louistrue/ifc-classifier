@@ -1,0 +1,206 @@
+{
+  "downloadDate": "2025-05-23T09:41:24.702Z",
+  "source": "https://ifc43-docs.standards.buildingsmart.org/IFC/RELEASE/IFC4x3/HTML/",
+  "classes": {
+    "IfcBeam": {
+      "filename": "IfcBeam.html",
+      "size": 131985,
+      "status": "exists"
+    },
+    "IfcBearing": {
+      "filename": "IfcBearing.html",
+      "size": 104553,
+      "status": "exists"
+    },
+    "IfcBuilding": {
+      "filename": "IfcBuilding.html",
+      "size": 101613,
+      "status": "exists"
+    },
+    "IfcBuildingElementPart": {
+      "filename": "IfcBuildingElementPart.html",
+      "size": 104407,
+      "status": "exists"
+    },
+    "IfcBuildingElementProxy": {
+      "filename": "IfcBuildingElementProxy.html",
+      "size": 119485,
+      "status": "exists"
+    },
+    "IfcBuildingStorey": {
+      "filename": "IfcBuildingStorey.html",
+      "size": 92749,
+      "status": "exists"
+    },
+    "IfcBuildingSystem": {
+      "filename": "IfcBuildingSystem.html",
+      "size": 52412,
+      "status": "exists"
+    },
+    "IfcChimney": {
+      "filename": "IfcChimney.html",
+      "size": 108025,
+      "status": "exists"
+    },
+    "IfcColumn": {
+      "filename": "IfcColumn.html",
+      "size": 128276,
+      "status": "exists"
+    },
+    "IfcCovering": {
+      "filename": "IfcCovering.html",
+      "size": 123082,
+      "status": "exists"
+    },
+    "IfcCurtainWall": {
+      "filename": "IfcCurtainWall.html",
+      "size": 110637,
+      "status": "exists"
+    },
+    "IfcDoor": {
+      "filename": "IfcDoor.html",
+      "size": 132979,
+      "status": "exists"
+    },
+    "IfcMember": {
+      "filename": "IfcMember.html",
+      "size": 129359,
+      "status": "exists"
+    },
+    "IfcPlate": {
+      "filename": "IfcPlate.html",
+      "size": 123995,
+      "status": "exists"
+    },
+    "IfcProject": {
+      "filename": "IfcProject.html",
+      "size": 55719,
+      "status": "exists"
+    },
+    "IfcRailing": {
+      "filename": "IfcRailing.html",
+      "size": 108317,
+      "status": "exists"
+    },
+    "IfcRamp": {
+      "filename": "IfcRamp.html",
+      "size": 117432,
+      "status": "exists"
+    },
+    "IfcRampFlight": {
+      "filename": "IfcRampFlight.html",
+      "size": 116689,
+      "status": "exists"
+    },
+    "IfcRoof": {
+      "filename": "IfcRoof.html",
+      "size": 113732,
+      "status": "exists"
+    },
+    "IfcShadingDevice": {
+      "filename": "IfcShadingDevice.html",
+      "size": 106748,
+      "status": "exists"
+    },
+    "IfcSite": {
+      "filename": "IfcSite.html",
+      "size": 100850,
+      "status": "exists"
+    },
+    "IfcSlab": {
+      "filename": "IfcSlab.html",
+      "size": 142676,
+      "status": "exists"
+    },
+    "IfcSpace": {
+      "filename": "IfcSpace.html",
+      "size": 99481,
+      "status": "exists"
+    },
+    "IfcStair": {
+      "filename": "IfcStair.html",
+      "size": 117071,
+      "status": "exists"
+    },
+    "IfcWall": {
+      "filename": "IfcWall.html",
+      "size": 145573,
+      "status": "exists"
+    },
+    "IfcWallStandardCase": {
+      "filename": "IfcWallStandardCase.html",
+      "size": 155550,
+      "status": "exists"
+    },
+    "IfcWindow": {
+      "filename": "IfcWindow.html",
+      "size": 134619,
+      "status": "exists"
+    },
+    "IfcCaissonFoundation": {
+      "filename": "IfcCaissonFoundation.html",
+      "size": 105143,
+      "status": "exists"
+    },
+    "IfcDeepFoundation": {
+      "filename": "IfcDeepFoundation.html",
+      "size": 102514,
+      "status": "exists"
+    },
+    "IfcFooting": {
+      "filename": "IfcFooting.html",
+      "size": 112576,
+      "status": "exists"
+    },
+    "IfcPile": {
+      "filename": "IfcPile.html",
+      "size": 112988,
+      "status": "exists"
+    },
+    "IfcReinforcementDefinitionProperties": {
+      "filename": "IfcReinforcementDefinitionProperties.html",
+      "size": 26787,
+      "status": "exists"
+    },
+    "IfcReinforcingBar": {
+      "filename": "IfcReinforcingBar.html",
+      "size": 117801,
+      "status": "exists"
+    },
+    "IfcReinforcingElement": {
+      "filename": "IfcReinforcingElement.html",
+      "size": 104365,
+      "status": "exists"
+    },
+    "IfcReinforcingMesh": {
+      "filename": "IfcReinforcingMesh.html",
+      "size": 118623,
+      "status": "exists"
+    },
+    "IfcSurfaceFeature": {
+      "filename": "IfcSurfaceFeature.html",
+      "size": 109592,
+      "status": "exists"
+    },
+    "IfcTendon": {
+      "filename": "IfcTendon.html",
+      "size": 114139,
+      "status": "exists"
+    },
+    "IfcTendonAnchor": {
+      "filename": "IfcTendonAnchor.html",
+      "size": 107036,
+      "status": "exists"
+    },
+    "IfcTendonConduit": {
+      "filename": "IfcTendonConduit.html",
+      "size": 107889,
+      "status": "exists"
+    },
+    "IfcVoidingFeature": {
+      "filename": "IfcVoidingFeature.html",
+      "size": 102912,
+      "status": "exists"
+    }
+  }
+}
