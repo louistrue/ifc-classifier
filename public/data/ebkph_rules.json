@@ -1,8 +1,8 @@
 [
   {
     "id": "rule-beam",
-    "name": "Beams",
-    "description": "Classify beam elements",
+    "name": "Träger",
+    "description": "Klassifizierung von Träger-Elementen",
     "classificationCode": "C04.01",
     "active": true,
     "conditions": [
@@ -15,8 +15,8 @@
   },
   {
     "id": "rule-bearing",
-    "name": "Bearings",
-    "description": "Classify bearing elements",
+    "name": "Lager",
+    "description": "Klassifizierung von Lager-Elementen",
     "classificationCode": "C04.01",
     "active": true,
     "conditions": [
@@ -28,37 +28,9 @@
     ]
   },
   {
-    "id": "rule-building",
-    "name": "Buildings",
-    "description": "Classify building elements",
-    "classificationCode": "B02.01",
-    "active": true,
-    "conditions": [
-      {
-        "property": "Ifc Class",
-        "operator": "equals",
-        "value": "IFCBUILDING"
-      }
-    ]
-  },
-  {
-    "id": "rule-building-element-part",
-    "name": "Building Element Parts",
-    "description": "Classify building element part elements",
-    "classificationCode": "G04.01",
-    "active": true,
-    "conditions": [
-      {
-        "property": "Ifc Class",
-        "operator": "equals",
-        "value": "IFCBUILDINGELEMENTPART"
-      }
-    ]
-  },
-  {
     "id": "rule-element-proxy",
-    "name": "Element Proxies",
-    "description": "Classify element proxy elements",
+    "name": "Element-Proxies",
+    "description": "Klassifizierung von Element-Proxy-Elementen",
     "classificationCode": "C05.01",
     "active": true,
     "conditions": [
@@ -70,37 +42,9 @@
     ]
   },
   {
-    "id": "rule-building-storey",
-    "name": "Building Storeys",
-    "description": "Classify building storey elements",
-    "classificationCode": "B03.03",
-    "active": true,
-    "conditions": [
-      {
-        "property": "Ifc Class",
-        "operator": "equals",
-        "value": "IFCBUILDINGSTOREY"
-      }
-    ]
-  },
-  {
-    "id": "rule-building-system",
-    "name": "Building Systems",
-    "description": "Classify building system elements",
-    "classificationCode": "D05.01",
-    "active": true,
-    "conditions": [
-      {
-        "property": "Ifc Class",
-        "operator": "equals",
-        "value": "IFCBUILDINGSYSTEM"
-      }
-    ]
-  },
-  {
     "id": "rule-chimney",
-    "name": "Chimneys",
-    "description": "Classify chimney elements",
+    "name": "Schornsteine",
+    "description": "Klassifizierung von Schornstein-Elementen",
     "classificationCode": "F01.03",
     "active": true,
     "conditions": [
@@ -113,8 +57,8 @@
   },
   {
     "id": "rule-column",
-    "name": "Columns",
-    "description": "Classify column elements",
+    "name": "Stützen",
+    "description": "Klassifizierung von Stützen-Elementen",
     "classificationCode": "C03.01",
     "active": true,
     "conditions": [
@@ -127,8 +71,8 @@
   },
   {
     "id": "rule-covering",
-    "name": "Coverings",
-    "description": "Classify covering elements",
+    "name": "Bekleidungen",
+    "description": "Klassifizierung von Bekleidungs-Elementen",
     "classificationCode": "G04.01",
     "active": true,
     "conditions": [
@@ -141,8 +85,8 @@
   },
   {
     "id": "rule-curtain-wall",
-    "name": "Curtain Walls",
-    "description": "Classify curtain-wall elements",
+    "name": "Vorhangfassaden",
+    "description": "Klassifizierung von Vorhangfassaden-Elementen",
     "classificationCode": "E02.04",
     "active": true,
     "conditions": [
@@ -155,8 +99,8 @@
   },
   {
     "id": "rule-doors",
-    "name": "Doors",
-    "description": "Classify door elements",
+    "name": "Türen",
+    "description": "Klassifizierung von Tür-Elementen",
     "classificationCode": "E03.02",
     "active": true,
     "conditions": [
@@ -169,8 +113,8 @@
   },
   {
     "id": "rule-member",
-    "name": "Members",
-    "description": "Classify member elements",
+    "name": "Strukturelemente",
+    "description": "Klassifizierung von Strukturelement-Elementen",
     "classificationCode": "C04.01",
     "active": true,
     "conditions": [
@@ -183,8 +127,8 @@
   },
   {
     "id": "rule-plate",
-    "name": "Plates",
-    "description": "Classify plate elements",
+    "name": "Platten",
+    "description": "Klassifizierung von Platten-Elementen",
     "classificationCode": "C05.02",
     "active": true,
     "conditions": [
@@ -196,23 +140,9 @@
     ]
   },
   {
-    "id": "rule-project",
-    "name": "Projects",
-    "description": "Classify project elements",
-    "classificationCode": "B03.03",
-    "active": true,
-    "conditions": [
-      {
-        "property": "Ifc Class",
-        "operator": "equals",
-        "value": "IFCPROJECT"
-      }
-    ]
-  },
-  {
     "id": "rule-railing",
-    "name": "Railings",
-    "description": "Classify railing elements",
+    "name": "Geländer",
+    "description": "Klassifizierung von Geländer-Elementen",
     "classificationCode": "B03.01",
     "active": true,
     "conditions": [
@@ -225,8 +155,8 @@
   },
   {
     "id": "rule-ramp",
-    "name": "Ramps (Underground-garage type)",
-    "description": "Classify load-bearing internal ramps (z. B. Zufahrtsrampen zu Tiefgaragen)",
+    "name": "Rampen (Tiefgaragen-Typ)",
+    "description": "Klassifizierung von tragenden internen Rampen (z. B. Zufahrtsrampen zu Tiefgaragen)",
     "classificationCode": "C04.02",
     "active": true,
     "conditions": [
@@ -244,9 +174,9 @@
   },
   {
     "id": "rule-ramp-flight",
-    "name": "Ramp Flights",
-    "description": "Classify ramp-flight elements",
-    "classificationCode": "G01.04",
+    "name": "Rampenläufe",
+    "description": "Klassifizierung von Rampenlauf-Elementen",
+    "classificationCode": "C04.02",
     "active": true,
     "conditions": [
       {
@@ -258,8 +188,8 @@
   },
   {
     "id": "rule-roof",
-    "name": "Roofs",
-    "description": "Classify roof elements",
+    "name": "Dächer",
+    "description": "Klassifizierung von Dach-Elementen",
     "classificationCode": "F01.03",
     "active": true,
     "conditions": [
@@ -272,8 +202,8 @@
   },
   {
     "id": "rule-shading-device",
-    "name": "Shading Devices",
-    "description": "Classify shading-device elements",
+    "name": "Sonnenschutzvorrichtungen",
+    "description": "Klassifizierung von Sonnenschutz-Elementen",
     "classificationCode": "E01.03",
     "active": true,
     "conditions": [
@@ -285,23 +215,9 @@
     ]
   },
   {
-    "id": "rule-site",
-    "name": "Sites",
-    "description": "Classify site elements",
-    "classificationCode": "A01.01",
-    "active": true,
-    "conditions": [
-      {
-        "property": "Ifc Class",
-        "operator": "equals",
-        "value": "IFCSITE"
-      }
-    ]
-  },
-  {
     "id": "rule-slab",
-    "name": "Floor Slabs (Geschossdecken)",
-    "description": "Classify floor slab elements (Geschossdecken)",
+    "name": "Geschossdecken",
+    "description": "Klassifizierung von Geschossdecken-Elementen",
     "classificationCode": "C04.01",
     "active": true,
     "conditions": [
@@ -313,23 +229,9 @@
     ]
   },
   {
-    "id": "rule-space",
-    "name": "Spaces",
-    "description": "Classify space elements",
-    "classificationCode": "",
-    "active": true,
-    "conditions": [
-      {
-        "property": "Ifc Class",
-        "operator": "equals",
-        "value": "IFCSPACE"
-      }
-    ]
-  },
-  {
     "id": "rule-stair",
-    "name": "Stairs",
-    "description": "Classify stair elements",
+    "name": "Treppen",
+    "description": "Klassifizierung von Treppen-Elementen",
     "classificationCode": "G01.03",
     "active": true,
     "conditions": [
@@ -342,8 +244,8 @@
   },
   {
     "id": "rule-external-wall",
-    "name": "External Walls (tragend)",
-    "description": "Aussenwand, tragend – d. h. Pset_WallCommon.IsExternal = TRUE und LoadBearing = TRUE",
+    "name": "Aussenwände (tragend)",
+    "description": "Aussenwand, tragend",
     "classificationCode": "C02.01",
     "active": true,
     "conditions": [
@@ -366,8 +268,8 @@
   },
   {
     "id": "rule-internal-wall",
-    "name": "Internal Walls (tragend)",
-    "description": "Innenwand, tragend – IsExternal ≠ TRUE und LoadBearing = TRUE",
+    "name": "Innenwände (tragend)",
+    "description": "Innenwand, tragend",
     "classificationCode": "C02.02",
     "active": true,
     "conditions": [
@@ -390,8 +292,8 @@
   },
   {
     "id": "rule-partition-wall",
-    "name": "Partition Walls (nicht tragend)",
-    "description": "Leichte Trennwand – IsExternal = FALSE und LoadBearing = FALSE",
+    "name": "Trennwände (nicht tragend)",
+    "description": "Leichte Trennwand",
     "classificationCode": "G01.01",
     "active": true,
     "conditions": [
@@ -414,8 +316,8 @@
   },
   {
     "id": "rule-wall-standard-case",
-    "name": "Wall Standard Cases",
-    "description": "Classify wall standard-case elements",
+    "name": "Standard-Wand",
+    "description": "Klassifizierung von Standard-Wand-Elementen",
     "classificationCode": "I02.08",
     "active": true,
     "conditions": [
@@ -428,8 +330,8 @@
   },
   {
     "id": "rule-windows",
-    "name": "Windows",
-    "description": "Classify windows",
+    "name": "Fenster",
+    "description": "Klassifizierung von Fenstern",
     "classificationCode": "E03.01",
     "active": true,
     "conditions": [
@@ -442,8 +344,8 @@
   },
   {
     "id": "rule-caisson-foundation",
-    "name": "Caisson Foundations",
-    "description": "Classify caisson-foundation elements",
+    "name": "Senkkasten-Fundamente",
+    "description": "Klassifizierung von Senkkasten-Fundament-Elementen",
     "classificationCode": "C01.02",
     "active": true,
     "conditions": [
@@ -455,23 +357,9 @@
     ]
   },
   {
-    "id": "rule-deep-foundation",
-    "name": "Deep Foundations",
-    "description": "Classify deep-foundation elements",
-    "classificationCode": "B07.03",
-    "active": true,
-    "conditions": [
-      {
-        "property": "Ifc Class",
-        "operator": "equals",
-        "value": "IFCDEEPFOUNDATION"
-      }
-    ]
-  },
-  {
     "id": "rule-footing",
-    "name": "Footings",
-    "description": "Classify footing elements",
+    "name": "Fundamente",
+    "description": "Klassifizierung von Fundament-Elementen",
     "classificationCode": "C01.02",
     "active": true,
     "conditions": [
@@ -484,8 +372,8 @@
   },
   {
     "id": "rule-pile",
-    "name": "Piles",
-    "description": "Classify pile elements",
+    "name": "Pfähle",
+    "description": "Klassifizierung von Pfahl-Elementen",
     "classificationCode": "B07.02",
     "active": true,
     "conditions": [
@@ -497,135 +385,23 @@
     ]
   },
   {
-    "id": "rule-reinforcement-definition-properties",
-    "name": "Reinforcement Definition Properties",
-    "description": "Classify reinforcement definition property sets",
-    "classificationCode": "B07.03",
-    "active": true,
-    "conditions": [
-      {
-        "property": "Ifc Class",
-        "operator": "equals",
-        "value": "IFCREINFORCEMENTDEFINITIONPROPERTIES"
-      }
-    ]
-  },
-  {
     "id": "rule-reinforcing-bar",
-    "name": "Reinforcing Bars",
-    "description": "Classify reinforcing-bar elements",
+    "name": "Bewehrungsstäbe",
+    "description": "Klassifizierung von Bewehrungsstab-Elementen",
     "classificationCode": "B07.03",
     "active": true,
     "conditions": [
       {
         "property": "Ifc Class",
-        "operator": "equals",
-        "value": "IFCREINFORCINGBAR"
-      }
-    ]
-  },
-  {
-    "id": "rule-reinforcing-element",
-    "name": "Reinforcing Elements",
-    "description": "Classify reinforcing elements",
-    "classificationCode": "B07.03",
-    "active": true,
-    "conditions": [
-      {
-        "property": "Ifc Class",
-        "operator": "equals",
-        "value": "IFCREINFORCINGELEMENT"
-      }
-    ]
-  },
-  {
-    "id": "rule-reinforcing-mesh",
-    "name": "Reinforcing Meshes",
-    "description": "Classify reinforcing-mesh elements",
-    "classificationCode": "B07.03",
-    "active": true,
-    "conditions": [
-      {
-        "property": "Ifc Class",
-        "operator": "equals",
-        "value": "IFCREINFORCINGMESH"
-      }
-    ]
-  },
-  {
-    "id": "rule-surface-feature",
-    "name": "Surface Features",
-    "description": "Classify surface-feature elements",
-    "classificationCode": "J01.04",
-    "active": true,
-    "conditions": [
-      {
-        "property": "Ifc Class",
-        "operator": "equals",
-        "value": "IFCSURFACEFEATURE"
-      }
-    ]
-  },
-  {
-    "id": "rule-tendon",
-    "name": "Tendons",
-    "description": "Classify tendon elements",
-    "classificationCode": "B07.03",
-    "active": true,
-    "conditions": [
-      {
-        "property": "Ifc Class",
-        "operator": "equals",
-        "value": "IFCTENDON"
-      }
-    ]
-  },
-  {
-    "id": "rule-tendon-anchor",
-    "name": "Tendon Anchors",
-    "description": "Classify tendon-anchor elements",
-    "classificationCode": "B07.03",
-    "active": true,
-    "conditions": [
-      {
-        "property": "Ifc Class",
-        "operator": "equals",
-        "value": "IFCTENDONANCHOR"
-      }
-    ]
-  },
-  {
-    "id": "rule-tendon-conduit",
-    "name": "Tendon Conduits",
-    "description": "Classify tendon-conduit elements",
-    "classificationCode": "B07.03",
-    "active": true,
-    "conditions": [
-      {
-        "property": "Ifc Class",
-        "operator": "equals",
-        "value": "IFCTENDONCONDUIT"
-      }
-    ]
-  },
-  {
-    "id": "rule-voiding-feature",
-    "name": "Voiding Features",
-    "description": "Classify voiding-feature elements",
-    "classificationCode": "C05.01",
-    "active": true,
-    "conditions": [
-      {
-        "property": "Ifc Class",
-        "operator": "equals",
-        "value": "IFCVOIDINGFEATURE"
+        "operator": "contains",
+        "value": "IFCREINFORCING"
       }
     ]
   },
   {
     "id": "rule-external-column",
-    "name": "External Columns (Aussenstützen)",
-    "description": "Stütze mit IsExternal = TRUE, tragend",
+    "name": "Aussenstützen",
+    "description": "Stütze aussen",
     "classificationCode": "C03.01",
     "active": true,
     "conditions": [
@@ -648,8 +424,8 @@
   },
   {
     "id": "rule-internal-column",
-    "name": "Internal Columns (Innenstützen)",
-    "description": "Stütze mit IsExternal ≠ TRUE, tragend",
+    "name": "Innenstützen",
+    "description": "Stütze innen",
     "classificationCode": "C03.02",
     "active": true,
     "conditions": [
