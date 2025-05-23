@@ -11,6 +11,7 @@ export function useSchemaPreview(schemaUrl?: string) {
     let cancelled = false;
     async function fetchPreview() {
       try {
+        if (!schemaUrl) return;
         const res = await fetch(schemaUrl, { mode: "cors" });
         if (!res.ok) return;
         const text = await res.text();
