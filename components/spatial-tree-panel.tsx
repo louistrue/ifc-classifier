@@ -27,6 +27,7 @@ import {
   EyeOff,
   AlertTriangle,
   ExternalLink,
+  MousePointer2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -48,6 +49,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { useSchemaPreview } from "@/lib/useSchemaPreview";
 import { useTranslation } from "react-i18next";
+import { SchemaReader } from "./schema-reader";
 
 // Helper function to generate a unique key for a node
 const getNodeKey = (
@@ -123,6 +125,8 @@ const TreeNode: React.FC<TreeNodeProps> = ({
   const { i18n } = useTranslation();
   const lang = i18n.language === "de" ? "de" : "en";
   const memoizedChildren = useMemo(() => node.children || [], [node.children]);
+
+  const [schemaReaderOpen, setSchemaReaderOpen] = useState(false);
 
   const currentModelIDForNode = isRootModelNode
     ? modelFileInfo.modelID
@@ -234,7 +238,13 @@ const TreeNode: React.FC<TreeNodeProps> = ({
   const naturalNameResult = getNaturalIfcClassName(originalIfcType, lang);
   const naturalIfcName = naturalNameResult?.name ?? "";
   const schemaUrl = naturalNameResult?.schemaUrl ?? "";
-  const schemaPreview = useSchemaPreview(schemaUrl);
+  const { preview: schemaPreview, loading: schemaLoading, error: schemaError } = useSchemaPreview(schemaUrl);
+
+  const openSchemaReader = () => {
+    if (schemaUrl) {
+      setSchemaReaderOpen(true);
+    }
+  };
 
   const displayName = isRootModelNode
     ? modelFileInfo.name
@@ -258,147 +268,180 @@ const TreeNode: React.FC<TreeNodeProps> = ({
     selectedElementInfo?.expressID === node.expressID;
 
   return (
-    <div
-      className="text-sm"
-      ref={nodeKey === selectedNodeKeyForScroll ? selectedNodeActualRef : null}
-    >
+    <>
       <div
-        className={cn(
-          "flex items-center py-1.5 px-2 rounded-md hover:bg-accent group",
-          isSelected && "bg-accent text-accent-foreground font-semibold",
-          !isSelected && matchesSearch && "bg-primary/10",
-          isRootModelNode ? "cursor-default" : "cursor-pointer"
-        )}
-        style={{
-          paddingLeft: `${level * 1.25 + (isRootModelNode ? 0.25 : 0.5)}rem`,
-        }}
-        onClick={handleSelect}
+        className="text-sm"
+        ref={nodeKey === selectedNodeKeyForScroll ? selectedNodeActualRef : null}
       >
-        {node.children && node.children.length > 0 ? (
-          <Button
-            variant="ghost"
-            size="icon"
-            className="w-6 h-6 mr-1"
-            onClick={handleToggleExpansion}
-          >
-            {isExpanded ? (
-              <ChevronDown className="w-4 h-4" />
-            ) : (
-              <ChevronRight className="w-4 h-4" />
-            )}
-          </Button>
-        ) : (
-          <span className="w-6 h-6 mr-1"></span>
-        )}
-        {getIcon(originalIfcType)}
-        <TooltipProvider delayDuration={300}>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <span className="truncate flex-grow">{displayName}</span>
-            </TooltipTrigger>
-            <TooltipContent
-              side="right"
-              align="start"
-              className="flex flex-col gap-1"
+        <div
+          className={cn(
+            "flex items-center py-1.5 px-2 rounded-md hover:bg-accent group",
+            isSelected && "bg-accent text-accent-foreground font-semibold",
+            !isSelected && matchesSearch && "bg-primary/10",
+            isRootModelNode ? "cursor-default" : "cursor-pointer"
+          )}
+          style={{
+            paddingLeft: `${level * 1.25 + (isRootModelNode ? 0.25 : 0.5)}rem`,
+          }}
+          onClick={handleSelect}
+        >
+          {node.children && node.children.length > 0 ? (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="w-6 h-6 mr-1"
+              onClick={handleToggleExpansion}
             >
-              <p>{tooltipPrimaryContent}</p>
-              {!isRootModelNode && (
-                <p className="text-xs text-muted-foreground">
-                  (IFC Class: {originalIfcType})
-                </p>
+              {isExpanded ? (
+                <ChevronDown className="w-4 h-4" />
+              ) : (
+                <ChevronRight className="w-4 h-4" />
               )}
-              {node.expressID !== undefined && (
-                <p className="text-xs text-muted-foreground">
-                  Express ID: {node.expressID}
-                </p>
+            </Button>
+          ) : (
+            <span className="w-6 h-6 mr-1"></span>
+          )}
+          {getIcon(originalIfcType)}
+          <TooltipProvider delayDuration={300}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="truncate flex-grow">{displayName}</span>
+              </TooltipTrigger>
+              <TooltipContent
+                side="right"
+                align="start"
+                className="flex flex-col gap-1 max-w-sm"
+              >
+                <p>{tooltipPrimaryContent}</p>
+                {!isRootModelNode && (
+                  <p className="text-xs text-muted-foreground">
+                    (IFC Class: {originalIfcType})
+                  </p>
+                )}
+                {node.expressID !== undefined && (
+                  <p className="text-xs text-muted-foreground">
+                    Express ID: {node.expressID}
+                  </p>
+                )}
+                {!isRootModelNode && schemaUrl && (
+                  <>
+                    {schemaLoading && (
+                      <p className="text-xs text-muted-foreground pt-1 border-t border-border/30">
+                        Loading schema preview...
+                      </p>
+                    )}
+                    {schemaError && (
+                      <p className="text-xs text-red-400 pt-1 border-t border-border/30">
+                        {schemaError}
+                      </p>
+                    )}
+                    {schemaPreview && !schemaLoading && !schemaError && (
+                      <div className="text-xs text-muted-foreground pt-1 border-t border-border/30 space-y-1">
+                        {schemaPreview.map((paragraph, index) => (
+                          <p key={index}>{paragraph}</p>
+                        ))}
+                        <div
+                          className="mt-2 p-2 bg-primary/5 rounded border border-primary/20 cursor-pointer hover:bg-primary/10 transition-colors"
+                          onClick={openSchemaReader}
+                        >
+                          <div className="flex items-center gap-1 text-primary text-xs font-medium">
+                            <MousePointer2 className="w-3 h-3" />
+                            Click to explore full documentation
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                    <div className="flex gap-1 mt-1">
+                      <a
+                        href={schemaUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={(e) => e.stopPropagation()}
+                        className="text-xs text-blue-500 hover:text-blue-400 hover:underline flex items-center gap-1"
+                      >
+                        {t('viewSchema')} <ExternalLink className="w-3 h-3" />
+                      </a>
+                    </div>
+                  </>
+                )}
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+          {!memoizedChildren.length && <div className="w-4 mr-1 flex-shrink-0" />}
+          {isRootModelNode && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="w-6 h-6 ml-1 opacity-0 group-hover:opacity-100 transition-opacity"
+              title={isModelHidden ? t('modelViewer.showModel', { name: modelFileInfo.name }) : t('modelViewer.hideModel', { name: modelFileInfo.name })}
+              onClick={handleToggleModelVisibility}
+            >
+              {isModelHidden ? (
+                <EyeOff className="w-4 h-4" />
+              ) : (
+                <Eye className="w-4 h-4" />
               )}
-              {!isRootModelNode && schemaUrl && (
-                <>
-                  {schemaPreview && (
-                    <p className="text-xs text-muted-foreground pt-1 border-t border-border/30">
-                      {schemaPreview}
-                    </p>
-                  )}
-                  <a
-                    href={schemaUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    onClick={(e) => e.stopPropagation()}
-                    className="text-xs text-blue-500 hover:text-blue-400 hover:underline flex items-center gap-1 mt-1"
-                  >
-                    {t('viewSchema')} <ExternalLink className="w-3 h-3" />
-                  </a>
-                </>
+            </Button>
+          )}
+          {isRootModelNode && onAttemptRemoveModel && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="w-6 h-6 ml-1 opacity-0 group-hover:opacity-100 transition-opacity"
+              title={t('modelViewer.removeModel', { name: modelFileInfo.name })}
+              onClick={handleRemoveClick}
+            >
+              <XCircle className="w-4 h-4 text-destructive" />
+            </Button>
+          )}
+          {!isRootModelNode && node.type.includes("STOREY") && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="w-6 h-6 ml-1 opacity-0 group-hover:opacity-100 transition-opacity"
+              title={isStoreyHidden ? t('modelViewer.showStorey') : t('modelViewer.hideStorey')}
+              onClick={handleToggleStoreyVisibility}
+            >
+              {isStoreyHidden ? (
+                <EyeOff className="w-4 h-4" />
+              ) : (
+                <Eye className="w-4 h-4" />
               )}
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
-        {!memoizedChildren.length && <div className="w-4 mr-1 flex-shrink-0" />}
-        {isRootModelNode && (
-          <Button
-            variant="ghost"
-            size="icon"
-            className="w-6 h-6 ml-1 opacity-0 group-hover:opacity-100 transition-opacity"
-            title={isModelHidden ? t('modelViewer.showModel', { name: modelFileInfo.name }) : t('modelViewer.hideModel', { name: modelFileInfo.name })}
-            onClick={handleToggleModelVisibility}
-          >
-            {isModelHidden ? (
-              <EyeOff className="w-4 h-4" />
-            ) : (
-              <Eye className="w-4 h-4" />
-            )}
-          </Button>
-        )}
-        {isRootModelNode && onAttemptRemoveModel && (
-          <Button
-            variant="ghost"
-            size="icon"
-            className="w-6 h-6 ml-1 opacity-0 group-hover:opacity-100 transition-opacity"
-            title={t('modelViewer.removeModel', { name: modelFileInfo.name })}
-            onClick={handleRemoveClick}
-          >
-            <XCircle className="w-4 h-4 text-destructive" />
-          </Button>
-        )}
-        {!isRootModelNode && node.type.includes("STOREY") && (
-          <Button
-            variant="ghost"
-            size="icon"
-            className="w-6 h-6 ml-1 opacity-0 group-hover:opacity-100 transition-opacity"
-            title={isStoreyHidden ? t('modelViewer.showStorey') : t('modelViewer.hideStorey')}
-            onClick={handleToggleStoreyVisibility}
-          >
-            {isStoreyHidden ? (
-              <EyeOff className="w-4 h-4" />
-            ) : (
-              <Eye className="w-4 h-4" />
-            )}
-          </Button>
+            </Button>
+          )}
+        </div>
+        {isExpanded && node.children && node.children.length > 0 && (
+          <div className={cn(isRootModelNode ? "pl-0" : "pl-0")}>
+            {node.children.map((childNode) => (
+              <TreeNode
+                key={getNodeKey(childNode, modelFileInfo.modelID)}
+                node={childNode}
+                level={level + 1}
+                onSelectNode={onSelectNode}
+                selectedElementInfo={selectedElementInfo}
+                modelFileInfo={modelFileInfo}
+                onAttemptRemoveModel={onAttemptRemoveModel}
+                expandedNodeKeys={expandedNodeKeys}
+                toggleNodeExpansion={toggleNodeExpansion}
+                selectedNodeKeyForScroll={selectedNodeKeyForScroll}
+                selectedNodeActualRef={selectedNodeActualRef}
+                modelID={modelFileInfo.modelID}
+                t={t}
+                searchQuery={searchQuery}
+              />
+            ))}
+          </div>
         )}
       </div>
-      {isExpanded && node.children && node.children.length > 0 && (
-        <div className={cn(isRootModelNode ? "pl-0" : "pl-0")}>
-          {node.children.map((childNode) => (
-            <TreeNode
-              key={getNodeKey(childNode, modelFileInfo.modelID)}
-              node={childNode}
-              level={level + 1}
-              onSelectNode={onSelectNode}
-              selectedElementInfo={selectedElementInfo}
-              modelFileInfo={modelFileInfo}
-              onAttemptRemoveModel={onAttemptRemoveModel}
-              expandedNodeKeys={expandedNodeKeys}
-              toggleNodeExpansion={toggleNodeExpansion}
-              selectedNodeKeyForScroll={selectedNodeKeyForScroll}
-              selectedNodeActualRef={selectedNodeActualRef}
-              modelID={modelFileInfo.modelID}
-              t={t}
-              searchQuery={searchQuery}
-            />
-          ))}
-        </div>
-      )}
-    </div>
+
+      <SchemaReader
+        isOpen={schemaReaderOpen}
+        onClose={() => setSchemaReaderOpen(false)}
+        schemaUrl={schemaUrl}
+        ifcClassName={naturalIfcName || originalIfcType}
+        initialPreview={schemaPreview || undefined}
+      />
+    </>
   );
 };
 
