@@ -135,6 +135,16 @@ const TreeNode: React.FC<TreeNodeProps> = ({
   const nodeKey = getNodeKey(node, currentModelIDForNode, isRootModelNode);
   const isExpanded = expandedNodeKeys.has(nodeKey);
 
+  // Check if this node should be scrolled to
+  const shouldScrollToThisNode = selectedNodeKeyForScroll === nodeKey;
+
+  // Debug logging for ref attachment
+  useEffect(() => {
+    if (shouldScrollToThisNode) {
+      console.log(`Ref should be attached to node: ${nodeKey}, expressID: ${node.expressID}, type: ${node.type}`);
+    }
+  }, [shouldScrollToThisNode, nodeKey, node.expressID, node.type]);
+
   const isModelHidden = isRootModelNode
     ? hiddenModelIds.includes(modelFileInfo.id)
     : false;
@@ -277,6 +287,7 @@ const TreeNode: React.FC<TreeNodeProps> = ({
   return (
     <>
       <div
+        ref={shouldScrollToThisNode ? selectedNodeActualRef : null}
         className={cn(
           "flex items-center py-1.5 px-2 rounded-md hover:bg-accent group",
           isSelected && "bg-accent text-accent-foreground font-semibold",
@@ -427,7 +438,7 @@ const TreeNode: React.FC<TreeNodeProps> = ({
           expandedNodeKeys={expandedNodeKeys}
           toggleNodeExpansion={toggleNodeExpansion}
           selectedNodeKeyForScroll={selectedNodeKeyForScroll}
-          selectedNodeActualRef={selectedNodeKeyForScroll === getNodeKey(child, modelID) ? selectedNodeActualRef : null}
+          selectedNodeActualRef={selectedNodeActualRef}
           modelID={modelID}
           t={t}
           searchQuery={searchQuery}
@@ -501,6 +512,7 @@ export function SpatialTreePanel() {
       }
 
       if (currentNode.expressID === targetExpressID) {
+        console.log(`Found target node: expressID=${targetExpressID}, nodeKey=${nodeKey}, path:`, currentPathKeys);
         return {
           pathKeys: [...currentPathKeys],
           storeyKey: newStoreyKey,
@@ -598,11 +610,13 @@ export function SpatialTreePanel() {
     });
 
     if (deferredSearchQuery.trim()) {
+      // During search, expand matched keys but don't scroll to any specific element
       filteredModels.forEach((m) => {
         if (m.modelID !== null && m.filteredTree) {
           m.matchedKeys.forEach((k: string) => newCalculatedKeys.add(k));
         }
       });
+      newScrollKey = null; // Don't scroll during search
     } else if (
       selectedElement &&
       selectedElement.modelID !== null &&
@@ -613,6 +627,7 @@ export function SpatialTreePanel() {
       const model = loadedModels.find((m) => m.modelID === targetModelID);
 
       if (model && model.spatialTree) {
+        console.log(`Finding path to element: modelID=${targetModelID}, expressID=${targetExpressID}`);
         const pathResult = findPathToNodeRecursive(
           model.spatialTree,
           targetExpressID,
@@ -622,6 +637,7 @@ export function SpatialTreePanel() {
         );
 
         if (pathResult) {
+          console.log(`Path found, expanding keys:`, pathResult.pathKeys);
           const exclusiveKeys = new Set<string>();
           loadedModels.forEach((m) => {
             if (m.modelID !== null) {
@@ -637,6 +653,9 @@ export function SpatialTreePanel() {
           newCalculatedKeys.clear();
           exclusiveKeys.forEach((k) => newCalculatedKeys.add(k));
           newScrollKey = pathResult.selectedNodeKey;
+          console.log(`Setting scroll target to: ${newScrollKey}`);
+        } else {
+          console.log(`No path found for element: modelID=${targetModelID}, expressID=${targetExpressID}`);
         }
       }
     }
@@ -653,9 +672,7 @@ export function SpatialTreePanel() {
       return newCalculatedKeys;
     });
 
-    setSelectedNodeKeyForScroll(
-      deferredSearchQuery.trim() ? null : newScrollKey,
-    );
+    setSelectedNodeKeyForScroll(newScrollKey);
   }, [
     selectedElement,
     loadedModels,
@@ -666,10 +683,20 @@ export function SpatialTreePanel() {
 
   useEffect(() => {
     if (selectedNodeRef.current && selectedNodeKeyForScroll) {
-      selectedNodeRef.current.scrollIntoView({
-        behavior: "smooth",
-        block: "nearest",
-      });
+      console.log(`Attempting to scroll to node with key: ${selectedNodeKeyForScroll}`);
+      // Add a small delay to ensure DOM has been updated after expansion
+      const scrollTimeout = setTimeout(() => {
+        if (selectedNodeRef.current) {
+          console.log(`Scrolling to element:`, selectedNodeRef.current);
+          selectedNodeRef.current.scrollIntoView({
+            behavior: "smooth",
+            block: "center", // This centers the element vertically
+            inline: "nearest"
+          });
+        }
+      }, 100); // Small delay to ensure expansion animation is complete
+
+      return () => clearTimeout(scrollTimeout);
     }
   }, [selectedNodeKeyForScroll]);
 
