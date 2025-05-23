@@ -135,9 +135,11 @@ const clearAllCaches = (): void => {
     console.log('✅ All caches cleared');
 };
 
-// Expose cache clearing function globally for debugging
+// Create a custom event handler for cache clearing instead of polluting global namespace
 if (typeof window !== 'undefined') {
-    (window as any).clearIfcCaches = clearAllCaches;
+    window.addEventListener('ifc-clear-caches', () => {
+        clearAllCaches();
+    });
 }
 
 export function SchemaReader({
