@@ -304,7 +304,7 @@ export function ModelInfo() {
     getNaturalIfcClassName,
     getClassificationsForElement,
   } = useIFCContext();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
 
   const elementClassifications = useMemo(
     () => getClassificationsForElement(selectedElement),
@@ -456,6 +456,9 @@ export function ModelInfo() {
     materialSets,
   } = processedProps;
 
+  const lang = i18n.language === "de" ? "de" : "en";
+  const naturalIfcInfo = getNaturalIfcClassName(ifcType, lang);
+
   // Render the detailed property information
   return (
     <div className="space-y-2">
@@ -480,11 +483,11 @@ export function ModelInfo() {
             </TooltipTrigger>
             <TooltipContent side="right" align="start" className="flex flex-col gap-1 z-50">
               <p className="font-medium">
-                {getNaturalIfcClassName(ifcType).name || ifcType}
+                {naturalIfcInfo.name || ifcType}
               </p>
-              {getNaturalIfcClassName(ifcType).schemaUrl && (
+              {naturalIfcInfo.schemaUrl && (
                 <a
-                  href={getNaturalIfcClassName(ifcType).schemaUrl}
+                  href={naturalIfcInfo.schemaUrl}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-xs text-blue-500 hover:text-blue-400 hover:underline flex items-center gap-1 mt-1 pt-1 border-t border-border/30"
