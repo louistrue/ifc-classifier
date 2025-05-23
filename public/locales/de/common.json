@@ -206,7 +206,9 @@
     "manageRules": "Regeln verwalten",
     "searchClassificationPlaceholder": "Klassifizierungen suchen oder erstellen...",
     "noClassificationFound": "Keine Klassifizierung gefunden. Tippen Sie, um zu erstellen.",
-    "createNewClassification": "Neue Klassifizierung \"{{value}}\" erstellen"
+    "createNewClassification": "Neue Klassifizierung \"{{value}}\" erstellen",
+    "searchPlaceholder": "Regeln durchsuchen...",
+    "noSearchResults": "Keine Regeln entsprechen Ihrer Suche."
   },
   "operators": {
     "equals": "Gleich",

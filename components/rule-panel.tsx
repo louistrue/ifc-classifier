@@ -38,6 +38,12 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Command, CommandItem, CommandList } from "@/components/ui/command";
+import {
   Plus,
   Trash2,
   Edit,
@@ -195,6 +201,26 @@ export function RulePanel() {
       })),
     [classifications]
   );
+
+  const [searchQuery, setSearchQuery] = useState("");
+  const [suggestOpen, setSuggestOpen] = useState(false);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const ruleNameSuggestions = useMemo(
+    () => Array.from(new Set(rules.map((r) => r.name))),
+    [rules]
+  );
+  const filteredSuggestions = useMemo(() => {
+    if (!searchQuery) return ruleNameSuggestions;
+    const q = searchQuery.toLowerCase();
+    return ruleNameSuggestions.filter((name) =>
+      name.toLowerCase().includes(q)
+    );
+  }, [ruleNameSuggestions, searchQuery]);
+  const filteredRules = useMemo(() => {
+    if (!searchQuery) return rules;
+    const q = searchQuery.toLowerCase();
+    return rules.filter((r) => r.name.toLowerCase().includes(q));
+  }, [rules, searchQuery]);
 
   const openNewRuleDialog = (base?: Rule) => {
     setCurrentRule(null);
@@ -488,6 +514,42 @@ export function RulePanel() {
         </div>
       </div>
 
+      <Popover open={suggestOpen && filteredSuggestions.length > 0} onOpenChange={setSuggestOpen}>
+        <PopoverTrigger asChild>
+          <Input
+            ref={searchInputRef}
+            value={searchQuery}
+            onChange={(e) => {
+              setSearchQuery(e.target.value);
+              setSuggestOpen(true);
+            }}
+            onFocus={() => filteredSuggestions.length > 0 && setSuggestOpen(true)}
+            placeholder={t('rules.searchPlaceholder')}
+            className="w-full"
+          />
+        </PopoverTrigger>
+        <PopoverContent className="p-0 w-[var(--radix-popover-trigger-width)]" align="start">
+          <Command shouldFilter={false} className="max-h-60 overflow-auto">
+            <CommandList className="p-1">
+              {filteredSuggestions.map((name) => (
+                <CommandItem
+                  key={name}
+                  value={name}
+                  onSelect={() => {
+                    setSearchQuery(name);
+                    setSuggestOpen(false);
+                    searchInputRef.current?.blur();
+                  }}
+                  className="cursor-pointer aria-selected:bg-accent aria-selected:text-accent-foreground"
+                >
+                  {name}
+                </CommandItem>
+              ))}
+            </CommandList>
+          </Command>
+        </PopoverContent>
+      </Popover>
+
       {rules.length === 0 ? (
         <div className="flex items-center justify-center flex-col py-8 flex-grow">
           <div className="flex justify-center mb-4">
@@ -498,9 +560,15 @@ export function RulePanel() {
             {t('createRulesDescription')}
           </p>
         </div>
+      ) : filteredRules.length === 0 ? (
+        <div className="text-center py-8 flex-grow flex items-center justify-center">
+          <p className="text-base font-medium text-foreground/80">
+            {t('rules.noSearchResults')}
+          </p>
+        </div>
       ) : (
         <div className="space-y-4 flex-grow overflow-auto">
-          {rules.map((rule) => {
+          {filteredRules.map((rule) => {
             const targetClassification =
               classifications[rule.classificationCode];
             return (
