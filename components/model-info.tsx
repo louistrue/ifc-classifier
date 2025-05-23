@@ -42,6 +42,7 @@ const renderPropertyValue = (
   value: any,
   keyHint?: string,
   ifcApi?: IfcAPI | null,
+  t?: (key: string, options?: any) => string,
 ): React.ReactNode => {
   const lowerKeyHint = keyHint?.toLowerCase();
 
@@ -49,7 +50,7 @@ const renderPropertyValue = (
   if (value && typeof value === "object") {
     if (value.value !== undefined && value.unit !== undefined) {
       // Handles { value: X, unit: Y }
-      const displayValue = renderPropertyValue(value.value, keyHint, ifcApi); // Recursively render the actual value part
+      const displayValue = renderPropertyValue(value.value, keyHint, ifcApi, t); // Recursively render the actual value part
       return (
         <>
           {displayValue}{" "}
@@ -60,7 +61,7 @@ const renderPropertyValue = (
     if (Array.isArray(value.values) && value.unit !== undefined) {
       // Handles { values: [...], unit: Y }
       const displayValues = value.values
-        .map((v: any) => renderPropertyValue(v, keyHint, ifcApi)) // Recursively render each value in the array
+        .map((v: any) => renderPropertyValue(v, keyHint, ifcApi, t)) // Recursively render each value in the array
         .join(", ");
       return (
         <>
@@ -71,15 +72,15 @@ const renderPropertyValue = (
     }
     // For IFC's typical { type: X, value: Y } structure (already existing)
     if (value.value !== undefined && value.type !== undefined) {
-      return renderPropertyValue(value.value, keyHint, ifcApi);
+      return renderPropertyValue(value.value, keyHint, ifcApi, t);
     }
   }
 
   if (typeof value === "boolean") {
     return value ? (
-      <span className="text-green-600 dark:text-green-400">{t('yes')}</span>
+      <span className="text-green-600 dark:text-green-400">{t?.('yes') || 'Yes'}</span>
     ) : (
-      <span className="text-red-600 dark:text-red-400">{t('no')}</span>
+      <span className="text-red-600 dark:text-red-400">{t?.('no') || 'No'}</span>
     );
   }
   if (typeof value === "number") {
@@ -139,13 +140,13 @@ const renderPropertyValue = (
     return value;
   }
   if (value === null || value === undefined) {
-    return <span className="text-muted-foreground italic">{t('notSet')}</span>;
+    return <span className="text-muted-foreground italic">{t?.('notSet') || 'Not set'}</span>;
   }
 
   // For arrays, show count or a summary
   if (Array.isArray(value)) {
     if (value.length === 0)
-      return <span className="text-muted-foreground italic">{t('emptyList')}</span>;
+      return <span className="text-muted-foreground italic">{t?.('emptyList') || 'Empty list'}</span>;
     // Check if items are simple enough to join, or if they might be objects from a previous (but not unit-wrapped) step
     if (
       value.length <= 5 && // Allow slightly longer lists if they are simple
@@ -156,16 +157,16 @@ const renderPropertyValue = (
           typeof v === "boolean",
       )
     ) {
-      return value.map((v) => renderPropertyValue(v, keyHint, ifcApi)).join(", "); // Render each item
+      return value.map((v) => renderPropertyValue(v, keyHint, ifcApi, t)).join(", "); // Render each item
     }
     return (
-      <span className="text-muted-foreground italic">{t('listCount', { count: value.length })}</span>
+      <span className="text-muted-foreground italic">{t?.('listCount', { count: value.length }) || `${value.length} items`}</span>
     );
   }
 
   // Fallback for other complex objects not specifically handled
   if (typeof value === "object") {
-    return <span className="text-muted-foreground italic">{t('complexData')}</span>;
+    return <span className="text-muted-foreground italic">{t?.('complexData') || 'Complex data'}</span>;
   }
 
   return String(value); // Last resort
@@ -176,6 +177,7 @@ interface PropertyRowProps {
   propValue: any;
   icon?: React.ReactNode;
   copyValue?: string;
+  t?: (key: string, options?: any) => string;
 }
 
 const PropertyRow: React.FC<PropertyRowProps> = ({
@@ -183,6 +185,7 @@ const PropertyRow: React.FC<PropertyRowProps> = ({
   propValue,
   icon,
   copyValue,
+  t,
 }) => {
   const { ifcApi } = useIFCContext();
   const handleCopy = () => {
@@ -204,7 +207,7 @@ const PropertyRow: React.FC<PropertyRowProps> = ({
             : undefined
         }
       >
-        {renderPropertyValue(propValue, propKey, ifcApi)}
+        {renderPropertyValue(propValue, propKey, ifcApi, t)}
         {copyValue !== undefined && (
           <button onClick={handleCopy} className="opacity-60 hover:opacity-100">
             <Copy className="w-3 h-3" />
@@ -582,6 +585,7 @@ export function ModelInfo() {
             propKey="Name"
             propValue={rawAttributes.Name.value || rawAttributes.Name}
             icon={<Info className="w-3.5 h-3.5" />}
+            t={t}
           />
         )}
         {rawAttributes.Description && (
@@ -591,6 +595,7 @@ export function ModelInfo() {
               rawAttributes.Description.value || rawAttributes.Description
             }
             icon={<Info className="w-3.5 h-3.5" />}
+            t={t}
           />
         )}
         {rawAttributes.ObjectType && (
@@ -600,17 +605,20 @@ export function ModelInfo() {
               rawAttributes.ObjectType.value || rawAttributes.ObjectType
             }
             icon={<Info className="w-3.5 h-3.5" />}
+            t={t}
           />
         )}
         <PropertyRow
           propKey="Express ID"
           propValue={`${expressID}`}
           icon={<Hash className="w-3.5 h-3.5" />}
+          t={t}
         />
         <PropertyRow
           propKey="Model"
           propValue={modelDisplayName}
           icon={<Info className="w-3.5 h-3.5" />}
+          t={t}
         />
         {rawAttributes.GlobalId && (
           <PropertyRow
@@ -618,6 +626,7 @@ export function ModelInfo() {
             propValue={rawAttributes.GlobalId.value || rawAttributes.GlobalId}
             icon={<Hash className="w-3.5 h-3.5" />}
             copyValue={rawAttributes.GlobalId.value || rawAttributes.GlobalId}
+            t={t}
           />
         )}
         {Object.entries(displayableAttributes).map(([key, value]) => (
@@ -626,6 +635,7 @@ export function ModelInfo() {
             propKey={key}
             propValue={value}
             icon={getPropertyIcon(key)}
+            t={t}
           />
         ))}
       </CollapsibleSection>
@@ -707,6 +717,7 @@ export function ModelInfo() {
                       propKey={propName}
                       propValue={propValue}
                       icon={getPropertyIcon(propName)}
+                      t={t}
                     />
                   ),
                 )
@@ -741,6 +752,7 @@ export function ModelInfo() {
                   propKey={propName}
                   propValue={propValue}
                   icon={getPropertyIcon(propName)}
+                  t={t}
                 />
               ))}
             </CollapsibleSection>
