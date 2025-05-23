@@ -91,7 +91,7 @@ const saveCacheToStorage = (): void => {
     ) {
       try {
         // Clear older cache entries
-        const oldEntries = [...previewCache.entries()];
+        const oldEntries = Array.from(previewCache.entries());
         oldEntries.sort((a, b) => 0); // Sort by age if possible
 
         // Keep only 50% of entries
