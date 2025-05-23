@@ -196,6 +196,17 @@ export function RulePanel() {
     [classifications]
   );
 
+  const [searchQuery, setSearchQuery] = useState("");
+  const ruleNameSuggestions = useMemo(
+    () => Array.from(new Set(rules.map((r) => r.name))),
+    [rules]
+  );
+  const filteredRules = useMemo(() => {
+    if (!searchQuery) return rules;
+    const q = searchQuery.toLowerCase();
+    return rules.filter((r) => r.name.toLowerCase().includes(q));
+  }, [rules, searchQuery]);
+
   const openNewRuleDialog = (base?: Rule) => {
     setCurrentRule(null);
     setEditingRule({
@@ -488,6 +499,19 @@ export function RulePanel() {
         </div>
       </div>
 
+      <Input
+        value={searchQuery}
+        onChange={(e) => setSearchQuery(e.target.value)}
+        placeholder={t('rules.searchPlaceholder')}
+        list="rule-name-suggestions"
+        className="w-full"
+      />
+      <datalist id="rule-name-suggestions">
+        {ruleNameSuggestions.map((name) => (
+          <option key={name} value={name} />
+        ))}
+      </datalist>
+
       {rules.length === 0 ? (
         <div className="flex items-center justify-center flex-col py-8 flex-grow">
           <div className="flex justify-center mb-4">
@@ -498,9 +522,15 @@ export function RulePanel() {
             {t('createRulesDescription')}
           </p>
         </div>
+      ) : filteredRules.length === 0 ? (
+        <div className="text-center py-8 flex-grow flex items-center justify-center">
+          <p className="text-base font-medium text-foreground/80">
+            {t('rules.noSearchResults')}
+          </p>
+        </div>
       ) : (
         <div className="space-y-4 flex-grow overflow-auto">
-          {rules.map((rule) => {
+          {filteredRules.map((rule) => {
             const targetClassification =
               classifications[rule.classificationCode];
             return (
