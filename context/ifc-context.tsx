@@ -228,6 +228,7 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const fetchNaturalNames = async () => {
       try {
+        // Use external version of IFC class data with buildingSMART URLs
         const response = await fetch("/data/natural_ifcclass.json");
         if (!response.ok) {
           throw new Error(
@@ -236,7 +237,7 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
         }
         const data = await response.json();
         setNaturalIfcClassNames(data);
-        console.log("IFCContext: Natural IFC class names loaded.", data);
+        console.log("IFCContext: Natural IFC class names loaded with external schema URLs.", data);
       } catch (error) {
         console.error(
           "IFCContext: Error loading natural IFC class names:",
@@ -1494,11 +1495,11 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
             if (psetName.includes('*')) {
               const regex = new RegExp(
                 '^' +
-                  psetName
-                    .split('*')
-                    .map((s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
-                    .join('.*') +
-                  '$',
+                psetName
+                  .split('*')
+                  .map((s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+                  .join('.*') +
+                '$',
                 'i',
               );
               for (const key of Object.keys(props.propertySets || {})) {

@@ -22,6 +22,7 @@ import {
   Construction,
   Box,
   Tag,
+  MousePointer2,
 } from "lucide-react";
 import React, { useState, useMemo } from "react";
 import { MaterialSectionDisplay } from "./material-section-display";
@@ -33,6 +34,8 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { useTranslation } from "react-i18next";
+import { useSchemaPreview } from "@/lib/useSchemaPreview";
+import { SchemaReader } from "./schema-reader";
 
 // Enhanced renderPropertyValue function
 const renderPropertyValue = (
@@ -332,6 +335,25 @@ export function ModelInfo() {
   } = useIFCContext();
   const { t, i18n } = useTranslation();
 
+  const [schemaReaderOpen, setSchemaReaderOpen] = useState(false);
+  const [selectedSchemaUrl, setSelectedSchemaUrl] = useState("");
+  const [selectedIfcClassName, setSelectedIfcClassName] = useState("");
+
+  const lang = i18n.language === "de" ? "de" : "en";
+  const schemaUrlForHook = elementProperties?.ifcType
+    ? getNaturalIfcClassName(elementProperties.ifcType, lang).schemaUrl
+    : undefined;
+
+  const { preview: schemaPreview, loading: schemaLoading, error: schemaError } = useSchemaPreview(schemaUrlForHook);
+
+  const openSchemaReader = () => {
+    if (naturalIfcInfo.schemaUrl) {
+      setSelectedSchemaUrl(naturalIfcInfo.schemaUrl);
+      setSelectedIfcClassName(naturalIfcInfo.name || ifcType);
+      setSchemaReaderOpen(true);
+    }
+  };
+
   const elementClassifications = useMemo(
     () => getClassificationsForElement(selectedElement),
     [getClassificationsForElement, selectedElement],
@@ -482,7 +504,6 @@ export function ModelInfo() {
     materialSets,
   } = processedProps;
 
-  const lang = i18n.language === "de" ? "de" : "en";
   const naturalIfcInfo = getNaturalIfcClassName(ifcType, lang);
 
   // Render the detailed property information
@@ -507,20 +528,50 @@ export function ModelInfo() {
                 </div>
               </div>
             </TooltipTrigger>
-            <TooltipContent side="right" align="start" className="flex flex-col gap-1 z-50">
+            <TooltipContent side="right" align="start" className="flex flex-col gap-1 z-50 max-w-sm">
               <p className="font-medium">
                 {naturalIfcInfo.name || ifcType}
               </p>
               {naturalIfcInfo.schemaUrl && (
-                <a
-                  href={naturalIfcInfo.schemaUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-xs text-blue-500 hover:text-blue-400 hover:underline flex items-center gap-1 mt-1 pt-1 border-t border-border/30"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  View Schema <ExternalLink className="w-3 h-3" />
-                </a>
+                <>
+                  {schemaLoading && (
+                    <p className="text-xs text-muted-foreground pt-1 border-t border-border/30">
+                      Loading schema preview...
+                    </p>
+                  )}
+                  {schemaError && (
+                    <p className="text-xs text-red-400 pt-1 border-t border-border/30">
+                      {schemaError}
+                    </p>
+                  )}
+                  {schemaPreview && !schemaLoading && !schemaError && (
+                    <div className="text-xs text-muted-foreground pt-1 border-t border-border/30 space-y-1">
+                      {schemaPreview.map((paragraph, index) => (
+                        <p key={index}>{paragraph}</p>
+                      ))}
+                      <div
+                        className="mt-2 p-2 bg-primary/5 rounded border border-primary/20 cursor-pointer hover:bg-primary/10 transition-colors"
+                        onClick={openSchemaReader}
+                      >
+                        <div className="flex items-center gap-1 text-primary text-xs font-medium">
+                          <MousePointer2 className="w-3 h-3" />
+                          Click to explore full documentation
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  <div className="flex gap-1 mt-1">
+                    <a
+                      href={naturalIfcInfo.schemaUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs text-blue-500 hover:text-blue-400 hover:underline flex items-center gap-1"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      {t('viewSchema')} <ExternalLink className="w-3 h-3" />
+                    </a>
+                  </div>
+                </>
               )}
             </TooltipContent>
           </Tooltip>
@@ -650,15 +701,15 @@ export function ModelInfo() {
             >
               {props && typeof props === "object"
                 ? Object.entries(props as Record<string, any>).map(
-                    ([propName, propValue]) => (
-                      <PropertyRow
-                        key={propName}
-                        propKey={propName}
-                        propValue={propValue}
-                        icon={getPropertyIcon(propName)}
-                      />
-                    ),
-                  )
+                  ([propName, propValue]) => (
+                    <PropertyRow
+                      key={propName}
+                      propKey={propName}
+                      propValue={propValue}
+                      icon={getPropertyIcon(propName)}
+                    />
+                  ),
+                )
                 : null}
             </CollapsibleSection>
           ))}
@@ -696,6 +747,14 @@ export function ModelInfo() {
           ))}
         </CollapsibleSection>
       )}
+
+      <SchemaReader
+        isOpen={schemaReaderOpen}
+        onClose={() => setSchemaReaderOpen(false)}
+        schemaUrl={selectedSchemaUrl}
+        ifcClassName={selectedIfcClassName}
+        initialPreview={schemaPreview || undefined}
+      />
     </div>
   );
 }

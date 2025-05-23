@@ -28,6 +28,7 @@ import {
   EyeOff,
   AlertTriangle,
   ExternalLink,
+  MousePointer2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -47,7 +48,9 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { Badge } from "@/components/ui/badge";
+import { useSchemaPreview } from "@/lib/useSchemaPreview";
 import { useTranslation } from "react-i18next";
+import { SchemaReader } from "./schema-reader";
 
 // Helper function to generate a unique key for a node
 const getNodeKey = (
@@ -123,6 +126,8 @@ const TreeNode: React.FC<TreeNodeProps> = ({
   const { i18n } = useTranslation();
   const lang = i18n.language === "de" ? "de" : "en";
   const memoizedChildren = useMemo(() => node.children || [], [node.children]);
+
+  const [schemaReaderOpen, setSchemaReaderOpen] = useState(false);
 
   const currentModelIDForNode = isRootModelNode
     ? modelFileInfo.modelID
@@ -240,6 +245,13 @@ const TreeNode: React.FC<TreeNodeProps> = ({
   const naturalNameResult = getNaturalIfcClassName(originalIfcType, lang);
   const naturalIfcName = naturalNameResult?.name ?? "";
   const schemaUrl = naturalNameResult?.schemaUrl ?? "";
+  const { preview: schemaPreview, loading: schemaLoading, error: schemaError } = useSchemaPreview(schemaUrl);
+
+  const openSchemaReader = () => {
+    if (schemaUrl) {
+      setSchemaReaderOpen(true);
+    }
+  };
 
   const displayName = isRootModelNode
     ? modelFileInfo.name
@@ -263,10 +275,7 @@ const TreeNode: React.FC<TreeNodeProps> = ({
     selectedElementInfo?.expressID === node.expressID;
 
   return (
-    <div
-      className="text-sm"
-      ref={nodeKey === selectedNodeKeyForScroll ? selectedNodeActualRef : null}
-    >
+    <>
       <div
         className={cn(
           "flex items-center py-1.5 px-2 rounded-md hover:bg-accent group",
@@ -304,7 +313,7 @@ const TreeNode: React.FC<TreeNodeProps> = ({
             <TooltipContent
               side="right"
               align="start"
-              className="flex flex-col gap-1"
+              className="flex flex-col gap-1 max-w-sm"
             >
               <p>{tooltipPrimaryContent}</p>
               {!isRootModelNode && (
@@ -318,15 +327,45 @@ const TreeNode: React.FC<TreeNodeProps> = ({
                 </p>
               )}
               {!isRootModelNode && schemaUrl && (
-                <a
-                  href={schemaUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={(e) => e.stopPropagation()}
-                  className="text-xs text-blue-500 hover:text-blue-400 hover:underline flex items-center gap-1 mt-1 pt-1 border-t border-border/30"
-                >
-                  View Schema <ExternalLink className="w-3 h-3" />
-                </a>
+                <>
+                  {schemaLoading && (
+                    <p className="text-xs text-muted-foreground pt-1 border-t border-border/30">
+                      Loading schema preview...
+                    </p>
+                  )}
+                  {schemaError && (
+                    <p className="text-xs text-red-400 pt-1 border-t border-border/30">
+                      {schemaError}
+                    </p>
+                  )}
+                  {schemaPreview && !schemaLoading && !schemaError && (
+                    <div className="text-xs text-muted-foreground pt-1 border-t border-border/30 space-y-1">
+                      {schemaPreview.map((paragraph, index) => (
+                        <p key={index}>{paragraph}</p>
+                      ))}
+                      <div
+                        className="mt-2 p-2 bg-primary/5 rounded border border-primary/20 cursor-pointer hover:bg-primary/10 transition-colors"
+                        onClick={openSchemaReader}
+                      >
+                        <div className="flex items-center gap-1 text-primary text-xs font-medium">
+                          <MousePointer2 className="w-3 h-3" />
+                          Click to explore full documentation
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  <div className="flex gap-1 mt-1">
+                    <a
+                      href={schemaUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={(e) => e.stopPropagation()}
+                      className="text-xs text-blue-500 hover:text-blue-400 hover:underline flex items-center gap-1"
+                    >
+                      {t('viewSchema')} <ExternalLink className="w-3 h-3" />
+                    </a>
+                  </div>
+                </>
               )}
             </TooltipContent>
           </Tooltip>
@@ -337,11 +376,7 @@ const TreeNode: React.FC<TreeNodeProps> = ({
             variant="ghost"
             size="icon"
             className="w-6 h-6 ml-1 opacity-0 group-hover:opacity-100 transition-opacity"
-            title={
-              isModelHidden
-                ? t("modelViewer.showModel", { name: modelFileInfo.name })
-                : t("modelViewer.hideModel", { name: modelFileInfo.name })
-            }
+            title={isModelHidden ? t('modelViewer.showModel', { name: modelFileInfo.name }) : t('modelViewer.hideModel', { name: modelFileInfo.name })}
             onClick={handleToggleModelVisibility}
           >
             {isModelHidden ? (
@@ -356,7 +391,7 @@ const TreeNode: React.FC<TreeNodeProps> = ({
             variant="ghost"
             size="icon"
             className="w-6 h-6 ml-1 opacity-0 group-hover:opacity-100 transition-opacity"
-            title={t("modelViewer.removeModel", { name: modelFileInfo.name })}
+            title={t('modelViewer.removeModel', { name: modelFileInfo.name })}
             onClick={handleRemoveClick}
           >
             <XCircle className="w-4 h-4 text-destructive" />
@@ -367,11 +402,7 @@ const TreeNode: React.FC<TreeNodeProps> = ({
             variant="ghost"
             size="icon"
             className="w-6 h-6 ml-1 opacity-0 group-hover:opacity-100 transition-opacity"
-            title={
-              isStoreyHidden
-                ? t("modelViewer.showStorey")
-                : t("modelViewer.hideStorey")
-            }
+            title={isStoreyHidden ? t('modelViewer.showStorey') : t('modelViewer.hideStorey')}
             onClick={handleToggleStoreyVisibility}
           >
             {isStoreyHidden ? (
@@ -382,29 +413,35 @@ const TreeNode: React.FC<TreeNodeProps> = ({
           </Button>
         )}
       </div>
-      {isExpanded && node.children && node.children.length > 0 && (
-        <div className={cn(isRootModelNode ? "pl-0" : "pl-0")}>
-          {node.children.map((childNode) => (
-            <TreeNode
-              key={getNodeKey(childNode, modelFileInfo.modelID)}
-              node={childNode}
-              level={level + 1}
-              onSelectNode={onSelectNode}
-              selectedElementInfo={selectedElementInfo}
-              modelFileInfo={modelFileInfo}
-              onAttemptRemoveModel={onAttemptRemoveModel}
-              expandedNodeKeys={expandedNodeKeys}
-              toggleNodeExpansion={toggleNodeExpansion}
-              selectedNodeKeyForScroll={selectedNodeKeyForScroll}
-              selectedNodeActualRef={selectedNodeActualRef}
-              modelID={modelFileInfo.modelID}
-              t={t}
-              searchQuery={searchQuery}
-            />
-          ))}
-        </div>
-      )}
-    </div>
+
+      {isExpanded && memoizedChildren.map((child, index) => (
+        <TreeNode
+          key={getNodeKey(child, modelID)}
+          node={child}
+          level={level + 1}
+          onSelectNode={onSelectNode}
+          selectedElementInfo={selectedElementInfo}
+          isRootModelNode={false}
+          modelFileInfo={modelFileInfo}
+          onAttemptRemoveModel={onAttemptRemoveModel}
+          expandedNodeKeys={expandedNodeKeys}
+          toggleNodeExpansion={toggleNodeExpansion}
+          selectedNodeKeyForScroll={selectedNodeKeyForScroll}
+          selectedNodeActualRef={selectedNodeKeyForScroll === getNodeKey(child, modelID) ? selectedNodeActualRef : null}
+          modelID={modelID}
+          t={t}
+          searchQuery={searchQuery}
+        />
+      ))}
+
+      <SchemaReader
+        isOpen={schemaReaderOpen}
+        onClose={() => setSchemaReaderOpen(false)}
+        schemaUrl={schemaUrl}
+        ifcClassName={naturalIfcName || originalIfcType}
+        initialPreview={schemaPreview || undefined}
+      />
+    </>
   );
 };
 

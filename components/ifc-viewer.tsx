@@ -1107,7 +1107,7 @@ function ViewerContent() {
     return () => {
       cancelled = true;
     };
-  }, [confirmedSearch, loadedModels, ifcApi, hideElements, showElements, gatherAllElements, scene, isSearchRunning]);
+  }, [confirmedSearch, loadedModels, ifcApi, hideElements, showElements, gatherAllElements, scene, isSearchRunning, getElementPropertiesCached]);
 
   // Update collapse state when panels change
   useEffect(() => {

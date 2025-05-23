@@ -1,0 +1,1175 @@
+<html lang="en">
+<head>
+<link href="/IFC/RELEASE/IFC4x3/HTML/assets/css/mini-default.css" rel="stylesheet"/>
+<link href="/IFC/RELEASE/IFC4x3/HTML/assets/css/style.css" rel="stylesheet"/>
+<meta content="width=device-width, initial-scale=1" name="viewport"/>
+<meta charset="utf-8"/>
+<title>6.1.3.7 IfcBuildingSystem - IFC 4.3.2 Documentation</title>
+<link href="/IFC/RELEASE/IFC4x3/HTML/assets/img/favicon.ico" rel="icon" type="image/x-icon"/>
+<script>window.is_iso = false;</script>
+</head>
+<body class="">
+<div class="container">
+<div class="row">
+<header>
+<p>IFC 4.3.2.20241204 (IFC4X3_ADD2)
+                        
+                            <small>under development</small>
+</p>
+<ul>
+<li>
+<a href="https://github.com/buildingSMART/IFC4.3.x-development/issues/">
+<i data-feather="message-circle"></i>
+                                Help suggest improvements
+                            </a>
+</li>
+<li>
+<a href="https://forums.buildingsmart.org/">
+<i data-feather="help-circle"></i>
+                            Get user or developer support
+                        </a>
+</li>
+<!--
+                    <li>
+                        <a href="#todo">
+                            <i data-feather="code"></i>
+                            Get started with software development
+                        </a>
+                    </li>
+                    -->
+</ul>
+</header>
+</div>
+<div class="row">
+<div class="col-md-2">
+<form action="/search" class="search" method="get" style="padding:0px;">
+<div class="row">
+<div class="col-md-8">
+<input class="search-input" name="query" placeholder="Search" type="text" value=""/>
+</div>
+<div class="col-md-4">
+<button class="primary" type="submit" value="Search">
+<span class="icon-search inverse"></span>
+</button>
+</div>
+</div>
+</form>
+<nav>
+<div>
+<a href="/">
+                             Cover
+                        </a>
+<a href="/IFC/RELEASE/IFC4x3/HTML/toc.html">
+                             Contents
+                        </a>
+<a href="/IFC/RELEASE/IFC4x3/HTML/content/foreword.htm">
+                             Foreword
+                        </a>
+<a href="/IFC/RELEASE/IFC4x3/HTML/content/introduction.htm">
+                             Introduction
+                        </a>
+</div>
+<div>
+<a href="/IFC/RELEASE/IFC4x3/HTML/content/scope.htm">
+                            1 Scope
+                        </a>
+<a href="/IFC/RELEASE/IFC4x3/HTML/content/normative_references.htm">
+                            2 Normative references
+                        </a>
+<a href="/IFC/RELEASE/IFC4x3/HTML/content/terms_and_definitions.htm">
+                            3 Terms, definitions, and abbreviated terms
+                        </a>
+<a href="/IFC/RELEASE/IFC4x3/HTML/concepts/content.html">
+                            4 Fundamental concepts and assumptions
+                        </a>
+<a href="/IFC/RELEASE/IFC4x3/HTML/chapter-5/">
+                            5 Core data schemas
+                        </a>
+<a class="current" href="/IFC/RELEASE/IFC4x3/HTML/chapter-6/">
+                            6 Shared element data schemas
+                        </a>
+<a class="sublink-1 current" href="/IFC/RELEASE/IFC4x3/HTML/ifcsharedbldgelements/content.html">
+                            6.1 IfcSharedBldgElements
+                        </a>
+<a class="sublink-1" href="/IFC/RELEASE/IFC4x3/HTML/ifcsharedbldgserviceelements/content.html">
+                            6.2 IfcSharedBldgServiceElements
+                        </a>
+<a class="sublink-1" href="/IFC/RELEASE/IFC4x3/HTML/ifcsharedcomponentelements/content.html">
+                            6.3 IfcSharedComponentElements
+                        </a>
+<a class="sublink-1" href="/IFC/RELEASE/IFC4x3/HTML/ifcsharedfacilitieselements/content.html">
+                            6.4 IfcSharedFacilitiesElements
+                        </a>
+<a class="sublink-1" href="/IFC/RELEASE/IFC4x3/HTML/ifcsharedmgmtelements/content.html">
+                            6.5 IfcSharedMgmtElements
+                        </a>
+<a class="sublink-1" href="/IFC/RELEASE/IFC4x3/HTML/ifcsharedinfrastructureelements/content.html">
+                            6.6 IfcSharedInfrastructureElements
+                        </a>
+<a href="/IFC/RELEASE/IFC4x3/HTML/chapter-7/">
+                            7 Domain specific data schemas
+                        </a>
+<a href="/IFC/RELEASE/IFC4x3/HTML/chapter-8/">
+                            8 Resource definition data schemas
+                        </a>
+</div>
+<div>
+<a href="/IFC/RELEASE/IFC4x3/HTML/annex-a.html">
+                            A Computer interpretable listings
+                        </a>
+<a href="/IFC/RELEASE/IFC4x3/HTML/annex-b.html">
+                            B Alphabetical listings
+                        </a>
+<a href="/IFC/RELEASE/IFC4x3/HTML/annex-c.html">
+                            C Inheritance listings
+                        </a>
+<a href="/IFC/RELEASE/IFC4x3/HTML/annex-d.html">
+                            D Diagrams
+                        </a>
+<a href="/IFC/RELEASE/IFC4x3/HTML/annex-e.html">
+                            E Examples
+                        </a>
+<a href="/IFC/RELEASE/IFC4x3/HTML/annex-f.html">
+                            F Change logs
+                        </a>
+</div>
+<div>
+<a href="/IFC/RELEASE/IFC4x3/HTML/content/bibliography.htm">
+                             Bibliography
+                        </a>
+<a href="/IFC/RELEASE/IFC4x3/HTML/index.htm">
+                             Index
+                        </a>
+</div>
+</nav>
+</div>
+<div class="col-md-8" id="main-content">
+<h1>6.1.3.7 IfcBuildingSystem</h1>
+<div class="mvd" title="Included in Group Assignment, Property Sets for Objects">RV ⓘ</div>
+<div class="mvd" title="Included in Group Assignment, Property Sets for Objects">AbV ⓘ</div>
+<div class="row">
+<div class="card fluid error deprecation">
+<p>
+<mark class="secondary">DEPRECATED
+            <a href="/IFC/RELEASE/IFC4x3/HTML/content/terms_and_definitions.htm#deprecation"><i data-feather="link"></i></a></mark>
+            This definition will be removed in a future major release of this standard
+        </p>
+</div>
+</div>
+<h2><a class="anchor" id="6.1.3.7.1-Semantic-definition"></a>
+    6.1.3.7.1 Semantic definition
+<a class="link" href="#6.1.3.7.1-Semantic-definition"><i data-feather="link"></i></a></h2>
+<p>A building system is a group by which building elements are grouped according to a common function within the facility.</p>
+<!-- end of short definition -->
+<p>The group <em><a href="/IFC/RELEASE/IFC4x3/HTML/lexical/IfcBuildingSystem.htm">IfcBuildingSystem</a></em> defines the occurrence of a specialized system for use within the context of a building and finishing fabric. Important functionalities for the description of a building system are derived from supertypes:</p>
+<ul>
+<li>From <em><a href="/IFC/RELEASE/IFC4x3/HTML/lexical/IfcSystem.htm">IfcSystem</a></em> it inherits the ability to couple the building system via <em><a href="/IFC/RELEASE/IFC4x3/HTML/lexical/IfcRelServicesBuildings.htm">IfcRelServicesBuildings</a></em> to one or more <em><a href="/IFC/RELEASE/IFC4x3/HTML/lexical/IfcSpatialElement.htm">IfcSpatialElement</a></em> subtypes as necessary.</li>
+<li>From <em><a href="/IFC/RELEASE/IFC4x3/HTML/lexical/IfcGroup.htm">IfcGroup</a></em> it inherits the inverse attribute <em>IsGroupedBy</em>, pointing to the relationship class <em><a href="/IFC/RELEASE/IFC4x3/HTML/lexical/IfcRelAssignsToGroup.htm">IfcRelAssignsToGroup</a></em>. This allows to group building elements (instances of <em><a href="/IFC/RELEASE/IFC4x3/HTML/lexical/IfcBuiltElement.htm">IfcBuiltElement</a></em> subtypes, <em><a href="/IFC/RELEASE/IFC4x3/HTML/lexical/IfcFurnishingElement.htm">IfcFurnishingElement</a></em> subtype, <em><a href="/IFC/RELEASE/IFC4x3/HTML/lexical/IfcElementAssembly.htm">IfcElementAssembly</a></em> and <em><a href="/IFC/RELEASE/IFC4x3/HTML/lexical/IfcTransportElement.htm">IfcTransportElement</a></em>).</li>
+<li>From <em><a href="/IFC/RELEASE/IFC4x3/HTML/lexical/IfcObjectDefinition.htm">IfcObjectDefinition</a></em> it inherits the inverse attribute <em>IsDecomposedBy</em> pointing to the relationship class <em><a href="/IFC/RELEASE/IFC4x3/HTML/lexical/IfcRelAggregates.htm">IfcRelAggregates</a></em>. It provides the hierarchy between the separate (partial) building systems.</li>
+</ul>
+<aside class="aside-history"><mark>HISTORY</mark> New entity in IFC4.</aside><aside class="aside-deprecation"><mark>IFC4.3.0.0-DEPRECATION<a href="/IFC/RELEASE/IFC4x3/HTML/content/terms_and_definitions.htm#deprecation"><i data-feather="link"></i></a></mark> Use <em><a href="/IFC/RELEASE/IFC4x3/HTML/lexical/IfcBuiltSystem.htm">IfcBuiltSystem</a></em> instead.</aside>
+<h2><a class="anchor" id="6.1.3.7.2-Entity-inheritance"></a>
+    6.1.3.7.2 Entity inheritance
+<a class="link" href="#6.1.3.7.2-Entity-inheritance"><i data-feather="link"></i></a></h2>
+<ol class="tier">
+<li>
+<i data-feather="arrow-up"></i>
+<ul class="classes classes-in-chain">
+<li class="abstract ancestor"><a href="/IFC/RELEASE/IFC4x3/HTML/lexical/IfcRoot.htm">IfcRoot</a></li>
+</ul>
+</li>
+<li>
+<i data-feather="arrow-up"></i>
+<ul class="classes classes-in-chain">
+<li class="abstract ancestor"><a href="/IFC/RELEASE/IFC4x3/HTML/lexical/IfcObjectDefinition.htm">IfcObjectDefinition</a></li>
+<li class="abstract"><a href="/IFC/RELEASE/IFC4x3/HTML/lexical/IfcPropertyDefinition.htm">IfcPropertyDefinition</a></li>
+<li class="abstract"><a href="/IFC/RELEASE/IFC4x3/HTML/lexical/IfcRelationship.htm">IfcRelationship</a></li>
+</ul>
+</li>
+<li>
+<i data-feather="arrow-up"></i>
+<ul class="classes classes-in-chain">
+<li class="abstract ancestor"><a href="/IFC/RELEASE/IFC4x3/HTML/lexical/IfcObject.htm">IfcObject</a></li>
+<li class="abstract"><a href="/IFC/RELEASE/IFC4x3/HTML/lexical/IfcContext.htm">IfcContext</a></li>
+<li class=""><a href="/IFC/RELEASE/IFC4x3/HTML/lexical/IfcTypeObject.htm">IfcTypeObject</a></li>
+</ul>
+</li>
+<li>
+<i data-feather="arrow-up"></i>
+<ul class="classes classes-in-chain">
+<li class="ancestor"><a href="/IFC/RELEASE/IFC4x3/HTML/lexical/IfcGroup.htm">IfcGroup</a></li>
+<li class=""><a href="/IFC/RELEASE/IFC4x3/HTML/lexical/IfcActor.htm">IfcActor</a></li>
+<li class="abstract"><a href="/IFC/RELEASE/IFC4x3/HTML/lexical/IfcControl.htm">IfcControl</a></li>
+<li class="abstract"><a href="/IFC/RELEASE/IFC4x3/HTML/lexical/IfcProcess.htm">IfcProcess</a></li>
+<li class="abstract"><a href="/IFC/RELEASE/IFC4x3/HTML/lexical/IfcProduct.htm">IfcProduct</a></li>
+<li class="abstract"><a href="/IFC/RELEASE/IFC4x3/HTML/lexical/IfcResource.htm">IfcResource</a></li>
+</ul>
+</li>
+<li>
+<i data-feather="arrow-up"></i>
+<ul class="classes classes-in-chain">
+<li class="ancestor"><a href="/IFC/RELEASE/IFC4x3/HTML/lexical/IfcSystem.htm">IfcSystem</a></li>
+<li class=""><a href="/IFC/RELEASE/IFC4x3/HTML/lexical/IfcAsset.htm">IfcAsset</a></li>
+<li class=""><a href="/IFC/RELEASE/IFC4x3/HTML/lexical/IfcInventory.htm">IfcInventory</a></li>
+<li class=""><a href="/IFC/RELEASE/IFC4x3/HTML/lexical/IfcStructuralLoadGroup.htm">IfcStructuralLoadGroup</a></li>
+<li class=""><a href="/IFC/RELEASE/IFC4x3/HTML/lexical/IfcStructuralResultGroup.htm">IfcStructuralResultGroup</a></li>
+</ul>
+</li>
+<li>
+<i data-feather="arrow-up"></i>
+<ul class="classes classes-in-chain">
+<li class="deprecated current ancestor"><a href="/IFC/RELEASE/IFC4x3/HTML/lexical/IfcBuildingSystem.htm">IfcBuildingSystem</a></li>
+<li class=""><a href="/IFC/RELEASE/IFC4x3/HTML/lexical/IfcBuiltSystem.htm">IfcBuiltSystem</a></li>
+<li class=""><a href="/IFC/RELEASE/IFC4x3/HTML/lexical/IfcDistributionSystem.htm">IfcDistributionSystem</a></li>
+<li class=""><a href="/IFC/RELEASE/IFC4x3/HTML/lexical/IfcStructuralAnalysisModel.htm">IfcStructuralAnalysisModel</a></li>
+<li class=""><a href="/IFC/RELEASE/IFC4x3/HTML/lexical/IfcZone.htm">IfcZone</a></li>
+</ul>
+</li>
+</ol>
+<h2><a class="anchor" id="6.1.3.7.3-Attributes"></a>
+    6.1.3.7.3 Attributes
+<a class="link" href="#6.1.3.7.3-Attributes"><i data-feather="link"></i></a></h2>
+<!-- <a class="button primary hide-inverse"><i data-feather="eye-off"></i> Hide inverse</a> -->
+<figure><a class="anchor" id="Table-6.1.3.7.A"></a><table class="striped grouped attributes">
+<colgroup>
+<col style="width: 20px;"/>
+<col/>
+<col/>
+<col/>
+</colgroup>
+<thead>
+<tr>
+<th>#</th>
+<th>Attribute</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="group-inherited">
+<td colspan="4">
+<a href="/IFC/RELEASE/IFC4x3/HTML/lexical/IfcRoot.htm">IfcRoot</a>
+<small>(4)</small>
+</td>
+</tr>
+<tr class="inherited" data-type="attribute">
+<td data-label="#">1</td>
+<td data-label="Name">
+                
+                GlobalId
+                
+            </td>
+<td data-label="Type"><a href="/IFC/RELEASE/IFC4x3/HTML/lexical/IfcGloballyUniqueId.htm">IfcGloballyUniqueId</a></td>
+<td data-label="Description">
+<p>Assignment of a globally unique identifier within the entire software world.</p>
+</td>
+</tr>
+<tr class="inherited" data-type="attribute">
+<td data-label="#">2</td>
+<td data-label="Name">
+                
+                OwnerHistory
+                
+            </td>
+<td data-label="Type">OPTIONAL <a href="/IFC/RELEASE/IFC4x3/HTML/lexical/IfcOwnerHistory.htm">IfcOwnerHistory</a></td>
+<td data-label="Description">
+<p>Assignment of the information about the current ownership of that object, including owning actor, application, local identification and information captured about the recent changes of the object,</p>
+<aside class="aside-note"><mark>NOTE</mark> Only the last modification is stored - either as addition, deletion or modification.</aside><aside class="aside-change"><mark>IFC4-CHANGE</mark> The attribute has been changed to be OPTIONAL.</aside>
+</td>
+</tr>
+<tr class="inherited" data-type="attribute">
+<td data-label="#">3</td>
+<td data-label="Name">
+                
+                Name
+                
+            </td>
+<td data-label="Type">OPTIONAL <a href="/IFC/RELEASE/IFC4x3/HTML/lexical/IfcLabel.htm">IfcLabel</a></td>
+<td data-label="Description">
+<p>Optional name for use by the participating software systems or users. For some subtypes of <a href="/IFC/RELEASE/IFC4x3/HTML/lexical/IfcRoot.htm">IfcRoot</a> the insertion of the Name attribute may be required. This would be enforced by a where rule.</p>
+</td>
+</tr>
+<tr class="inherited" data-type="attribute">
+<td data-label="#">4</td>
+<td data-label="Name">
+                
+                Description
+                
+            </td>
+<td data-label="Type">OPTIONAL <a href="/IFC/RELEASE/IFC4x3/HTML/lexical/IfcText.htm">IfcText</a></td>
+<td data-label="Description">
+<p>Optional description, provided for exchanging informative comments.</p>
+</td>
+</tr>
+<tr class="group-inherited">
+<td colspan="4">
+<a href="/IFC/RELEASE/IFC4x3/HTML/lexical/IfcObjectDefinition.htm">IfcObjectDefinition</a>
+<small>(7)</small>
+</td>
+</tr>
+<tr class="inherited" data-type="attribute">
+<td data-label="#"></td>
+<td data-label="Name">
+<em>HasAssignments</em>
+</td>
+<td data-label="Type">SET [0:?] OF <a href="/IFC/RELEASE/IFC4x3/HTML/lexical/IfcRelAssigns.htm">IfcRelAssigns</a> FOR RelatedObjects</td>
+<td data-label="Description">
+<p>Reference to the relationship objects, that assign (by an association relationship) other subtypes of <em><a href="/IFC/RELEASE/IFC4x3/HTML/lexical/IfcObject.htm">IfcObject</a></em> to this object instance. Examples are the association to products, processes, controls, resources or groups.</p>
+</td>
+</tr>
+<tr class="inherited" data-type="attribute">
+<td data-label="#"></td>
+<td data-label="Name">
+<em>Nests</em>
+</td>
+<td data-label="Type">SET [0:1] OF <a href="/IFC/RELEASE/IFC4x3/HTML/lexical/IfcRelNests.htm">IfcRelNests</a> FOR RelatedObjects</td>
+<td data-label="Description">
+<p>References to the decomposition relationship being a nesting. It determines that this object definition is a part within an ordered whole/part decomposition relationship. An object occurrence or type can only be part of a single decomposition (to allow hierarchical structures only).</p>
+<aside class="aside-change"><mark>IFC4-CHANGE</mark> The inverse attribute datatype has been added and separated from <em>Decomposes</em> defined at <em><a href="/IFC/RELEASE/IFC4x3/HTML/lexical/IfcObjectDefinition.htm">IfcObjectDefinition</a></em>.</aside>
+</td>
+</tr>
+<tr class="inherited" data-type="attribute">
+<td data-label="#"></td>
+<td data-label="Name">
+<em>IsNestedBy</em>
+</td>
+<td data-label="Type">SET [0:?] OF <a href="/IFC/RELEASE/IFC4x3/HTML/lexical/IfcRelNests.htm">IfcRelNests</a> FOR RelatingObject</td>
+<td data-label="Description">
+<p>References to the decomposition relationship being a nesting. It determines that this object definition is the whole within an ordered whole/part decomposition relationship. An object or object type can be nested by several other objects (occurrences or types).</p>
+<aside class="aside-change"><mark>IFC4-CHANGE</mark> The inverse attribute datatype has been added and separated from <em>IsDecomposedBy</em> defined at <em><a href="/IFC/RELEASE/IFC4x3/HTML/lexical/IfcObjectDefinition.htm">IfcObjectDefinition</a></em>.</aside>
+</td>
+</tr>
+<tr class="inherited" data-type="attribute">
+<td data-label="#"></td>
+<td data-label="Name">
+<em>HasContext</em>
+</td>
+<td data-label="Type">SET [0:1] OF <a href="/IFC/RELEASE/IFC4x3/HTML/lexical/IfcRelDeclares.htm">IfcRelDeclares</a> FOR RelatedDefinitions</td>
+<td data-label="Description">
+<p>References to the context providing context information such as project unit or representation context. It should only be asserted for the uppermost non-spatial object.</p>
+<aside class="aside-change"><mark>IFC4-CHANGE</mark> The inverse attribute datatype has been added.</aside>
+</td>
+</tr>
+<tr class="inherited" data-type="attribute">
+<td data-label="#"></td>
+<td data-label="Name">
+<em>IsDecomposedBy</em>
+</td>
+<td data-label="Type">SET [0:?] OF <a href="/IFC/RELEASE/IFC4x3/HTML/lexical/IfcRelAggregates.htm">IfcRelAggregates</a> FOR RelatingObject</td>
+<td data-label="Description">
+<p>References to the decomposition relationship being an aggregation. It determines that this object definition is whole within an unordered whole/part decomposition relationship. An object definition can be aggregated by several other objects (occurrences or parts).</p>
+<aside class="aside-change"><mark>IFC4-CHANGE</mark> The inverse attribute datatype has been changed from the supertype <em><a href="/IFC/RELEASE/IFC4x3/HTML/lexical/IfcRelDecomposes.htm">IfcRelDecomposes</a></em> to subtype <em><a href="/IFC/RELEASE/IFC4x3/HTML/lexical/IfcRelAggregates.htm">IfcRelAggregates</a></em>.</aside>
+</td>
+</tr>
+<tr class="inherited" data-type="attribute">
+<td data-label="#"></td>
+<td data-label="Name">
+<em>Decomposes</em>
+</td>
+<td data-label="Type">SET [0:1] OF <a href="/IFC/RELEASE/IFC4x3/HTML/lexical/IfcRelAggregates.htm">IfcRelAggregates</a> FOR RelatedObjects</td>
+<td data-label="Description">
+<p>References to the decomposition relationship being an aggregation. It determines that this object definition is a part within an unordered whole/part decomposition relationship. An object definition can only be part of a single decomposition (to allow hierarchical structures only).</p>
+<aside class="aside-change"><mark>IFC4-CHANGE</mark> The inverse attribute datatype has been changed from the supertype <em><a href="/IFC/RELEASE/IFC4x3/HTML/lexical/IfcRelDecomposes.htm">IfcRelDecomposes</a></em> to subtype <em><a href="/IFC/RELEASE/IFC4x3/HTML/lexical/IfcRelAggregates.htm">IfcRelAggregates</a></em>.</aside>
+</td>
+</tr>
+<tr class="inherited" data-type="attribute">
+<td data-label="#"></td>
+<td data-label="Name">
+<em>HasAssociations</em>
+</td>
+<td data-label="Type">SET [0:?] OF <a href="/IFC/RELEASE/IFC4x3/HTML/lexical/IfcRelAssociates.htm">IfcRelAssociates</a> FOR RelatedObjects</td>
+<td data-label="Description">
+<p>Reference to the relationship objects, that associates external references or other resource definitions to the object. Examples are the association to library, documentation or classification.</p>
+</td>
+</tr>
+<tr class="group-inherited">
+<td colspan="4">
+<a href="/IFC/RELEASE/IFC4x3/HTML/lexical/IfcObject.htm">IfcObject</a>
+<small>(5)</small>
+</td>
+</tr>
+<tr class="inherited" data-type="attribute">
+<td data-label="#">5</td>
+<td data-label="Name">
+                
+                ObjectType
+                
+            </td>
+<td data-label="Type">OPTIONAL <a href="/IFC/RELEASE/IFC4x3/HTML/lexical/IfcLabel.htm">IfcLabel</a></td>
+<td data-label="Description">
+<p>The type denotes a particular type that indicates the object further. The use has to be established at the level of instantiable subtypes. In particular it holds the user defined type, if the enumeration of the attribute <em>PredefinedType</em> is set to USERDEFINED or when the concrete entity instantiated does not have a PredefinedType attribute. The latter is the case in some exceptional leaf classes and when instantiating <a href="/IFC/RELEASE/IFC4x3/HTML/lexical/IfcBuiltElement.htm">IfcBuiltElement</a> directly. </p>
+</td>
+</tr>
+<tr class="inherited" data-type="attribute">
+<td data-label="#"></td>
+<td data-label="Name">
+<em>IsDeclaredBy</em>
+</td>
+<td data-label="Type">SET [0:1] OF <a href="/IFC/RELEASE/IFC4x3/HTML/lexical/IfcRelDefinesByObject.htm">IfcRelDefinesByObject</a> FOR RelatedObjects</td>
+<td data-label="Description">
+<p>Link to the relationship object pointing to the declaring object that provides the object definitions for this object occurrence. The declaring object has to be part of an object type decomposition. The associated <em><a href="/IFC/RELEASE/IFC4x3/HTML/lexical/IfcObject.htm">IfcObject</a></em>, or its subtypes, contains the specific information (as part of a type, or style, definition), that is common to all reflected instances of the declaring <em><a href="/IFC/RELEASE/IFC4x3/HTML/lexical/IfcObject.htm">IfcObject</a></em>, or its subtypes.</p>
+<aside class="aside-change"><mark>IFC4-CHANGE</mark> New inverse relationship, change made with upward compatibility for file based exchange.</aside>
+</td>
+</tr>
+<tr class="inherited" data-type="attribute">
+<td data-label="#"></td>
+<td data-label="Name">
+<em>Declares</em>
+</td>
+<td data-label="Type">SET [0:?] OF <a href="/IFC/RELEASE/IFC4x3/HTML/lexical/IfcRelDefinesByObject.htm">IfcRelDefinesByObject</a> FOR RelatingObject</td>
+<td data-label="Description">
+<p>Link to the relationship object pointing to the reflected object(s) that receives the object definitions. The reflected object has to be part of an object occurrence decomposition. The associated <em><a href="/IFC/RELEASE/IFC4x3/HTML/lexical/IfcObject.htm">IfcObject</a></em>, or its subtypes, provides the specific information (as part of a type, or style, definition), that is common to all reflected instances of the declaring <em><a href="/IFC/RELEASE/IFC4x3/HTML/lexical/IfcObject.htm">IfcObject</a></em>, or its subtypes.</p>
+<aside class="aside-change"><mark>IFC4-CHANGE</mark> New inverse relationship, change made with upward compatibility for file based exchange.</aside>
+</td>
+</tr>
+<tr class="inherited" data-type="attribute">
+<td data-label="#"></td>
+<td data-label="Name">
+<em>IsTypedBy</em>
+</td>
+<td data-label="Type">SET [0:1] OF <a href="/IFC/RELEASE/IFC4x3/HTML/lexical/IfcRelDefinesByType.htm">IfcRelDefinesByType</a> FOR RelatedObjects</td>
+<td data-label="Description">
+<p>Set of relationships to the object type that provides the type definitions for this object occurrence. The then associated <em><a href="/IFC/RELEASE/IFC4x3/HTML/lexical/IfcTypeObject.htm">IfcTypeObject</a></em>, or its subtypes, contains the specific information (or type, or style), that is common to all instances of <em><a href="/IFC/RELEASE/IFC4x3/HTML/lexical/IfcObject.htm">IfcObject</a></em>, or its subtypes, referring to the same type.</p>
+<aside class="aside-change"><mark>IFC4-CHANGE</mark> New inverse relationship, the link to <em><a href="/IFC/RELEASE/IFC4x3/HTML/lexical/IfcRelDefinesByType.htm">IfcRelDefinesByType</a></em> was previously included in the inverse relationship <em><a href="/IFC/RELEASE/IFC4x3/HTML/lexical/IfcRelDefines.htm">IfcRelDefines</a></em>. Change made with upward compatibility for file based exchange.</aside>
+</td>
+</tr>
+<tr class="inherited" data-type="attribute">
+<td data-label="#"></td>
+<td data-label="Name">
+<em>IsDefinedBy</em>
+</td>
+<td data-label="Type">SET [0:?] OF <a href="/IFC/RELEASE/IFC4x3/HTML/lexical/IfcRelDefinesByProperties.htm">IfcRelDefinesByProperties</a> FOR RelatedObjects</td>
+<td data-label="Description">
+<p>Set of relationships to property set definitions attached to this object. Those statically or dynamically defined properties contain alphanumeric information content that further defines the object.</p>
+<aside class="aside-change"><mark>IFC4-CHANGE</mark> The data type has been changed from <em><a href="/IFC/RELEASE/IFC4x3/HTML/lexical/IfcRelDefines.htm">IfcRelDefines</a></em> to <em><a href="/IFC/RELEASE/IFC4x3/HTML/lexical/IfcRelDefinesByProperties.htm">IfcRelDefinesByProperties</a></em> with upward compatibility for file based exchange.</aside>
+</td>
+</tr>
+<tr class="group-inherited">
+<td colspan="4">
+<a href="/IFC/RELEASE/IFC4x3/HTML/lexical/IfcGroup.htm">IfcGroup</a>
+<small>(2)</small>
+</td>
+</tr>
+<tr class="inherited" data-type="attribute">
+<td data-label="#"></td>
+<td data-label="Name">
+<em>IsGroupedBy</em>
+</td>
+<td data-label="Type">SET [0:?] OF <a href="/IFC/RELEASE/IFC4x3/HTML/lexical/IfcRelAssignsToGroup.htm">IfcRelAssignsToGroup</a> FOR RelatingGroup</td>
+<td data-label="Description">
+<p>Reference to the relationship <em><a href="/IFC/RELEASE/IFC4x3/HTML/lexical/IfcRelAssignsToGroup.htm">IfcRelAssignsToGroup</a></em> that assigns the one to many group members to the <em><a href="/IFC/RELEASE/IFC4x3/HTML/lexical/IfcGroup.htm">IfcGroup</a></em> object.</p>
+<aside class="aside-change"><mark>IFC4-CHANGE</mark> The cardinality has been changed from 1..1 to 0..? in order to allow the exchange of a group concept without having already group members assigned. It now also allows the use of many instances of <em><a href="/IFC/RELEASE/IFC4x3/HTML/lexical/IfcRelAssignsToGroup.htm">IfcRelAssignsToGroup</a></em> to assign the group members. The change has been done with upward compatibility for file based exchange.</aside>
+</td>
+</tr>
+<tr class="inherited" data-type="attribute">
+<td data-label="#"></td>
+<td data-label="Name">
+<em>ReferencedInStructures</em>
+</td>
+<td data-label="Type">SET [0:?] OF <a href="/IFC/RELEASE/IFC4x3/HTML/lexical/IfcRelReferencedInSpatialStructure.htm">IfcRelReferencedInSpatialStructure</a> FOR RelatedElements</td>
+<td data-label="Description">
+<p>Reference to the relationship <em><a href="/IFC/RELEASE/IFC4x3/HTML/lexical/IfcRelReferencedInSpatialStructure.htm">IfcRelReferencedInSpatialStructure</a></em> that relates the group to a spatial element.</p>
+</td>
+</tr>
+<tr class="group-inherited">
+<td colspan="4">
+<a href="/IFC/RELEASE/IFC4x3/HTML/lexical/IfcSystem.htm">IfcSystem</a>
+<small>(2)</small>
+</td>
+</tr>
+<tr class="inherited" data-type="attribute">
+<td data-label="#"></td>
+<td data-label="Name">
+<em>ServicesBuildings</em>
+</td>
+<td data-label="Type">SET [0:1] OF <a href="/IFC/RELEASE/IFC4x3/HTML/lexical/IfcRelServicesBuildings.htm">IfcRelServicesBuildings</a> FOR RelatingSystem</td>
+<td data-label="Description">
+<p>Reference to the spatial structure via the objectified relationship <em><a href="/IFC/RELEASE/IFC4x3/HTML/lexical/IfcRelServicesBuildings.htm">IfcRelServicesBuildings</a></em>, which is serviced by the system.</p>
+</td>
+</tr>
+<tr class="inherited" data-type="attribute">
+<td data-label="#"></td>
+<td data-label="Name">
+<em>ServicesFacilities</em>
+</td>
+<td data-label="Type">SET [0:?] OF <a href="/IFC/RELEASE/IFC4x3/HTML/lexical/IfcRelReferencedInSpatialStructure.htm">IfcRelReferencedInSpatialStructure</a> FOR RelatedElements</td>
+<td data-label="Description">
+<p>Reference to the relationship <em><a href="/IFC/RELEASE/IFC4x3/HTML/lexical/IfcRelReferencedInSpatialStructure.htm">IfcRelReferencedInSpatialStructure</a></em> that relates the system to a spatial element.</p>
+</td>
+</tr>
+<tr class="preview">
+<td colspan="4">
+<small class="show-inherited" data-type="attribute">
+<i data-feather="eye-off"></i>
+                    Click to show 20 hidden inherited attributes
+                </small>
+<small class="hide-inherited" data-type="attribute">
+<i data-feather="eye-off"></i>
+                    Click to hide 20 inherited attributes
+                </small>
+</td>
+</tr>
+<tr class="group">
+<td colspan="4">
+<a href="/IFC/RELEASE/IFC4x3/HTML/lexical/IfcBuildingSystem.htm">IfcBuildingSystem</a>
+<small>(2)</small>
+</td>
+</tr>
+<tr>
+<td data-label="#">6</td>
+<td data-label="Name">
+                
+                PredefinedType
+                
+            </td>
+<td data-label="Type">OPTIONAL <a href="/IFC/RELEASE/IFC4x3/HTML/lexical/IfcBuildingSystemTypeEnum.htm">IfcBuildingSystemTypeEnum</a></td>
+<td data-label="Description">
+<p>Predefined types of distribution systems.</p>
+</td>
+</tr>
+<tr>
+<td data-label="#">7</td>
+<td data-label="Name">
+                
+                LongName
+                
+            </td>
+<td data-label="Type">OPTIONAL <a href="/IFC/RELEASE/IFC4x3/HTML/lexical/IfcLabel.htm">IfcLabel</a></td>
+<td data-label="Description">
+<p>Long name for a building system, used for informal purposes. It should be used, if available, in conjunction with the inherited <em>Name</em> attribute.</p>
+<aside class="aside-note"><mark>NOTE</mark> In many scenarios the <em>Name</em> attribute refers to the short name or number of a building system, and the <em>LongName</em> refers to a descriptive name.</aside>
+</td>
+</tr>
+</tbody>
+</table><figcaption>Table 6.1.3.7.A<a class="link" href="#Table-6.1.3.7.A"><i data-feather="link"></i></a></figcaption></figure>
+<h2><a class="anchor" id="6.1.3.7.4-Formal-propositions"></a>
+    6.1.3.7.4 Formal propositions
+<a class="link" href="#6.1.3.7.4-Formal-propositions"><i data-feather="link"></i></a></h2>
+<figure><a class="anchor" id="Table-6.1.3.7.B"></a><table>
+<thead>
+<tr>
+<th>Name</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>CorrectPredefinedType</td>
+<td>
+<p>
+<em>No description available.</em>
+</p>
+</td>
+</tr>
+<tr>
+<td colspan="2">
+<pre><code class="language-express hljs">NOT(EXISTS(PredefinedType)) OR
+ (PredefinedType &lt;&gt; <a href="/IFC/RELEASE/IFC4x3/HTML/lexical/IfcBuildingSystemTypeEnum.htm">IfcBuildingSystemTypeEnum</a>.USERDEFINED) OR
+ ((PredefinedType = <a href="/IFC/RELEASE/IFC4x3/HTML/lexical/IfcBuildingSystemTypeEnum.htm">IfcBuildingSystemTypeEnum</a>.USERDEFINED) AND EXISTS (SELF\<a href="/IFC/RELEASE/IFC4x3/HTML/lexical/IfcObject.htm">IfcObject</a>.ObjectType))</code></pre>
+</td>
+</tr>
+</tbody>
+</table><figcaption>Table 6.1.3.7.B<a class="link" href="#Table-6.1.3.7.B"><i data-feather="link"></i></a></figcaption></figure>
+<h2><a class="anchor" id="6.1.3.7.5-Property-sets"></a>
+    6.1.3.7.5 Property sets
+<a class="link" href="#6.1.3.7.5-Property-sets"><i data-feather="link"></i></a></h2>
+<p>
+</p><ul class="psets">
+<li>
+<a href="/IFC/RELEASE/IFC4x3/HTML/lexical/Pset_BuildingSystemCommon.htm">Pset_BuildingSystemCommon</a>
+<ul>
+<li>Reference</li>
+</ul>
+</li>
+<li>
+<a href="/IFC/RELEASE/IFC4x3/HTML/lexical/Pset_Condition.htm">Pset_Condition</a>
+<ul>
+<li>AssessmentDate</li>
+<li>AssessmentCondition</li>
+<li>AssessmentDescription</li>
+<li>AssessmentType</li>
+<li>AssessmentMethod</li>
+<li>LastAssessmentReport</li>
+<li>NextAssessmentDate</li>
+<li>AssessmentFrequency</li>
+</ul>
+</li>
+<li>
+<a href="/IFC/RELEASE/IFC4x3/HTML/lexical/Pset_InstallationOccurrence.htm">Pset_InstallationOccurrence</a>
+<ul>
+<li>InstallationDate</li>
+<li>AcceptanceDate</li>
+<li>PutIntoOperationDate</li>
+</ul>
+</li>
+<li>
+<a href="/IFC/RELEASE/IFC4x3/HTML/lexical/Pset_MaintenanceStrategy.htm">Pset_MaintenanceStrategy</a>
+<ul>
+<li>AssetCriticality</li>
+<li>AssetFrailty</li>
+<li>AssetPriority</li>
+<li>MonitoringType</li>
+<li>AccidentResponse</li>
+</ul>
+</li>
+<li>
+<a href="/IFC/RELEASE/IFC4x3/HTML/lexical/Pset_MaintenanceTriggerCondition.htm">Pset_MaintenanceTriggerCondition</a>
+<ul>
+<li>ConditionTargetPerformance</li>
+<li>ConditionMaintenanceLevel</li>
+<li>ConditionReplacementLevel</li>
+<li>ConditionDisposalLevel</li>
+</ul>
+</li>
+<li>
+<a href="/IFC/RELEASE/IFC4x3/HTML/lexical/Pset_MaintenanceTriggerDuration.htm">Pset_MaintenanceTriggerDuration</a>
+<ul>
+<li>DurationTargetPerformance</li>
+<li>DurationMaintenanceLevel</li>
+<li>DurationReplacementLevel</li>
+<li>DurationDisposalLevel</li>
+</ul>
+</li>
+<li>
+<a href="/IFC/RELEASE/IFC4x3/HTML/lexical/Pset_MaintenanceTriggerPerformance.htm">Pset_MaintenanceTriggerPerformance</a>
+<ul>
+<li>TargetPerformance</li>
+<li>PerformanceMaintenanceLevel</li>
+<li>ReplacementLevel</li>
+<li>DisposalLevel</li>
+</ul>
+</li>
+<li>
+<a href="/IFC/RELEASE/IFC4x3/HTML/lexical/Pset_RepairOccurrence.htm">Pset_RepairOccurrence</a>
+<ul>
+<li>RepairContent</li>
+<li>RepairDate</li>
+<li>MeanTimeToRepair</li>
+</ul>
+</li>
+<li>
+<a href="/IFC/RELEASE/IFC4x3/HTML/lexical/Pset_Risk.htm">Pset_Risk</a>
+<ul>
+<li>RiskName</li>
+<li>RiskType</li>
+<li>NatureOfRisk</li>
+<li>RiskAssessmentMethodology</li>
+<li>UnmitigatedRiskLikelihood</li>
+<li>UnmitigatedRiskConsequence</li>
+<li>UnmitigatedRiskSignificance</li>
+<li>MitigationPlanned</li>
+<li>MitigatedRiskLikelihood</li>
+<li>MitigatedRiskConsequence</li>
+<li>MitigatedRiskSignificance</li>
+<li>MitigationProposed</li>
+<li>AssociatedProduct</li>
+<li>AssociatedActivity</li>
+<li>AssociatedLocation</li>
+</ul>
+</li>
+<li>
+<a href="/IFC/RELEASE/IFC4x3/HTML/lexical/Pset_ServiceLifeFactors.htm">Pset_ServiceLifeFactors</a>
+<ul>
+<li>QualityOfComponents</li>
+<li>DesignLevel</li>
+<li>WorkExecutionLevel</li>
+<li>IndoorEnvironment</li>
+<li>OutdoorEnvironment</li>
+<li>InUseConditions</li>
+<li>MaintenanceLevel</li>
+</ul>
+</li>
+</ul>
+<p>
+</p><h2><a class="anchor" id="6.1.3.7.6-Concept-usage"></a>
+    6.1.3.7.6 Concept usage
+<a class="link" href="#6.1.3.7.6-Concept-usage"><i data-feather="link"></i></a></h2>
+<figure><a class="anchor" id="Table-6.1.3.7.C"></a><table class="striped grouped concepts">
+<thead>
+<tr>
+<th>Concept</th>
+<th>Usage</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr class="group-inherited">
+<td colspan="3">
+<a href="/IFC/RELEASE/IFC4x3/HTML/lexical/IfcRoot.htm">IfcRoot</a>
+<small>(2)</small>
+</td>
+</tr>
+<tr class="inherited" data-type="concept">
+<td data-label="Name">
+<a href="/IFC/RELEASE/IFC4x3/HTML/concepts/Object_Attributes/Revision_Control/content.html">Revision Control</a>
+</td>
+<td data-label="Usage">
+                General
+            </td>
+<td data-label="Description">
+<p>Ownership, history, and merge state is captured using <a href="/IFC/RELEASE/IFC4x3/HTML/lexical/IfcOwnerHistory.htm">IfcOwnerHistory</a>.</p>
+</td>
+</tr>
+<tr class="inherited" data-type="concept">
+<td data-label="Name">
+<a href="/IFC/RELEASE/IFC4x3/HTML/concepts/Object_Attributes/Software_Identity/content.html">Software Identity</a>
+</td>
+<td data-label="Usage">
+                General
+            </td>
+<td data-label="Description">
+<p><a href="/IFC/RELEASE/IFC4x3/HTML/lexical/IfcRoot.htm">IfcRoot</a> assigns the globally unique ID. In addition it may provide for a name and a description about the concept.</p>
+</td>
+</tr>
+<tr class="group-inherited">
+<td colspan="3">
+<a href="/IFC/RELEASE/IFC4x3/HTML/lexical/IfcObjectDefinition.htm">IfcObjectDefinition</a>
+<small>(9)</small>
+</td>
+</tr>
+<tr class="inherited" data-type="concept">
+<td data-label="Name">
+<a href="/IFC/RELEASE/IFC4x3/HTML/concepts/Object_Association/Classification_Association/content.html">Classification Association</a>
+</td>
+<td data-label="Usage">
+                General
+            </td>
+<td data-label="Description">
+<p>Any object occurrence or object type can have a reference to a specific classification reference, i.e. to a particular facet within a classification system.</p>
+</td>
+</tr>
+<tr class="inherited" data-type="concept">
+<td data-label="Name">
+<a href="/IFC/RELEASE/IFC4x3/HTML/concepts/Object_Composition/Aggregation/content.html">Aggregation</a>
+</td>
+<td data-label="Usage">
+                General
+            </td>
+<td data-label="Description">
+<p>
+<em>No description available.</em>
+</p>
+</td>
+</tr>
+<tr class="inherited" data-type="concept">
+<td data-label="Name">
+<a href="/IFC/RELEASE/IFC4x3/HTML/concepts/Object_Association/Approval_Association/content.html">Approval Association</a>
+</td>
+<td data-label="Usage">
+                General
+            </td>
+<td data-label="Description">
+<p>
+<em>No description available.</em>
+</p>
+</td>
+</tr>
+<tr class="inherited" data-type="concept">
+<td data-label="Name">
+<a href="/IFC/RELEASE/IFC4x3/HTML/concepts/Object_Association/Constraint_Association/content.html">Constraint Association</a>
+</td>
+<td data-label="Usage">
+                General
+            </td>
+<td data-label="Description">
+<p>
+<em>No description available.</em>
+</p>
+</td>
+</tr>
+<tr class="inherited" data-type="concept">
+<td data-label="Name">
+<a href="/IFC/RELEASE/IFC4x3/HTML/concepts/Object_Association/Document_Association/content.html">Document Association</a>
+</td>
+<td data-label="Usage">
+                General
+            </td>
+<td data-label="Description">
+<p>
+<em>No description available.</em>
+</p>
+</td>
+</tr>
+<tr class="inherited" data-type="concept">
+<td data-label="Name">
+<a href="/IFC/RELEASE/IFC4x3/HTML/concepts/Object_Association/Library_Association/content.html">Library Association</a>
+</td>
+<td data-label="Usage">
+                General
+            </td>
+<td data-label="Description">
+<p>
+<em>No description available.</em>
+</p>
+</td>
+</tr>
+<tr class="inherited" data-type="concept">
+<td data-label="Name">
+<a href="/IFC/RELEASE/IFC4x3/HTML/concepts/Object_Association/Material_Association/content.html">Material Association</a>
+</td>
+<td data-label="Usage">
+                General
+            </td>
+<td data-label="Description">
+<p>
+<em>No description available.</em>
+</p>
+</td>
+</tr>
+<tr class="inherited" data-type="concept">
+<td data-label="Name">
+<a href="/IFC/RELEASE/IFC4x3/HTML/concepts/Object_Association/Material_Association/Material_Single/content.html">Material Single</a>
+</td>
+<td data-label="Usage">
+                General
+            </td>
+<td data-label="Description">
+<p>
+<em>No description available.</em>
+</p>
+</td>
+</tr>
+<tr class="inherited" data-type="concept">
+<td data-label="Name">
+<a href="/IFC/RELEASE/IFC4x3/HTML/concepts/Object_Composition/Nesting/content.html">Nesting</a>
+</td>
+<td data-label="Usage">
+                General
+            </td>
+<td data-label="Description">
+<p>
+<em>No description available.</em>
+</p>
+</td>
+</tr>
+<tr class="group-inherited">
+<td colspan="3">
+<a href="/IFC/RELEASE/IFC4x3/HTML/lexical/IfcObject.htm">IfcObject</a>
+<small>(5)</small>
+</td>
+</tr>
+<tr class="inherited" data-type="concept">
+<td data-label="Name">
+<a href="/IFC/RELEASE/IFC4x3/HTML/concepts/Object_Attributes/Object_Predefined_Type/content.html">Object Predefined Type</a>
+</td>
+<td data-label="Usage">
+                General
+            </td>
+<td data-label="Description">
+<p>
+<em>No description available.</em>
+</p>
+</td>
+</tr>
+<tr class="inherited" data-type="concept">
+<td data-label="Name">
+<a href="/IFC/RELEASE/IFC4x3/HTML/concepts/Object_Definition/Object_Typing/content.html">Object Typing</a>
+</td>
+<td data-label="Usage">
+                General
+            </td>
+<td data-label="Description">
+<p>Any object occurrence can be typed by being assigned to a common object type utilizing this concept. A particular rule, restricting the applicable subtypes of <em><a href="/IFC/RELEASE/IFC4x3/HTML/lexical/IfcTypeObject.htm">IfcTypeObject</a></em> that can be assigned, is introduced by overriding this concept at the level of subtypes of <em><a href="/IFC/RELEASE/IFC4x3/HTML/lexical/IfcObject.htm">IfcObject</a></em>.</p>
+<p>This concept can be applied to the following resources:</p>
+<ul>
+<li>
+<a href="/IFC/RELEASE/IFC4x3/HTML/lexical/IfcTypeObject.htm">IfcTypeObject</a>
+</li>
+</ul>
+</td>
+</tr>
+<tr class="inherited" data-type="concept">
+<td data-label="Name">
+<a href="/IFC/RELEASE/IFC4x3/HTML/concepts/Object_Attributes/Object_User_Identity/content.html">Object User Identity</a>
+</td>
+<td data-label="Usage">
+                General
+            </td>
+<td data-label="Description">
+<p>An attribute <em>Name</em> and optionally <em>Description</em> can be used for all subypes of <em><a href="/IFC/RELEASE/IFC4x3/HTML/lexical/IfcObject.htm">IfcObject</a></em>. For those subtypes, that have an object type definition, such as <em><a href="/IFC/RELEASE/IFC4x3/HTML/lexical/IfcBeam.htm">IfcBeam</a></em> - <em><a href="/IFC/RELEASE/IFC4x3/HTML/lexical/IfcBeamType.htm">IfcBeamType</a></em>, the common <em>Name</em> and optionally <em>Description</em> is associated with the object type.</p>
+</td>
+</tr>
+<tr class="inherited" data-type="concept">
+<td data-label="Name">
+<a href="/IFC/RELEASE/IFC4x3/HTML/concepts/Object_Definition/Property_Sets/Property_Sets_for_Objects/Property_Sets_with_Override/content.html">Property Sets with Override</a>
+</td>
+<td data-label="Usage">
+                General
+            </td>
+<td data-label="Description">
+<p>Any object occurrence can hold property sets, either directly at the object occurrence as element specific property sets, or at the object type, as type property sets. In this case, the properties that are provided to the object occurrence are the combinations of element specific and type properties. In case that the same property (within the same property set) is defined both in occurrence and type properties, the property value of the occurrence property overrides the property value of the type property.</p>
+</td>
+</tr>
+<tr class="inherited" data-type="concept">
+<td data-label="Name">
+<a href="/IFC/RELEASE/IFC4x3/HTML/concepts/Object_Assignment/Assignment_to_Group/content.html">Assignment to Group</a>
+</td>
+<td data-label="Usage">
+                General
+            </td>
+<td data-label="Description">
+<p>
+<em>No description available.</em>
+</p>
+</td>
+</tr>
+<tr class="group-inherited">
+<td colspan="3">
+<a href="/IFC/RELEASE/IFC4x3/HTML/lexical/IfcGroup.htm">IfcGroup</a>
+<small>(2)</small>
+</td>
+</tr>
+<tr class="inherited" data-type="concept">
+<td data-label="Name">
+<a href="/IFC/RELEASE/IFC4x3/HTML/concepts/Object_Assignment/Group_Assignment/content.html">Group Assignment</a>
+</td>
+<td data-label="Usage">
+                General
+            </td>
+<td data-label="Description">
+<p>The <a href="/IFC/RELEASE/IFC4x3/HTML/lexical/IfcGroup.htm">IfcGroup</a> establishes an arbitrary collection of objects through utilizing this concept.</p>
+</td>
+</tr>
+<tr class="inherited" data-type="concept">
+<td data-label="Name">
+<a href="/IFC/RELEASE/IFC4x3/HTML/concepts/Object_Definition/Property_Sets/Property_Sets_for_Objects/content.html">Property Sets for Objects</a>
+</td>
+<td data-label="Usage">
+                General
+            </td>
+<td data-label="Description">
+<p>This concept can be applied to the following resources:</p>
+<ul>
+<li>
+<a href="/IFC/RELEASE/IFC4x3/HTML/lexical/Pset_Risk.htm">Pset_Risk</a>
+</li>
+</ul>
+</td>
+</tr>
+<tr class="group-inherited">
+<td colspan="3">
+<a href="/IFC/RELEASE/IFC4x3/HTML/lexical/IfcSystem.htm">IfcSystem</a>
+<small>(2)</small>
+</td>
+</tr>
+<tr class="inherited" data-type="concept">
+<td data-label="Name">
+<a href="/IFC/RELEASE/IFC4x3/HTML/concepts/Object_Definition/Property_Sets/Property_Sets_for_Objects/content.html">Property Sets for Objects</a>
+</td>
+<td data-label="Usage">
+                General
+            </td>
+<td data-label="Description">
+<p>This concept can be applied to the following resources:</p>
+<ul>
+<li>
+<a href="/IFC/RELEASE/IFC4x3/HTML/lexical/Pset_Condition.htm">Pset_Condition</a>
+</li>
+<li>
+<a href="/IFC/RELEASE/IFC4x3/HTML/lexical/Pset_InstallationOccurrence.htm">Pset_InstallationOccurrence</a>
+</li>
+<li>
+<a href="/IFC/RELEASE/IFC4x3/HTML/lexical/Pset_MaintenanceStrategy.htm">Pset_MaintenanceStrategy</a>
+</li>
+<li>
+<a href="/IFC/RELEASE/IFC4x3/HTML/lexical/Pset_MaintenanceTriggerCondition.htm">Pset_MaintenanceTriggerCondition</a>
+</li>
+<li>
+<a href="/IFC/RELEASE/IFC4x3/HTML/lexical/Pset_MaintenanceTriggerDuration.htm">Pset_MaintenanceTriggerDuration</a>
+</li>
+<li>
+<a href="/IFC/RELEASE/IFC4x3/HTML/lexical/Pset_MaintenanceTriggerPerformance.htm">Pset_MaintenanceTriggerPerformance</a>
+</li>
+<li>
+<a href="/IFC/RELEASE/IFC4x3/HTML/lexical/Pset_RepairOccurrence.htm">Pset_RepairOccurrence</a>
+</li>
+<li>
+<a href="/IFC/RELEASE/IFC4x3/HTML/lexical/Pset_ServiceLifeFactors.htm">Pset_ServiceLifeFactors</a>
+</li>
+</ul>
+</td>
+</tr>
+<tr class="inherited" data-type="concept">
+<td data-label="Name">
+<a href="/IFC/RELEASE/IFC4x3/HTML/concepts/Object_Attributes/Object_Occurrence_Attributes/System_Element_Attributes/content.html">System Element Attributes</a>
+</td>
+<td data-label="Usage">
+                General
+            </td>
+<td data-label="Description">
+<p>
+<em>No description available.</em>
+</p>
+</td>
+</tr>
+<tr class="preview">
+<td colspan="4">
+<small class="show-inherited" data-type="concept">
+<i data-feather="eye-off"></i>
+                    Click to show 20 hidden inherited concepts
+                </small>
+<small class="hide-inherited" data-type="concept">
+<i data-feather="eye-off"></i>
+                    Click to hide 20 inherited concepts
+                </small>
+</td>
+</tr>
+<tr class="group">
+<td colspan="3">
+<a href="/IFC/RELEASE/IFC4x3/HTML/lexical/IfcBuildingSystem.htm">IfcBuildingSystem</a>
+<small>(2)</small>
+</td>
+</tr>
+<tr>
+<td data-label="Name">
+<a href="/IFC/RELEASE/IFC4x3/HTML/concepts/Object_Assignment/Group_Assignment/content.html">Group Assignment</a>
+</td>
+<td data-label="Usage">
+                General
+            </td>
+<td data-label="Description">
+<p>
+<em>No description available.</em>
+</p>
+</td>
+</tr>
+<tr>
+<td data-label="Name">
+<a href="/IFC/RELEASE/IFC4x3/HTML/concepts/Object_Definition/Property_Sets/Property_Sets_for_Objects/content.html">Property Sets for Objects</a>
+</td>
+<td data-label="Usage">
+                General
+            </td>
+<td data-label="Description">
+<aside class="inherited">
+<small>
+<i data-feather="paperclip"></i>
+                        This is a further elaboration on an inherited concept.
+                    </small>
+</aside>
+<p>This concept can be applied to the following resources:</p>
+<ul>
+<li>
+<a href="/IFC/RELEASE/IFC4x3/HTML/lexical/Pset_BuildingSystemCommon.htm">Pset_BuildingSystemCommon</a>
+</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table><figcaption>Table 6.1.3.7.C<a class="link" href="#Table-6.1.3.7.C"><i data-feather="link"></i></a></figcaption></figure>
+<h2><a class="anchor" id="6.1.3.7.7-Formal-representation"></a>
+    6.1.3.7.7 Formal representation
+<a class="link" href="#6.1.3.7.7-Formal-representation"><i data-feather="link"></i></a></h2>
+<pre><code class="language-express hljs">ENTITY <a href="/IFC/RELEASE/IFC4x3/HTML/lexical/IfcBuildingSystem.htm">IfcBuildingSystem</a>
+ SUBTYPE OF (<a href="/IFC/RELEASE/IFC4x3/HTML/lexical/IfcSystem.htm">IfcSystem</a>);
+	PredefinedType : OPTIONAL <a href="/IFC/RELEASE/IFC4x3/HTML/lexical/IfcBuildingSystemTypeEnum.htm">IfcBuildingSystemTypeEnum</a>;
+	LongName : OPTIONAL <a href="/IFC/RELEASE/IFC4x3/HTML/lexical/IfcLabel.htm">IfcLabel</a>;
+ WHERE
+	CorrectPredefinedType : NOT(EXISTS(PredefinedType)) OR
+ (PredefinedType &lt;&gt; <a href="/IFC/RELEASE/IFC4x3/HTML/lexical/IfcBuildingSystemTypeEnum.htm">IfcBuildingSystemTypeEnum</a>.USERDEFINED) OR
+ ((PredefinedType = <a href="/IFC/RELEASE/IFC4x3/HTML/lexical/IfcBuildingSystemTypeEnum.htm">IfcBuildingSystemTypeEnum</a>.USERDEFINED) AND EXISTS (SELF\<a href="/IFC/RELEASE/IFC4x3/HTML/lexical/IfcObject.htm">IfcObject</a>.ObjectType));
+END_ENTITY;</code></pre>
+<h2><a class="anchor" id="6.1.3.7.8-References"></a>
+    6.1.3.7.8 References
+<a class="link" href="#6.1.3.7.8-References"><i data-feather="link"></i></a></h2>
+<ul class="references">
+<li><i data-feather="paperclip"></i><a href="/IFC/RELEASE/IFC4x3/HTML/lexical/IfcSystem.htm">IfcSystem</a></li>
+</ul>
+</div>
+<div class="col-md-2 rightpanel">
+<div class="card fluid shadowed">
+<p>
+<a class="button primary edit-github" href="https://github.com/buildingSMART/IFC4.3.x-development/blob/master//docs/schemas/shared/IfcSharedBldgElements/Entities/IfcBuildingSystem.md"><span class="icon-edit inverse"></span> Edit on Github</a>
+</p>
+<p>
+<small>
+<span id="contributors"></span><br/>
+<span id="last-change"></span>
+</small>
+</p>
+<p>
+<small>
+                            Is this page difficult to understand? <a href="https://github.com/buildingSMART/IFC4.3.x-development/issues/371">Let us know!</a>
+</small>
+</p>
+</div>
+<div class="card fluid shadowed hidden" id="section-navigation">
+<p>
+</p><center><small>Jump to section</small></center>
+<ol class="referenced-list small"></ol>
+</div>
+<div class="changelog">
+<h3><a class="anchor" id="6.1.3.7.9-Changelog"></a>
+                        6.1.3.7.9 Changelog
+                    <a class="link" href="#6.1.3.7.9-Changelog"><i data-feather="link"></i></a></h3>
+<h4><a class="anchor" id="6.1.3.7.9.1-IFC4"></a>
+                        6.1.3.7.9.1 IFC4
+                    <a class="link" href="#6.1.3.7.9.1-IFC4"><i data-feather="link"></i></a></h4>
+<ul class="changelog">
+<li>
+<small>
+<i data-feather="plus-square"></i>
+                                
+                                
+                                
+                                New resource
+                                
+                            </small>
+</li>
+</ul>
+<h4><a class="anchor" id="6.1.3.7.9.2-IFC4.3-DEV-738df036"></a>
+                        6.1.3.7.9.2 IFC4.3_DEV_738df036
+                    <a class="link" href="#6.1.3.7.9.2-IFC4.3-DEV-738df036"><i data-feather="link"></i></a></h4>
+<ul class="changelog">
+<li>
+<small>
+<i data-feather="plus-square"></i>
+                                
+                                
+                                
+                                where rule,
+                                CorrectPredefinedType
+                                
+                            </small>
+</li>
+<li>
+<small>
+<i data-feather="edit"></i>
+                                
+                                deprecated,
+                                Is now deprecated. Use <a href="/IFC/RELEASE/IFC4x3/HTML/lexical/IfcBuiltSystem.htm">IfcBuiltSystem</a> instead.
+                                
+                            </small>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="row">
+<footer>
+<p>
+<a href="http://creativecommons.org/licenses/by-nd/4.0/" rel="license"><img alt="Creative Commons License" src="https://i.creativecommons.org/l/by-nd/4.0/88x31.png" style="border-width:0"/></a>
+<small>
+                        Copyright © 1996-2022 buildingSMART International Limited. Some rights reserved. Any technical documentation made available by buildingSMART International Limited is the copyrighted work of buildingSMART International Limited and is owned by buildingSMART International Limited. The Industry Foundation Classes are published under Creative Commons Attribution-NoDerivatives 4.0 International (CC BY-ND 4.0). Read the <a href="https://creativecommons.org/licenses/by-nd/4.0/legalcode">full license text here</a>. For more information please refer to our <a href="https://buildingsmart-1xbd3ajdayi.netdna-ssl.com/wp-content/uploads/2021/06/bSI-Intellectual-Property-Policy.pdf">IP Policy.</a>
+</small>
+</p>
+<a class="button" id="back-to-top"><i data-feather="arrow-up-circle"></i></a>
+</footer>
+</div>
+</div>
+<script>
+        window.appconfig = {
+            'path': '/docs/schemas/shared/IfcSharedBldgElements/Entities/IfcBuildingSystem.md',
+            'base': '/IFC/RELEASE/IFC4x3/HTML',
+            'repo': 'buildingSMART/IFC4.3.x-development',
+        };
+    </script>
+<script src="https://unpkg.com/feather-icons"></script>
+<script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+<script async="" id="MathJax-script" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+<link href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/11.4.0/styles/default.min.css" rel="stylesheet"/>
+<script src="/IFC/RELEASE/IFC4x3/HTML/assets/js/highlight.min.js"></script>
+<script src="//cdnjs.cloudflare.com/ajax/libs/highlightjs-line-numbers.js/2.8.0/highlightjs-line-numbers.min.js"></script>
+<script src="/IFC/RELEASE/IFC4x3/HTML/assets/js/app.js" type="text/javascript"></script>
+</body>
+</html>

@@ -16,6 +16,7 @@ export const translations: Record<Language, Record<string, string>> = {
     doc_settings_title: "Settings",
     doc_workflow_title: "Typical Workflow",
     closeDocs: "Close documentation",
+    viewSchema: "View Schema",
   },
   de: {
     openDocs: "Dokumentation öffnen",
@@ -30,5 +31,6 @@ export const translations: Record<Language, Record<string, string>> = {
     doc_settings_title: "Einstellungen",
     doc_workflow_title: "Typischer Ablauf",
     closeDocs: "Dokumentation schließen",
+    viewSchema: "Schema anzeigen",
   },
 };
