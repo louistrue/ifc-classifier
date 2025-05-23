@@ -1,6 +1,7 @@
 "use client";
 
 import { useIFCContext } from "@/context/ifc-context";
+import type { IfcAPI } from "web-ifc";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -34,14 +35,18 @@ import {
 import { useTranslation } from "react-i18next";
 
 // Enhanced renderPropertyValue function
-const renderPropertyValue = (value: any, keyHint?: string): React.ReactNode => {
+const renderPropertyValue = (
+  value: any,
+  keyHint?: string,
+  ifcApi?: IfcAPI | null,
+): React.ReactNode => {
   const lowerKeyHint = keyHint?.toLowerCase();
 
   // Handle new structures with units first
   if (value && typeof value === "object") {
     if (value.value !== undefined && value.unit !== undefined) {
       // Handles { value: X, unit: Y }
-      const displayValue = renderPropertyValue(value.value, keyHint); // Recursively render the actual value part
+      const displayValue = renderPropertyValue(value.value, keyHint, ifcApi); // Recursively render the actual value part
       return (
         <>
           {displayValue}{" "}
@@ -52,7 +57,7 @@ const renderPropertyValue = (value: any, keyHint?: string): React.ReactNode => {
     if (Array.isArray(value.values) && value.unit !== undefined) {
       // Handles { values: [...], unit: Y }
       const displayValues = value.values
-        .map((v: any) => renderPropertyValue(v, keyHint)) // Recursively render each value in the array
+        .map((v: any) => renderPropertyValue(v, keyHint, ifcApi)) // Recursively render each value in the array
         .join(", ");
       return (
         <>
@@ -63,7 +68,7 @@ const renderPropertyValue = (value: any, keyHint?: string): React.ReactNode => {
     }
     // For IFC's typical { type: X, value: Y } structure (already existing)
     if (value.value !== undefined && value.type !== undefined) {
-      return renderPropertyValue(value.value, keyHint);
+      return renderPropertyValue(value.value, keyHint, ifcApi);
     }
   }
 
@@ -76,6 +81,23 @@ const renderPropertyValue = (value: any, keyHint?: string): React.ReactNode => {
   }
   if (typeof value === "number") {
     // Basic number formatting, could be enhanced if units are known
+    if (
+      lowerKeyHint &&
+      (lowerKeyHint.includes("id") ||
+        lowerKeyHint.includes("tag") ||
+        lowerKeyHint === "type" ||
+        lowerKeyHint.includes("guid"))
+    ) {
+      if (lowerKeyHint === "type" && ifcApi) {
+        try {
+          const typeName = ifcApi.GetNameFromTypeCode(value);
+          if (typeName) return `${typeName} (${value})`;
+        } catch {
+          /* ignore */
+        }
+      }
+      return String(value);
+    }
     if (
       lowerKeyHint &&
       (lowerKeyHint.includes("area") ||
@@ -91,6 +113,9 @@ const renderPropertyValue = (value: any, keyHint?: string): React.ReactNode => {
     return value.toLocaleString(); // Default number formatting
   }
   if (typeof value === "string") {
+    if (lowerKeyHint && (lowerKeyHint.includes("id") || lowerKeyHint.includes("tag") || lowerKeyHint.includes("guid"))) {
+      return value;
+    }
     if (value.startsWith("http://") || value.startsWith("https://")) {
       return (
         <a
@@ -128,7 +153,7 @@ const renderPropertyValue = (value: any, keyHint?: string): React.ReactNode => {
           typeof v === "boolean",
       )
     ) {
-      return value.map((v) => renderPropertyValue(v, keyHint)).join(", "); // Render each item
+      return value.map((v) => renderPropertyValue(v, keyHint, ifcApi)).join(", "); // Render each item
     }
     return (
       <span className="text-muted-foreground italic">{`List (${value.length} items)`}</span>
@@ -156,6 +181,7 @@ const PropertyRow: React.FC<PropertyRowProps> = ({
   icon,
   copyValue,
 }) => {
+  const { ifcApi } = useIFCContext();
   const handleCopy = () => {
     if (copyValue !== undefined) navigator.clipboard.writeText(copyValue);
   };
@@ -175,7 +201,7 @@ const PropertyRow: React.FC<PropertyRowProps> = ({
             : undefined
         }
       >
-        {renderPropertyValue(propValue, propKey)}
+        {renderPropertyValue(propValue, propKey, ifcApi)}
         {copyValue !== undefined && (
           <button onClick={handleCopy} className="opacity-60 hover:opacity-100">
             <Copy className="w-3 h-3" />
