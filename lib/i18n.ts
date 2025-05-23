@@ -1,4 +1,4 @@
-export type Language = "en" | "de";
+export type Language = "en" | "de" | "fr" | "it";
 
 // This is kept for backward compatibility with existing code
 // New code should use i18next directly instead of this object
@@ -32,5 +32,35 @@ export const translations: Record<Language, Record<string, string>> = {
     doc_workflow_title: "Typischer Ablauf",
     closeDocs: "Dokumentation schließen",
     viewSchema: "Schema anzeigen",
+  },
+  fr: {
+    openDocs: "Ouvrir la documentation",
+    docModalTitle: "Guide IfcClassifier",
+    prev: "Précédent",
+    next: "Suivant",
+    doc_welcome_title: "Bienvenue !",
+    doc_getting_started_title: "Premiers pas",
+    doc_ui_title: "Interface et 3D",
+    doc_classifications_title: "Classifications",
+    doc_rules_title: "Règles",
+    doc_settings_title: "Paramètres",
+    doc_workflow_title: "Flux de travail typique",
+    closeDocs: "Fermer la documentation",
+    viewSchema: "Voir le schéma",
+  },
+  it: {
+    openDocs: "Apri documentazione",
+    docModalTitle: "Guida IfcClassifier",
+    prev: "Precedente",
+    next: "Successivo",
+    doc_welcome_title: "Benvenuto!",
+    doc_getting_started_title: "Primi passi",
+    doc_ui_title: "Interfaccia e 3D",
+    doc_classifications_title: "Classificazioni",
+    doc_rules_title: "Regole",
+    doc_settings_title: "Impostazioni",
+    doc_workflow_title: "Flusso di lavoro tipico",
+    closeDocs: "Chiudi documentazione",
+    viewSchema: "Visualizza schema",
   },
 };

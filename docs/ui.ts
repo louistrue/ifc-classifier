@@ -64,6 +64,72 @@ In der gesamten Oberfläche findest du interaktive Schema-Funktionen:
 - **Schema-Vorschau-Tooltips** - Bewege die Maus über IFC-Klassennamen (wie IfcWall, IfcColumn) für sofortige Vorschauen mit Entitätsbeschreibungen und wichtigen Informationen
 - **"Schema anzeigen"-Links** - Klicke auf diese Links um den vollständigen Dokumentations-Reader mit umfassenden Details zu IFC-Entitäten zu öffnen
 - **Dokumentations-Reader** - Ein Modal-Fenster das vollständige Schema-Dokumentation einschließlich Entitätsbeschreibungen, Attributen, Vererbungsbeziehungen und Beispielen anzeigt
-- **Intelligente Zwischenspeicherung** - Schema-Daten werden lokal zwischengespeichert für schnellen Zugriff und Offline-Nutzung`
+- **Intelligente Zwischenspeicherung** - Schema-Daten werden lokal zwischengespeichert für schnellen Zugriff und Offline-Nutzung`,
+  fr: `## Vue d'ensemble de l'interface
+
+L'application est divisée en trois zones : un **Explorateur de modèle** à gauche, une **vue 3D** centrale, et des onglets pour **Classifications**, **Règles** et **Paramètres** à droite. La barre de menu supérieure vous permet de basculer le thème et d'ouvrir ce guide.
+
+### Contrôles 3D
+
+- **Orbiter** - glisser avec le bouton gauche de la souris
+- **Panoramique** - glisser avec le bouton du milieu ou \`Shift\` + glisser gauche
+- **Zoom** - molette de défilement ou glisser droit
+- **Sélectionner** - clic gauche sur un élément
+
+### Barre d'outils de vue
+
+La barre d'outils sous la zone de travail offre des actions rapides :
+
+- **Zoom sur l'étendue** - \`E\` - ajuster tout le modèle
+- **Zoom sur la sélection** - \`F\` - centrer sur l'élément actif
+- **Masquer la sélection** - \`Espace\` - basculer la visibilité de la sélection actuelle
+  - **Afficher le dernier** - \`Ctrl/Cmd+Z\` - restaurer le dernier élément masqué
+  - **Tout afficher** - \`Shift+A\` - tout montrer à nouveau
+
+### Panneau des propriétés
+
+Utilisez ce panneau pour inspecter les attributs et les ensembles de propriétés. La ligne **Global ID** inclut un petit bouton de copie.
+
+### Documentation du schéma
+
+Dans toute l'interface, vous trouverez des fonctionnalités de schéma interactives :
+
+- **Infobulles d'aperçu du schéma** - Survolez les noms de classes IFC (comme IfcWall, IfcColumn) pour voir des aperçus instantanés avec descriptions d'entités et informations clés
+- **Liens "Voir le schéma"** - Cliquez sur ces liens pour ouvrir le lecteur de documentation complet avec des détails exhaustifs sur les entités IFC
+- **Lecteur de documentation** - Une fenêtre modale qui affiche la documentation complète du schéma incluant descriptions d'entités, attributs, relations d'héritage et exemples
+- **Mise en cache intelligente** - Les données de schéma sont mises en cache localement pour un accès rapide et une utilisation hors ligne`,
+  it: `## Panoramica dell'interfaccia
+
+L'app è divisa in tre aree: un **Esploratore del modello** a sinistra, una **vista 3D** centrale, e schede per **Classificazioni**, **Regole** e **Impostazioni** a destra. La barra dei menu in alto ti permette di cambiare il tema e aprire questa guida.
+
+### Controlli 3D
+
+- **Orbita** - trascinare con il tasto sinistro del mouse
+- **Panoramica** - trascinare con il tasto centrale o \`Shift\` + trascinare sinistro
+- **Zoom** - rotella di scorrimento o trascinare destro
+- **Seleziona** - clic sinistro su un elemento
+
+### Barra degli strumenti vista
+
+La barra degli strumenti sotto la tela offre azioni rapide:
+
+- **Adatta all'estensione** - \`E\` - adatta l'intero modello
+- **Zoom su selezionato** - \`F\` - focalizza sull'elemento attivo
+- **Nascondi selezionato** - \`Barra spaziatrice\` - attiva/disattiva la visibilità della selezione corrente
+  - **Mostra ultimo** - \`Ctrl/Cmd+Z\` - ripristina l'ultimo elemento nascosto
+  - **Mostra tutto** - \`Shift+A\` - mostra tutto di nuovo
+
+### Pannello delle proprietà
+
+Usa questo pannello per ispezionare attributi e set di proprietà. La riga **Global ID** include un piccolo pulsante di copia.
+
+### Documentazione dello schema
+
+In tutta l'interfaccia, troverai funzionalità interattive dello schema:
+
+- **Tooltip di anteprima dello schema** - Passa il mouse sui nomi delle classi IFC (come IfcWall, IfcColumn) per vedere anteprime istantanee con descrizioni delle entità e informazioni chiave
+- **Link "Visualizza schema"** - Fai clic su questi link per aprire il lettore di documentazione completo con dettagli esaustivi sulle entità IFC
+- **Lettore di documentazione** - Una finestra modale che visualizza la documentazione completa dello schema incluse descrizioni delle entità, attributi, relazioni di ereditarietà ed esempi
+- **Cache intelligente** - I dati dello schema sono memorizzati nella cache localmente per accesso rapido e uso offline`
 };
 export default content;

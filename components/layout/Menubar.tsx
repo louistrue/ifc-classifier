@@ -71,24 +71,39 @@ const Menubar = () => {
                 {i18n.language.toUpperCase()}
                 <ChevronDown
                   size={16}
-                  className={`ml-1 transition-transform duration-200 ${
-                    isLangDropdownOpen ? "rotate-180" : ""
-                  }`}
+                  className={`ml-1 transition-transform duration-200 ${isLangDropdownOpen ? "rotate-180" : ""
+                    }`}
                 />
               </button>
               {isLangDropdownOpen && (
                 <div className="absolute top-full mt-1 w-full rounded-md bg-background border border-border shadow-lg z-10 py-1">
                   <button
                     onClick={() => changeLanguage("en")}
-                    className="w-full text-left px-3 py-1.5 text-sm text-foreground hover:bg-accent block"
+                    className="w-full text-left px-3 py-1.5 text-sm text-foreground hover:bg-accent flex items-center gap-2"
                   >
+                    <span className="text-base">🇬🇧</span>
                     EN
                   </button>
                   <button
                     onClick={() => changeLanguage("de")}
-                    className="w-full text-left px-3 py-1.5 text-sm text-foreground hover:bg-accent block"
+                    className="w-full text-left px-3 py-1.5 text-sm text-foreground hover:bg-accent flex items-center gap-2"
                   >
+                    <span className="text-base">🇩🇪</span>
                     DE
+                  </button>
+                  <button
+                    onClick={() => changeLanguage("fr")}
+                    className="w-full text-left px-3 py-1.5 text-sm text-foreground hover:bg-accent flex items-center gap-2"
+                  >
+                    <span className="text-base">🇫🇷</span>
+                    FR
+                  </button>
+                  <button
+                    onClick={() => changeLanguage("it")}
+                    className="w-full text-left px-3 py-1.5 text-sm text-foreground hover:bg-accent flex items-center gap-2"
+                  >
+                    <span className="text-base">🇮🇹</span>
+                    IT
                   </button>
                 </div>
               )}
