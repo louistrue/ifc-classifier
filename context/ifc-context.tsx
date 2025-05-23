@@ -228,16 +228,16 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const fetchNaturalNames = async () => {
       try {
-        // Use local version of IFC class data with local file paths to avoid CORS issues
-        const response = await fetch("/data/natural_ifcclass_local.json");
+        // Use external version of IFC class data with buildingSMART URLs
+        const response = await fetch("/data/natural_ifcclass.json");
         if (!response.ok) {
           throw new Error(
-            `Failed to fetch natural_ifcclass_local.json: ${response.statusText}`,
+            `Failed to fetch natural_ifcclass.json: ${response.statusText}`,
           );
         }
         const data = await response.json();
         setNaturalIfcClassNames(data);
-        console.log("IFCContext: Natural IFC class names loaded from local files.", data);
+        console.log("IFCContext: Natural IFC class names loaded with external schema URLs.", data);
       } catch (error) {
         console.error(
           "IFCContext: Error loading natural IFC class names:",
