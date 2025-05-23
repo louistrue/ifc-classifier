@@ -204,7 +204,9 @@
     "manageRules": "Manage Rules",
     "searchClassificationPlaceholder": "Search or create classification...",
     "noClassificationFound": "No classification found. Type to create.",
-    "createNewClassification": "Create new classification \"{{value}}\""
+    "createNewClassification": "Create new classification \"{{value}}\"",
+    "searchPlaceholder": "Search rules...",
+    "noSearchResults": "No rules match your search."
   },
   "operators": {
     "equals": "Equals",

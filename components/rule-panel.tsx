@@ -14,6 +14,7 @@ import {
   DialogClose,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { AutocompleteInput } from "@/components/ui/autocomplete-input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import {
@@ -195,6 +196,33 @@ export function RulePanel() {
       })),
     [classifications]
   );
+
+  const [searchQuery, setSearchQuery] = useState("");
+  const ruleNameSuggestions = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          [
+            ...rules.map((r) => r.name),
+            ...rules
+              .map((r) => classifications[r.classificationCode]?.name)
+              .filter(Boolean),
+          ]
+        )
+      ),
+    [rules, classifications]
+  );
+  const filteredRules = useMemo(() => {
+    if (!searchQuery) return rules;
+    const q = searchQuery.toLowerCase();
+    return rules.filter((r) => {
+      const classification = classifications[r.classificationCode];
+      return (
+        r.name.toLowerCase().includes(q) ||
+        (classification && classification.name.toLowerCase().includes(q))
+      );
+    });
+  }, [rules, searchQuery, classifications]);
 
   const openNewRuleDialog = (base?: Rule) => {
     setCurrentRule(null);
@@ -488,6 +516,14 @@ export function RulePanel() {
         </div>
       </div>
 
+      <AutocompleteInput
+        value={searchQuery}
+        onChange={setSearchQuery}
+        suggestions={ruleNameSuggestions}
+        placeholder={t('rules.searchPlaceholder')}
+        className="w-full"
+      />
+
       {rules.length === 0 ? (
         <div className="flex items-center justify-center flex-col py-8 flex-grow">
           <div className="flex justify-center mb-4">
@@ -498,9 +534,15 @@ export function RulePanel() {
             {t('createRulesDescription')}
           </p>
         </div>
+      ) : filteredRules.length === 0 ? (
+        <div className="text-center py-8 flex-grow flex items-center justify-center">
+          <p className="text-base font-medium text-foreground/80">
+            {t('rules.noSearchResults')}
+          </p>
+        </div>
       ) : (
         <div className="space-y-4 flex-grow overflow-auto">
-          {rules.map((rule) => {
+          {filteredRules.map((rule) => {
             const targetClassification =
               classifications[rule.classificationCode];
             return (
