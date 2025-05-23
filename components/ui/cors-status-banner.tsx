@@ -35,6 +35,7 @@ interface ProxyService {
 
 export function CorsStatusBanner({ className, onDismiss }: CorsStatusBannerProps) {
     const [proxyServices, setProxyServices] = useState<ProxyService[]>([
+        { name: "local", status: 'checking' },
         { name: "thingproxy.freeboard.io", status: 'checking' },
         { name: "crossorigin.me", status: 'checking' },
         { name: "cors.sh", status: 'checking' },
@@ -51,6 +52,9 @@ export function CorsStatusBanner({ className, onDismiss }: CorsStatusBannerProps
         let proxyUrl: string;
 
         switch (service.name) {
+            case 'local':
+                proxyUrl = `/api/proxy?url=${encodeURIComponent(testUrl)}`;
+                break;
             case 'thingproxy.freeboard.io':
                 proxyUrl = `https://thingproxy.freeboard.io/fetch/${testUrl}`;
                 break;

@@ -160,7 +160,7 @@ export function useSchemaPreview(schemaUrl?: string) {
     try {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 3000); // 3 second timeout
-      const proxyUrl = `https://thingproxy.freeboard.io/fetch/${url}`;
+      const proxyUrl = `/api/proxy?url=${encodeURIComponent(url)}`;
 
       const res = await fetch(proxyUrl, {
         signal: controller.signal,

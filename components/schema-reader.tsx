@@ -886,6 +886,11 @@ export function SchemaReader({
         // Strategy 1: Try enhanced CORS proxies
         const corsProxies = [
             {
+                name: "local",
+                url: (url: string) => `/api/proxy?url=${encodeURIComponent(url)}`,
+                headers: { 'Accept': 'text/html' }
+            },
+            {
                 name: "thingproxy.freeboard.io",
                 url: (url: string) => `https://thingproxy.freeboard.io/fetch/${url}`,
                 headers: { 'Accept': 'text/html' }
