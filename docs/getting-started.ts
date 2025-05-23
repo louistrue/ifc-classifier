@@ -4,6 +4,11 @@ const content = {
 1. Click **Load IFC File** in the viewer or drop a file onto the canvas.
 2. Choose from a range of demo models in **Settings**, including official [**buildingSMART sample files**](https://github.com/buildingSMART/Sample-Test-Files) that cover various IFC schemas and building types.
 3. You can also add your own model URLs for quick access.
+4. Import existing classification or rule sets from JSON or Excel if available.
+
+### Copying Element IDs
+
+Use the copy icon next to **Global ID** in the **Properties** panel to copy the identifier.
 
 ## Exploring the Model
 
@@ -32,5 +37,10 @@ const content = {
 1. Öffne rechts den Tab **Classifications**.
 2. Lade einen Standardsatz oder erstelle eigene Einträge.
 3. Wähle ein Element in 3D und nutze **Assign Selected Element**.
+4. Optional kannst du bestehende Klassifikations- oder Regelsets aus JSON oder Excel importieren.
+
+### IDs kopieren
+
+Im **Properties**-Panel kannst du über das Kopiersymbol neben der **Global ID** den Wert in die Zwischenablage kopieren.
 `};
 export default content;

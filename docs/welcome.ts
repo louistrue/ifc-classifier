@@ -9,11 +9,12 @@ Assigning classification codes in IFC shouldn't slow you down—it should just w
 
 ## Key Features
 
-- **Automate code assignment** across IFC elements using customizable rules
-- **Switch between classification systems** (Uniclass, eBKP-H, or your custom schema)
-- **Simple workflow** designed to speed up classification tasks
-- **Browser-based** with no installation required
-- **Completely open source** and ready for contributions
+  - **Automate code assignment** across IFC elements using customizable rules
+  - **Switch between classification systems** (Uniclass, eBKP-H, or your custom schema)
+  - **Import or export classifications and rules** as JSON or Excel
+  - **Copy Global IDs** right from the properties panel
+  - **3D selection-based classification** for quick manual fixes
+  - **Browser-based** and completely open source
 
 Try it out on your own models and let us know how it works for you!
 
@@ -40,11 +41,12 @@ Die Zuordnung von Klassifizierungscodes zu IFC-Elementen soll dich nicht ausbrem
 
 ## Hauptfunktionen
 
-- **Automatische Codezuweisung** über anpassbare Regeln
-- **Wechsel zwischen Klassifikationssystemen** (Uniclass, eBKP-H oder eigenes Schema)
-- **Einfacher Workflow** für schnelle Klassifizierungsaufgaben
-- **Im Browser** ohne Installation nutzbar
-- **Vollständig Open Source** und offen für Beiträge
+  - **Automatische Codezuweisung** über anpassbare Regeln
+  - **Wechsel zwischen Klassifikationssystemen** (Uniclass, eBKP-H oder eigenes Schema)
+  - **Klassifikationen und Regeln** als JSON oder Excel importieren und exportieren
+  - **Global IDs** im Eigenschaften-Panel kopieren
+  - **Manuelle Zuordnung** über 3D-Selektion
+  - **Im Browser** und vollständig Open Source
 
 Probiere es mit eigenen Modellen aus und gib uns Feedback!
 

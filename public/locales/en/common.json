@@ -212,6 +212,12 @@
     "greaterThan": "Greater Than",
     "lessThan": "Less Than"
   },
+  "docs": {
+    "latestFeaturesTitle": "Latest Features",
+    "featureImportExport": "Import/export classifications and rules (JSON or Excel)",
+    "featureCopyGuid": "Copy Global IDs from the properties panel",
+    "featureSelection": "Manual 3D selection for quick assignments"
+  },
   "errors": {
     "psetNameRequired": "Property set name is required",
     "propertyNameRequired": "Property name is required",

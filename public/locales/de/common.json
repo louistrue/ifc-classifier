@@ -214,6 +214,12 @@
     "greaterThan": "Größer als",
     "lessThan": "Kleiner als"
   },
+  "docs": {
+    "latestFeaturesTitle": "Neueste Funktionen",
+    "featureImportExport": "Klassifikationen und Regeln als JSON oder Excel importieren/exportieren",
+    "featureCopyGuid": "Global IDs im Eigenschaften-Panel kopieren",
+    "featureSelection": "Manuelle Zuordnung über 3D-Selektion"
+  },
   "errors": {
     "psetNameRequired": "Eigenschaftssatz-Name ist erforderlich",
     "propertyNameRequired": "Eigenschaftsname ist erforderlich",
