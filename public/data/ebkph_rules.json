@@ -1,24 +1,429 @@
 [
   {
+    "id": "rule-beam",
+    "name": "Beams",
+    "description": "Classify beam elements",
+    "classificationCode": "C04.01",
+    "active": true,
+    "conditions": [
+      {
+        "property": "Ifc Class",
+        "operator": "equals",
+        "value": "IFCBEAM"
+      }
+    ]
+  },
+  {
+    "id": "rule-bearing",
+    "name": "Bearings",
+    "description": "Classify bearing elements",
+    "classificationCode": "C04.01",
+    "active": true,
+    "conditions": [
+      {
+        "property": "Ifc Class",
+        "operator": "equals",
+        "value": "IFCBEARING"
+      }
+    ]
+  },
+  {
+    "id": "rule-building",
+    "name": "Buildings",
+    "description": "Classify building elements",
+    "classificationCode": "B02.01",
+    "active": true,
+    "conditions": [
+      {
+        "property": "Ifc Class",
+        "operator": "equals",
+        "value": "IFCBUILDING"
+      }
+    ]
+  },
+  {
+    "id": "rule-building-element-part",
+    "name": "Building Element Parts",
+    "description": "Classify building element part elements",
+    "classificationCode": "G04.01",
+    "active": true,
+    "conditions": [
+      {
+        "property": "Ifc Class",
+        "operator": "equals",
+        "value": "IFCBUILDINGELEMENTPART"
+      }
+    ]
+  },
+  {
+    "id": "rule-element-proxy",
+    "name": "Element Proxies",
+    "description": "Classify element proxy elements",
+    "classificationCode": "C05.01",
+    "active": true,
+    "conditions": [
+      {
+        "property": "Ifc Class",
+        "operator": "equals",
+        "value": "IFCBUILDINGELEMENTPROXY"
+      }
+    ]
+  },
+  {
+    "id": "rule-building-storey",
+    "name": "Building Storeys",
+    "description": "Classify building storey elements",
+    "classificationCode": "B03.03",
+    "active": true,
+    "conditions": [
+      {
+        "property": "Ifc Class",
+        "operator": "equals",
+        "value": "IFCBUILDINGSTOREY"
+      }
+    ]
+  },
+  {
+    "id": "rule-building-system",
+    "name": "Building Systems",
+    "description": "Classify building system elements",
+    "classificationCode": "D05.01",
+    "active": true,
+    "conditions": [
+      {
+        "property": "Ifc Class",
+        "operator": "equals",
+        "value": "IFCBUILDINGSYSTEM"
+      }
+    ]
+  },
+  {
+    "id": "rule-chimney",
+    "name": "Chimneys",
+    "description": "Classify chimney elements",
+    "classificationCode": "F01.03",
+    "active": true,
+    "conditions": [
+      {
+        "property": "Ifc Class",
+        "operator": "equals",
+        "value": "IFCCHIMNEY"
+      }
+    ]
+  },
+  {
+    "id": "rule-column",
+    "name": "Columns",
+    "description": "Classify column elements",
+    "classificationCode": "C03.01",
+    "active": true,
+    "conditions": [
+      {
+        "property": "Ifc Class",
+        "operator": "equals",
+        "value": "IFCCOLUMN"
+      }
+    ]
+  },
+  {
+    "id": "rule-covering",
+    "name": "Coverings",
+    "description": "Classify covering elements",
+    "classificationCode": "G04.01",
+    "active": true,
+    "conditions": [
+      {
+        "property": "Ifc Class",
+        "operator": "equals",
+        "value": "IFCCOVERING"
+      }
+    ]
+  },
+  {
+    "id": "rule-curtain-wall",
+    "name": "Curtain Walls",
+    "description": "Classify curtain-wall elements",
+    "classificationCode": "E02.04",
+    "active": true,
+    "conditions": [
+      {
+        "property": "Ifc Class",
+        "operator": "equals",
+        "value": "IFCCURTAINWALL"
+      }
+    ]
+  },
+  {
+    "id": "rule-doors",
+    "name": "Doors",
+    "description": "Classify door elements",
+    "classificationCode": "E03.02",
+    "active": true,
+    "conditions": [
+      {
+        "property": "Ifc Class",
+        "operator": "equals",
+        "value": "IFCDOOR"
+      }
+    ]
+  },
+  {
+    "id": "rule-member",
+    "name": "Members",
+    "description": "Classify member elements",
+    "classificationCode": "C04.01",
+    "active": true,
+    "conditions": [
+      {
+        "property": "Ifc Class",
+        "operator": "equals",
+        "value": "IFCMEMBER"
+      }
+    ]
+  },
+  {
+    "id": "rule-plate",
+    "name": "Plates",
+    "description": "Classify plate elements",
+    "classificationCode": "C05.02",
+    "active": true,
+    "conditions": [
+      {
+        "property": "Ifc Class",
+        "operator": "equals",
+        "value": "IFCPLATE"
+      }
+    ]
+  },
+  {
+    "id": "rule-project",
+    "name": "Projects",
+    "description": "Classify project elements",
+    "classificationCode": "B03.03",
+    "active": true,
+    "conditions": [
+      {
+        "property": "Ifc Class",
+        "operator": "equals",
+        "value": "IFCPROJECT"
+      }
+    ]
+  },
+  {
+    "id": "rule-railing",
+    "name": "Railings",
+    "description": "Classify railing elements",
+    "classificationCode": "B03.01",
+    "active": true,
+    "conditions": [
+      {
+        "property": "Ifc Class",
+        "operator": "equals",
+        "value": "IFCRAILING"
+      }
+    ]
+  },
+  {
+    "id": "rule-ramp",
+    "name": "Ramps (Underground-garage type)",
+    "description": "Classify load-bearing internal ramps (z. B. Zufahrtsrampen zu Tiefgaragen)",
+    "classificationCode": "C04.02",
+    "active": true,
+    "conditions": [
+      {
+        "property": "Ifc Class",
+        "operator": "equals",
+        "value": "IFCRAMP"
+      },
+      {
+        "property": "Pset_RampCommon.IsExternal",
+        "operator": "equals",
+        "value": "false"
+      }
+    ]
+  },
+  {
+    "id": "rule-ramp-flight",
+    "name": "Ramp Flights",
+    "description": "Classify ramp-flight elements",
+    "classificationCode": "G01.04",
+    "active": true,
+    "conditions": [
+      {
+        "property": "Ifc Class",
+        "operator": "equals",
+        "value": "IFCRAMPFLIGHT"
+      }
+    ]
+  },
+  {
+    "id": "rule-roof",
+    "name": "Roofs",
+    "description": "Classify roof elements",
+    "classificationCode": "F01.03",
+    "active": true,
+    "conditions": [
+      {
+        "property": "Ifc Class",
+        "operator": "equals",
+        "value": "IFCROOF"
+      }
+    ]
+  },
+  {
+    "id": "rule-shading-device",
+    "name": "Shading Devices",
+    "description": "Classify shading-device elements",
+    "classificationCode": "E01.03",
+    "active": true,
+    "conditions": [
+      {
+        "property": "Ifc Class",
+        "operator": "equals",
+        "value": "IFCSHADINGDEVICE"
+      }
+    ]
+  },
+  {
+    "id": "rule-site",
+    "name": "Sites",
+    "description": "Classify site elements",
+    "classificationCode": "A01.01",
+    "active": true,
+    "conditions": [
+      {
+        "property": "Ifc Class",
+        "operator": "equals",
+        "value": "IFCSITE"
+      }
+    ]
+  },
+  {
+    "id": "rule-slab",
+    "name": "Floor Slabs (Geschossdecken)",
+    "description": "Classify floor slab elements (Geschossdecken)",
+    "classificationCode": "C04.01",
+    "active": true,
+    "conditions": [
+      {
+        "property": "Ifc Class",
+        "operator": "equals",
+        "value": "IFCSLAB"
+      }
+    ]
+  },
+  {
+    "id": "rule-space",
+    "name": "Spaces",
+    "description": "Classify space elements",
+    "classificationCode": "",
+    "active": true,
+    "conditions": [
+      {
+        "property": "Ifc Class",
+        "operator": "equals",
+        "value": "IFCSPACE"
+      }
+    ]
+  },
+  {
+    "id": "rule-stair",
+    "name": "Stairs",
+    "description": "Classify stair elements",
+    "classificationCode": "G01.03",
+    "active": true,
+    "conditions": [
+      {
+        "property": "Ifc Class",
+        "operator": "equals",
+        "value": "IFCSTAIR"
+      }
+    ]
+  },
+  {
     "id": "rule-external-wall",
-    "name": "External Walls",
-    "description": "Classify external walls",
+    "name": "External Walls (tragend)",
+    "description": "Aussenwand, tragend – d. h. Pset_WallCommon.IsExternal = TRUE und LoadBearing = TRUE",
     "classificationCode": "C02.01",
     "active": true,
     "conditions": [
-      { "property": "Ifc Class", "operator": "equals", "value": "IFCWALL" },
-      { "property": "Pset_WallCommon.IsExternal", "operator": "equals", "value": "true" }
+      {
+        "property": "Ifc Class",
+        "operator": "equals",
+        "value": "IFCWALL"
+      },
+      {
+        "property": "Pset_WallCommon.IsExternal",
+        "operator": "equals",
+        "value": "true"
+      },
+      {
+        "property": "Pset_WallCommon.LoadBearing",
+        "operator": "equals",
+        "value": "true"
+      }
     ]
   },
   {
     "id": "rule-internal-wall",
-    "name": "Internal Walls",
-    "description": "Classify internal walls",
+    "name": "Internal Walls (tragend)",
+    "description": "Innenwand, tragend – IsExternal ≠ TRUE und LoadBearing = TRUE",
     "classificationCode": "C02.02",
     "active": true,
     "conditions": [
-      { "property": "Ifc Class", "operator": "equals", "value": "IFCWALL" },
-      { "property": "Pset_WallCommon.IsExternal", "operator": "notEquals", "value": "true" }
+      {
+        "property": "Ifc Class",
+        "operator": "equals",
+        "value": "IFCWALL"
+      },
+      {
+        "property": "Pset_WallCommon.IsExternal",
+        "operator": "notEquals",
+        "value": "true"
+      },
+      {
+        "property": "Pset_WallCommon.LoadBearing",
+        "operator": "equals",
+        "value": "true"
+      }
+    ]
+  },
+  {
+    "id": "rule-partition-wall",
+    "name": "Partition Walls (nicht tragend)",
+    "description": "Leichte Trennwand – IsExternal = FALSE und LoadBearing = FALSE",
+    "classificationCode": "G01.01",
+    "active": true,
+    "conditions": [
+      {
+        "property": "Ifc Class",
+        "operator": "equals",
+        "value": "IFCWALL"
+      },
+      {
+        "property": "Pset_WallCommon.IsExternal",
+        "operator": "equals",
+        "value": "false"
+      },
+      {
+        "property": "Pset_WallCommon.LoadBearing",
+        "operator": "equals",
+        "value": "false"
+      }
+    ]
+  },
+  {
+    "id": "rule-wall-standard-case",
+    "name": "Wall Standard Cases",
+    "description": "Classify wall standard-case elements",
+    "classificationCode": "I02.08",
+    "active": true,
+    "conditions": [
+      {
+        "property": "Ifc Class",
+        "operator": "equals",
+        "value": "IFCWALLSTANDARDCASE"
+      }
     ]
   },
   {
@@ -28,27 +433,241 @@
     "classificationCode": "E03.01",
     "active": true,
     "conditions": [
-      { "property": "Ifc Class", "operator": "equals", "value": "IFCWINDOW" }
+      {
+        "property": "Ifc Class",
+        "operator": "equals",
+        "value": "IFCWINDOW"
+      }
     ]
   },
   {
-    "id": "rule-doors",
-    "name": "Doors",
-    "description": "Classify doors",
-    "classificationCode": "E03.02",
+    "id": "rule-caisson-foundation",
+    "name": "Caisson Foundations",
+    "description": "Classify caisson-foundation elements",
+    "classificationCode": "C01.02",
     "active": true,
     "conditions": [
-      { "property": "Ifc Class", "operator": "equals", "value": "IFCDOOR" }
+      {
+        "property": "Ifc Class",
+        "operator": "equals",
+        "value": "IFCCAISSONFOUNDATION"
+      }
     ]
   },
   {
-    "id": "rule-roofs",
-    "name": "Roofs",
-    "description": "Classify roof elements",
-    "classificationCode": "F01.03",
+    "id": "rule-deep-foundation",
+    "name": "Deep Foundations",
+    "description": "Classify deep-foundation elements",
+    "classificationCode": "B07.03",
     "active": true,
     "conditions": [
-      { "property": "Ifc Class", "operator": "equals", "value": "IFCROOF" }
+      {
+        "property": "Ifc Class",
+        "operator": "equals",
+        "value": "IFCDEEPFOUNDATION"
+      }
+    ]
+  },
+  {
+    "id": "rule-footing",
+    "name": "Footings",
+    "description": "Classify footing elements",
+    "classificationCode": "C01.02",
+    "active": true,
+    "conditions": [
+      {
+        "property": "Ifc Class",
+        "operator": "equals",
+        "value": "IFCFOOTING"
+      }
+    ]
+  },
+  {
+    "id": "rule-pile",
+    "name": "Piles",
+    "description": "Classify pile elements",
+    "classificationCode": "B07.02",
+    "active": true,
+    "conditions": [
+      {
+        "property": "Ifc Class",
+        "operator": "equals",
+        "value": "IFCPILE"
+      }
+    ]
+  },
+  {
+    "id": "rule-reinforcement-definition-properties",
+    "name": "Reinforcement Definition Properties",
+    "description": "Classify reinforcement definition property sets",
+    "classificationCode": "B07.03",
+    "active": true,
+    "conditions": [
+      {
+        "property": "Ifc Class",
+        "operator": "equals",
+        "value": "IFCREINFORCEMENTDEFINITIONPROPERTIES"
+      }
+    ]
+  },
+  {
+    "id": "rule-reinforcing-bar",
+    "name": "Reinforcing Bars",
+    "description": "Classify reinforcing-bar elements",
+    "classificationCode": "B07.03",
+    "active": true,
+    "conditions": [
+      {
+        "property": "Ifc Class",
+        "operator": "equals",
+        "value": "IFCREINFORCINGBAR"
+      }
+    ]
+  },
+  {
+    "id": "rule-reinforcing-element",
+    "name": "Reinforcing Elements",
+    "description": "Classify reinforcing elements",
+    "classificationCode": "B07.03",
+    "active": true,
+    "conditions": [
+      {
+        "property": "Ifc Class",
+        "operator": "equals",
+        "value": "IFCREINFORCINGELEMENT"
+      }
+    ]
+  },
+  {
+    "id": "rule-reinforcing-mesh",
+    "name": "Reinforcing Meshes",
+    "description": "Classify reinforcing-mesh elements",
+    "classificationCode": "B07.03",
+    "active": true,
+    "conditions": [
+      {
+        "property": "Ifc Class",
+        "operator": "equals",
+        "value": "IFCREINFORCINGMESH"
+      }
+    ]
+  },
+  {
+    "id": "rule-surface-feature",
+    "name": "Surface Features",
+    "description": "Classify surface-feature elements",
+    "classificationCode": "J01.04",
+    "active": true,
+    "conditions": [
+      {
+        "property": "Ifc Class",
+        "operator": "equals",
+        "value": "IFCSURFACEFEATURE"
+      }
+    ]
+  },
+  {
+    "id": "rule-tendon",
+    "name": "Tendons",
+    "description": "Classify tendon elements",
+    "classificationCode": "B07.03",
+    "active": true,
+    "conditions": [
+      {
+        "property": "Ifc Class",
+        "operator": "equals",
+        "value": "IFCTENDON"
+      }
+    ]
+  },
+  {
+    "id": "rule-tendon-anchor",
+    "name": "Tendon Anchors",
+    "description": "Classify tendon-anchor elements",
+    "classificationCode": "B07.03",
+    "active": true,
+    "conditions": [
+      {
+        "property": "Ifc Class",
+        "operator": "equals",
+        "value": "IFCTENDONANCHOR"
+      }
+    ]
+  },
+  {
+    "id": "rule-tendon-conduit",
+    "name": "Tendon Conduits",
+    "description": "Classify tendon-conduit elements",
+    "classificationCode": "B07.03",
+    "active": true,
+    "conditions": [
+      {
+        "property": "Ifc Class",
+        "operator": "equals",
+        "value": "IFCTENDONCONDUIT"
+      }
+    ]
+  },
+  {
+    "id": "rule-voiding-feature",
+    "name": "Voiding Features",
+    "description": "Classify voiding-feature elements",
+    "classificationCode": "C05.01",
+    "active": true,
+    "conditions": [
+      {
+        "property": "Ifc Class",
+        "operator": "equals",
+        "value": "IFCVOIDINGFEATURE"
+      }
+    ]
+  },
+  {
+    "id": "rule-external-column",
+    "name": "External Columns (Aussenstützen)",
+    "description": "Stütze mit IsExternal = TRUE, tragend",
+    "classificationCode": "C03.01",
+    "active": true,
+    "conditions": [
+      {
+        "property": "Ifc Class",
+        "operator": "equals",
+        "value": "IFCCOLUMN"
+      },
+      {
+        "property": "Pset_ColumnCommon.IsExternal",
+        "operator": "equals",
+        "value": "true"
+      },
+      {
+        "property": "Pset_ColumnCommon.LoadBearing",
+        "operator": "equals",
+        "value": "true"
+      }
+    ]
+  },
+  {
+    "id": "rule-internal-column",
+    "name": "Internal Columns (Innenstützen)",
+    "description": "Stütze mit IsExternal ≠ TRUE, tragend",
+    "classificationCode": "C03.02",
+    "active": true,
+    "conditions": [
+      {
+        "property": "Ifc Class",
+        "operator": "equals",
+        "value": "IFCCOLUMN"
+      },
+      {
+        "property": "Pset_ColumnCommon.IsExternal",
+        "operator": "notEquals",
+        "value": "true"
+      },
+      {
+        "property": "Pset_ColumnCommon.LoadBearing",
+        "operator": "equals",
+        "value": "true"
+      }
     ]
   }
 ]
