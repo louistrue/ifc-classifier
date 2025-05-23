@@ -367,6 +367,43 @@ const SceneCapture = ({ onSceneCapture }: { onSceneCapture: (scene: THREE.Scene)
   return null;
 };
 
+// Update OrbitControls target to the selected element's center
+const SelectionOrbitTarget = () => {
+  const { selectedElement } = useIFCContext();
+  const { scene, controls } = useThree();
+
+  useEffect(() => {
+    if (!controls) return;
+
+    if (!selectedElement) {
+      (controls as any).target.set(0, 0, 0);
+      (controls as any).update?.();
+      return;
+    }
+
+    let targetMesh: THREE.Mesh | null = null;
+    scene.traverse((object) => {
+      if (targetMesh) return;
+      if (
+        object instanceof THREE.Mesh &&
+        object.userData.modelID === selectedElement.modelID &&
+        object.userData.expressID === selectedElement.expressID
+      ) {
+        targetMesh = object as THREE.Mesh;
+      }
+    });
+
+    if (targetMesh) {
+      const bbox = new THREE.Box3().setFromObject(targetMesh);
+      const center = bbox.getCenter(new THREE.Vector3());
+      (controls as any).target.copy(center);
+      (controls as any).update?.();
+    }
+  }, [selectedElement, scene, controls]);
+
+  return null;
+};
+
 // CameraActionsController Component (child of Canvas)
 const CameraActionsController = forwardRef<CameraActions, {}>((props, ref) => {
   const { scene, camera, controls, clock } = useThree();
@@ -1555,6 +1592,7 @@ function ViewerContent() {
             <directionalLight position={[10, 10, 5]} intensity={1} />
             <Environment preset="city" />
             <OrbitControls makeDefault enableDamping={false} />
+            <SelectionOrbitTarget />
             <GlobalInteractionHandler />
             <SceneCapture onSceneCapture={captureScene} />
             {loadedModels.map((modelEntry) => (
