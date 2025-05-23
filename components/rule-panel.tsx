@@ -199,14 +199,30 @@ export function RulePanel() {
 
   const [searchQuery, setSearchQuery] = useState("");
   const ruleNameSuggestions = useMemo(
-    () => Array.from(new Set(rules.map((r) => r.name))),
-    [rules]
+    () =>
+      Array.from(
+        new Set(
+          [
+            ...rules.map((r) => r.name),
+            ...rules
+              .map((r) => classifications[r.classificationCode]?.name)
+              .filter(Boolean),
+          ]
+        )
+      ),
+    [rules, classifications]
   );
   const filteredRules = useMemo(() => {
     if (!searchQuery) return rules;
     const q = searchQuery.toLowerCase();
-    return rules.filter((r) => r.name.toLowerCase().includes(q));
-  }, [rules, searchQuery]);
+    return rules.filter((r) => {
+      const classification = classifications[r.classificationCode];
+      return (
+        r.name.toLowerCase().includes(q) ||
+        (classification && classification.name.toLowerCase().includes(q))
+      );
+    });
+  }, [rules, searchQuery, classifications]);
 
   const openNewRuleDialog = (base?: Rule) => {
     setCurrentRule(null);
