@@ -34,6 +34,11 @@ const loadPreviewCacheFromStorage = (): void => {
 
 // Save preview cache to localStorage
 const saveCacheToStorage = (): void => {
+  // Guard for non-browser environments
+  if (typeof window === 'undefined' || !window.localStorage) {
+    return;
+  }
+
   try {
     const now = Date.now();
     const expiryTime = now + (PREVIEW_CACHE_EXPIRY_HOURS * 60 * 60 * 1000);
@@ -47,12 +52,61 @@ const saveCacheToStorage = (): void => {
       };
     });
 
-    localStorage.setItem(PREVIEW_CACHE_KEY, JSON.stringify({
+    // Serialize and check size before storing
+    const serialized = JSON.stringify({
       version: PREVIEW_CACHE_VERSION,
       data
-    }));
+    });
+
+    // Check if approaching storage limits
+    if (serialized.length > 2 * 1024 * 1024) { // 2MB warning threshold
+      console.warn('Preview cache is approaching storage limits, pruning oldest entries');
+      // Prune the cache to reduce size
+      const entries = Object.entries(data);
+      entries.sort((a, b) => a[1].cached - b[1].cached);
+
+      // Remove oldest entries
+      const entriesToRemove = Math.ceil(entries.length * 0.25);
+      for (let i = 0; i < entriesToRemove; i++) {
+        delete data[entries[i][0]];
+        previewCache.delete(entries[i][0]);
+      }
+
+      // Try again with reduced data
+      localStorage.setItem(PREVIEW_CACHE_KEY, JSON.stringify({
+        version: PREVIEW_CACHE_VERSION,
+        data
+      }));
+      return;
+    }
+
+    localStorage.setItem(PREVIEW_CACHE_KEY, serialized);
   } catch (error) {
     console.warn('Failed to save preview cache to localStorage:', error);
+
+    // Handle quota errors
+    if (
+      error instanceof DOMException &&
+      (error.name === 'QuotaExceededError' || error.name === 'NS_ERROR_DOM_QUOTA_REACHED')
+    ) {
+      try {
+        // Clear older cache entries
+        const oldEntries = [...previewCache.entries()];
+        oldEntries.sort((a, b) => 0); // Sort by age if possible
+
+        // Keep only 50% of entries
+        if (oldEntries.length > 10) {
+          const toKeep = Math.ceil(oldEntries.length / 2);
+          previewCache.clear();
+          oldEntries.slice(-toKeep).forEach(([k, v]) => previewCache.set(k, v));
+
+          // Try saving again
+          saveCacheToStorage();
+        }
+      } catch (innerError) {
+        console.error('Failed to recover from storage quota error:', innerError);
+      }
+    }
   }
 };
 
