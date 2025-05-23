@@ -33,6 +33,11 @@ IFC Classifier helps you classify IFC elements without needing expert knowledge 
   - Check element properties
   - Hide/show elements as needed
 
+- **📖 IFC Schema Documentation:**
+
+  - **Real-time schema previews:** Hover over IFC class names to see instant schema information
+  - **Full documentation reader:** Click "View Schema" to open comprehensive IFC documentation
+
 - **📚 Classification Systems:**
 
   - Use ready-made systems:
@@ -85,6 +90,11 @@ IFC Classifier helps you classify IFC elements without needing expert knowledge 
 
 ## 🚀 Recent Updates
 
+**May 23, 2025:**
+
+- Added comprehensive schema preview and documentation reader for IFC classes
+- Integrated schema preview tooltips and "View Schema" links 
+
 **May 22, 2025:**
 
 - Added search across the 3D view and model explorer with progress feedback.
@@ -135,6 +145,7 @@ Make IFC classification simple enough that anyone can do it properly.
 - [IfcOpenShell](https://ifcopenshell.org/) via Pyodide/WASM
 - [Tailwind CSS](https://tailwindcss.com/)
 - [Shadcn/ui](https://ui.shadcn.com/)
+- [Radix UI](https://www.radix-ui.com/) - For accessible UI primitives
 
 ## 📄 License
 
