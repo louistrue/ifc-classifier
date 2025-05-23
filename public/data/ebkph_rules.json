@@ -56,20 +56,6 @@
     ]
   },
   {
-    "id": "rule-column",
-    "name": "Stützen",
-    "description": "Klassifizierung von Stützen-Elementen",
-    "classificationCode": "C03.01",
-    "active": true,
-    "conditions": [
-      {
-        "property": "Ifc Class",
-        "operator": "equals",
-        "value": "IFCCOLUMN"
-      }
-    ]
-  },
-  {
     "id": "rule-covering",
     "name": "Bekleidungen",
     "description": "Klassifizierung von Bekleidungs-Elementen",

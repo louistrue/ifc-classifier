@@ -62,6 +62,70 @@ Probiere es mit eigenen Modellen aus und gib uns Feedback!
 
 ## Projektstatus
 
-Diese Anwendung befindet sich noch in Entwicklung. Feedback und Beiträge sind willkommen.`
+Diese Anwendung befindet sich noch in Entwicklung. Feedback und Beiträge sind willkommen.`,
+  fr: `# IFC Classifier
+
+IfcClassifier vous aide à appliquer des classifications standardisées aux modèles IFC directement dans votre navigateur. Le projet est open source sous licence AGPL v3 et est encore en cours de développement.
+
+## Que fait-il ?
+
+L'attribution de codes de classification dans IFC ne devrait pas vous ralentir—cela devrait simplement fonctionner. IFC Classifier est une solution simple et rapide qui gère les classifications IFC à votre façon, utilisant [**web-ifc**](https://thatopen.github.io/engine_web-ifc/docs/) pour traiter les modèles et [**IfcOpenShell**](https://github.com/IfcOpenShell/IfcOpenShell) pour exporter des ClassificationReferences appropriées, tout en suivant les standards définis par [**buildingSMART**](https://www.buildingsmart.org/standards/bsi-standards/industry-foundation-classes/).
+
+## Fonctionnalités clés
+
+  - **Automatiser l'attribution de codes** aux éléments IFC avec des règles personnalisables
+  - **Basculer entre systèmes de classification** (Uniclass, eBKP-H, ou votre schéma personnalisé)
+  - **Importer ou exporter classifications et règles** en JSON ou Excel
+  - **Copier les IDs globaux** directement depuis le panneau des propriétés
+  - **Classification par sélection 3D** pour des corrections manuelles rapides
+  - **Basé sur navigateur** et complètement open source
+
+Essayez-le sur vos propres modèles et dites-nous comment cela fonctionne pour vous !
+
+## Confidentialité et sécurité
+
+**Vos données IFC ne quittent jamais votre appareil.** L'application traite tous les fichiers localement dans votre navigateur en utilisant la technologie [**WebAssembly**](https://webassembly.org/) :
+
+- **WebAssembly (WASM)** permet au parseur IFC de fonctionner à une vitesse proche du natif directement dans votre navigateur
+- Tout le traitement se fait sur votre appareil—aucun téléchargement vers un serveur requis
+- Vos modèles et leurs données restent privés et sécurisés
+
+> **🔍 Vérifiez par vous-même :** Appuyez sur \`F12\` ou \`Ctrl+Shift+I\` pour ouvrir les outils de développement du navigateur, sélectionnez l'onglet Réseau, et observez qu'**aucune donnée IFC n'est jamais transmise** lors de l'utilisation de l'application. Vos données restent sur votre appareil !
+
+## Statut du projet
+
+Cette application est encore en développement. Vos commentaires et contributions sont les bienvenus pour aider à améliorer ses fonctionnalités.`,
+  it: `# IFC Classifier
+
+IfcClassifier ti aiuta ad applicare classificazioni standardizzate ai modelli IFC direttamente nel tuo browser. Il progetto è open source sotto licenza AGPL v3 ed è ancora in fase di sviluppo.
+
+## Cosa fa
+
+L'assegnazione di codici di classificazione in IFC non dovrebbe rallentarti—dovrebbe semplicemente funzionare. IFC Classifier è una soluzione semplice e veloce che gestisce le classificazioni IFC nel modo che preferisci, utilizzando [**web-ifc**](https://thatopen.github.io/engine_web-ifc/docs/) per elaborare i modelli e [**IfcOpenShell**](https://github.com/IfcOpenShell/IfcOpenShell) per esportare ClassificationReferences corretti, seguendo sempre gli standard definiti da [**buildingSMART**](https://www.buildingsmart.org/standards/bsi-standards/industry-foundation-classes/).
+
+## Caratteristiche principali
+
+  - **Automatizza l'assegnazione dei codici** agli elementi IFC utilizzando regole personalizzabili
+  - **Passa tra sistemi di classificazione** (Uniclass, eBKP-H, o il tuo schema personalizzato)
+  - **Importa o esporta classificazioni e regole** come JSON o Excel
+  - **Copia gli ID globali** direttamente dal pannello delle proprietà
+  - **Classificazione basata su selezione 3D** per correzioni manuali rapide
+  - **Basato su browser** e completamente open source
+
+Provalo sui tuoi modelli e facci sapere come funziona per te!
+
+## Privacy e sicurezza
+
+**I tuoi dati IFC non lasciano mai il tuo dispositivo.** L'applicazione elabora tutti i file localmente nel tuo browser utilizzando la tecnologia [**WebAssembly**](https://webassembly.org/):
+
+- **WebAssembly (WASM)** permette al parser IFC di funzionare a velocità quasi nativa direttamente nel tuo browser
+- Tutta l'elaborazione avviene sul tuo dispositivo—nessun caricamento su server richiesto
+- I tuoi modelli e i loro dati rimangono privati e sicuri
+
+> **🔍 Verificalo tu stesso:** Premi \`F12\` o \`Ctrl+Shift+I\` per aprire gli strumenti di sviluppo del browser, seleziona la scheda Network e osserva che **nessun dato IFC viene mai trasmesso** durante l'uso dell'applicazione. I tuoi dati rimangono sul tuo dispositivo!
+
+## Stato del progetto
+
+Questa applicazione è ancora in sviluppo. I tuoi feedback e contributi sono benvenuti per aiutare a migliorarne le funzionalità.`
 };
 export default content;

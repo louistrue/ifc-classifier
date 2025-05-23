@@ -1,71 +1,111 @@
 const content = {
-  en: `### 1. Import Your Model
+  en: `## Typical Workflow
 
-Start by loading an IFC model using the **Load IFC** button in the viewer. You can also select from demo models available in the **Settings** tab.
+Here's how most users approach classification in IfcClassifier:
 
-### 2. Set Up Classifications
+### 1. Load a Model
+- Upload your IFC file or select a demo model from **Settings**
+- The model loads in the 3D viewer with the spatial tree on the left
 
-Before creating rules, establish your classification system:
-- Load a built-in classification set (Uniclass Pr, eBKP-H) from the menu
-- Or create custom classification entries with code, name, and color
-- Your classifications will be the targets for both rules and manual assignments
+### 2. Choose Classification System
+- Go to **Classifications** and load a standard set (Uniclass, eBKP-H) or create custom entries
+- Alternatively, set a **Default Classification** in **Settings** to auto-apply
 
-### 3. Define Classification Rules
+### 3. Set Up Automation (Optional)
+- In **Rules**, create logic like "If IFC Type = IfcWall, assign Wall classification"
+- Use **Preview Rule Impact** to test before applying
+- Rules save time on large models with repetitive patterns
 
-Once classifications are set up, automate the process:
-- Create rules that target specific element properties
-- Each rule maps element properties to a selected classification
-- Rules can be toggled on/off and organized in priority order
+### 4. Manual Classification
+- Select elements in 3D or from the tree
+- Choose a classification and click **Assign Selected Element**
+- Use classification colors to visualize your progress
 
-### 4. Manual Refinement
+### 5. Export Results
+- Export the classified model as IFC using **Export IFC**
+- Save your classifications and rules as JSON/Excel for reuse
 
-For elements requiring special handling:
-- Select individual elements in the 3D view
-- Use the Classifications panel to assign or remove classifications
-- Filter the Model Explorer by classification to verify completeness
+This workflow scales from small manual projects to large automated classification jobs.`,
+  de: `## Typischer Arbeitsablauf
 
-### 5. Export & Share
+So gehen die meisten Nutzer bei der Klassifizierung in IfcClassifier vor:
 
-When your model is fully classified:
-- Use the **Export IFC** button to save your work with proper \`IfcClassificationReference\` entities
-- Export your classifications and rules (including assigned element GUIDs) to:
-  - **Excel** format for spreadsheet editing and documentation
-  - **JSON** format for data integration and programmatic processing
-- Later, you can import from either Excel or JSON to resume your classification work on the same or similar models
-`,
-  de: `### 1. Modell importieren
+### 1. Modell laden
+- IFC-Datei hochladen oder Demo-Modell aus **Settings** wählen
+- Das Modell wird im 3D-Viewer mit dem Strukturbaum links geladen
 
-Lade zunächst ein IFC-Modell über den Button **Load IFC** im Viewer. Alternativ kannst du im Tab **Settings** aus Demo-Modellen wählen.
+### 2. Klassifikationssystem wählen
+- Zu **Classifications** gehen und Standardset (Uniclass, eBKP-H) laden oder eigene Einträge erstellen
+- Alternativ eine **Default Classification** in **Settings** festlegen für automatische Anwendung
 
-### 2. Klassifikationen einrichten
+### 3. Automatisierung einrichten (Optional)
+- In **Rules** Logik erstellen wie "Wenn IFC Type = IfcWall, dann Wall-Klassifikation zuweisen"
+- **Preview Rule Impact** nutzen, um vor dem Anwenden zu testen
+- Regeln sparen Zeit bei großen Modellen mit wiederkehrenden Mustern
 
-Bevor du Regeln erstellst, lege dein Klassifikationssystem fest:
-- Lade ein vorhandenes Set (Uniclass Pr, eBKP-H) über das Menü
-- Oder erstelle eigene Einträge mit Code, Name und Farbe
-- Diese Klassifikationen dienen als Ziel für Regeln und manuelle Zuordnungen
+### 4. Manuelle Klassifikation
+- Elemente in 3D oder im Baum auswählen
+- Klassifikation wählen und **Assign Selected Element** klicken
+- Klassifikationsfarben nutzen, um den Fortschritt zu visualisieren
 
-### 3. Klassifikationsregeln definieren
+### 5. Ergebnisse exportieren
+- Klassifiziertes Modell als IFC mit **Export IFC** exportieren
+- Klassifikationen und Regeln als JSON/Excel zur Wiederverwendung speichern
 
-Sind Klassifikationen eingerichtet, kann der Prozess automatisiert werden:
-- Erstelle Regeln, die auf bestimmte Eigenschaften abzielen
-- Jede Regel ordnet Elemente einer gewählten Klassifikation zu
-- Regeln können ein- oder ausgeschaltet und priorisiert werden
+Dieser Arbeitsablauf skaliert von kleinen manuellen Projekten bis zu großen automatisierten Klassifikationsaufgaben.`,
+  fr: `## Flux de travail typique
 
-### 4. Manuelle Nachbearbeitung
+Voici comment la plupart des utilisateurs abordent la classification dans IfcClassifier :
 
-Für spezielle Elemente:
-- Einzelne Elemente in der 3D-Ansicht auswählen
-- Im Panel Classifications zuweisen oder entfernen
-- Im Model Explorer nach Klassifikation filtern, um Vollständigkeit zu prüfen
+### 1. Charger un modèle
+- Téléchargez votre fichier IFC ou sélectionnez un modèle de démonstration depuis **Paramètres**
+- Le modèle se charge dans le visualiseur 3D avec l'arbre spatial à gauche
 
-### 5. Export & Weitergabe
+### 2. Choisir le système de classification
+- Allez dans **Classifications** et chargez un ensemble standard (Uniclass, eBKP-H) ou créez des entrées personnalisées
+- Alternativement, définissez une **Classification par défaut** dans **Paramètres** pour l'application automatique
 
-Ist das Modell vollständig klassifiziert:
-- Mit **Export IFC** exportierst du inklusive \`IfcClassificationReference\`
-- Klassifikationen und Regeln samt zugewiesenen GUIDs lassen sich als
-  - **Excel** für Tabellenbearbeitung
-  - **JSON** für Datenintegration
-  exportieren
-- Später kannst du Excel oder JSON importieren, um die Arbeit fortzusetzen
-`};
+### 3. Configurer l'automatisation (Optionnel)
+- Dans **Règles**, créez une logique comme "Si Type IFC = IfcWall, assigner la classification Mur"
+- Utilisez **Prévisualiser l'impact de la règle** pour tester avant d'appliquer
+- Les règles font gagner du temps sur les gros modèles avec des motifs répétitifs
+
+### 4. Classification manuelle
+- Sélectionnez des éléments en 3D ou depuis l'arbre
+- Choisissez une classification et cliquez sur **Assigner l'élément sélectionné**
+- Utilisez les couleurs de classification pour visualiser votre progression
+
+### 5. Exporter les résultats
+- Exportez le modèle classifié en IFC en utilisant **Exporter IFC**
+- Sauvegardez vos classifications et règles en JSON/Excel pour réutilisation
+
+Ce flux de travail s'adapte des petits projets manuels aux gros travaux de classification automatisée.`,
+  it: `## Flusso di lavoro tipico
+
+Ecco come la maggior parte degli utenti affronta la classificazione in IfcClassifier:
+
+### 1. Carica un modello
+- Carica il tuo file IFC o seleziona un modello demo da **Impostazioni**
+- Il modello si carica nel visualizzatore 3D con l'albero spaziale a sinistra
+
+### 2. Scegli il sistema di classificazione
+- Vai a **Classificazioni** e carica un set standard (Uniclass, eBKP-H) o crea voci personalizzate
+- In alternativa, imposta una **Classificazione predefinita** in **Impostazioni** per l'applicazione automatica
+
+### 3. Configura l'automazione (Opzionale)
+- In **Regole**, crea logica come "Se Tipo IFC = IfcWall, assegna classificazione Parete"
+- Usa **Anteprima impatto regola** per testare prima di applicare
+- Le regole fanno risparmiare tempo su modelli grandi con pattern ripetitivi
+
+### 4. Classificazione manuale
+- Seleziona elementi in 3D o dall'albero
+- Scegli una classificazione e fai clic su **Assegna elemento selezionato**
+- Usa i colori di classificazione per visualizzare i tuoi progressi
+
+### 5. Esporta i risultati
+- Esporta il modello classificato come IFC usando **Esporta IFC**
+- Salva le tue classificazioni e regole come JSON/Excel per il riutilizzo
+
+Questo flusso di lavoro si adatta da piccoli progetti manuali a grandi lavori di classificazione automatizzata.`
+};
 export default content;

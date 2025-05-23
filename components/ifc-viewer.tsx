@@ -6,6 +6,7 @@ import {
   useState,
   useRef,
   useEffect,
+  useLayoutEffect,
   Fragment,
   forwardRef,
   useImperativeHandle,
@@ -561,6 +562,119 @@ const CameraActionsController = forwardRef<CameraActions, {}>((props, ref) => {
   return null;
 });
 CameraActionsController.displayName = "CameraActionsController";
+
+// Responsive Tabs Component
+function ResponsiveTabs({ onSettingsChanged }: { onSettingsChanged: () => void }) {
+  const { t } = useTranslation();
+  const tabsRef = useRef<HTMLDivElement>(null);
+  const [displayMode, setDisplayMode] = useState<'full' | 'textOnly' | 'iconOnly'>('full');
+
+  const updateDisplayMode = useCallback((width: number) => {
+    // Thresholds for responsive behavior - more aggressive switching
+    if (width < 200) {
+      setDisplayMode('iconOnly');
+    } else if (width < 300) {
+      setDisplayMode('textOnly');
+    } else {
+      setDisplayMode('full');
+    }
+  }, []);
+
+  useLayoutEffect(() => {
+    const tabsElement = tabsRef.current;
+    if (!tabsElement) return;
+
+    // Get initial measurement immediately
+    const initialWidth = tabsElement.getBoundingClientRect().width;
+    if (initialWidth > 0) {
+      updateDisplayMode(initialWidth);
+    }
+
+    const resizeObserver = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        const width = entry.contentRect.width;
+        updateDisplayMode(width);
+      }
+    });
+
+    resizeObserver.observe(tabsElement);
+
+    return () => {
+      resizeObserver.disconnect();
+    };
+  }, [updateDisplayMode]);
+
+  return (
+    <Tabs
+      defaultValue="classifications"
+      className="flex flex-col h-full shadow-lg bg-gradient-to-l from-[hsl(var(--card))] to-transparent"
+      ref={tabsRef}
+    >
+      <TabsList className="w-full shrink-0 border-b border-border/50 p-1 bg-[hsl(var(--background))/85] backdrop-blur-sm">
+        <TabsTrigger
+          value="classifications"
+          className="flex-1 text-sm py-1.5 px-2 data-[state=active]:bg-accent data-[state=active]:text-accent-foreground rounded-sm flex items-center justify-center"
+          title={displayMode === 'iconOnly' ? t('navigation.classificationsTab') : undefined}
+        >
+          {displayMode !== 'textOnly' && (
+            <Layers className={`w-4 h-4 ${displayMode === 'full' ? 'mr-1.5' : ''}`} />
+          )}
+          {displayMode !== 'iconOnly' && (
+            <span className={displayMode === 'textOnly' ? 'truncate' : ''}>
+              {t('navigation.classificationsTab')}
+            </span>
+          )}
+        </TabsTrigger>
+        <TabsTrigger
+          value="rules"
+          className="flex-1 text-sm py-1.5 px-2 data-[state=active]:bg-accent data-[state=active]:text-accent-foreground rounded-sm flex items-center justify-center"
+          title={displayMode === 'iconOnly' ? t('rulesPanel') : undefined}
+        >
+          {displayMode !== 'textOnly' && (
+            <Filter className={`w-4 h-4 ${displayMode === 'full' ? 'mr-1.5' : ''}`} />
+          )}
+          {displayMode !== 'iconOnly' && (
+            <span className={displayMode === 'textOnly' ? 'truncate' : ''}>
+              {t('rulesPanel')}
+            </span>
+          )}
+        </TabsTrigger>
+        <TabsTrigger
+          value="settings"
+          className="flex-1 text-sm py-1.5 px-2 data-[state=active]:bg-accent data-[state=active]:text-accent-foreground rounded-sm flex items-center justify-center"
+          title={displayMode === 'iconOnly' ? t('settingsPanel') : undefined}
+        >
+          {displayMode !== 'textOnly' && (
+            <Settings className={`w-4 h-4 ${displayMode === 'full' ? 'mr-1.5' : ''}`} />
+          )}
+          {displayMode !== 'iconOnly' && (
+            <span className={displayMode === 'textOnly' ? 'truncate' : ''}>
+              {t('settingsPanel')}
+            </span>
+          )}
+        </TabsTrigger>
+      </TabsList>
+      <TabsContent
+        value="classifications"
+        className="p-2 flex-grow overflow-y-auto"
+      >
+        <ClassificationPanel />
+      </TabsContent>
+      <TabsContent
+        value="rules"
+        className="p-4 flex-grow overflow-y-auto"
+      >
+        <RulePanel />
+      </TabsContent>
+      <TabsContent
+        value="settings"
+        className="p-4 flex-grow overflow-y-auto"
+      >
+        <SettingsPanel onSettingsChanged={onSettingsChanged} />
+      </TabsContent>
+    </Tabs>
+  );
+}
 
 // Custom resize handle component that looks like an elegant grabber
 const ResizeHandleHorizontal = ({
@@ -1694,52 +1808,7 @@ function ViewerContent() {
           collapsible
           className="bg-transparent pointer-events-auto"
         >
-          <Tabs
-            defaultValue="classifications"
-            className="flex flex-col h-full shadow-lg bg-gradient-to-l from-[hsl(var(--card))] to-transparent"
-          >
-            <TabsList className="w-full shrink-0 border-b border-border/50 p-1 bg-[hsl(var(--background))/85] backdrop-blur-sm">
-              <TabsTrigger
-                value="classifications"
-                className="flex-1 text-sm py-1.5 px-2 data-[state=active]:bg-accent data-[state=active]:text-accent-foreground rounded-sm"
-              >
-                <Layers className="w-4 h-4 mr-1.5" />
-                {t('navigation.classificationsTab')}
-              </TabsTrigger>
-              <TabsTrigger
-                value="rules"
-                className="flex-1 text-sm py-1.5 px-2 data-[state=active]:bg-accent data-[state=active]:text-accent-foreground rounded-sm"
-              >
-                <Filter className="w-4 h-4 mr-1.5" />
-                {t('rulesPanel')}
-              </TabsTrigger>
-              <TabsTrigger
-                value="settings"
-                className="flex-1 text-sm py-1.5 px-2 data-[state=active]:bg-accent data-[state=active]:text-accent-foreground rounded-sm"
-              >
-                <Settings className="w-4 h-4 mr-1.5" />
-                {t('settingsPanel')}
-              </TabsTrigger>
-            </TabsList>
-            <TabsContent
-              value="classifications"
-              className="p-2 flex-grow overflow-y-auto"
-            >
-              <ClassificationPanel />
-            </TabsContent>
-            <TabsContent
-              value="rules"
-              className="p-4 flex-grow overflow-y-auto"
-            >
-              <RulePanel />
-            </TabsContent>
-            <TabsContent
-              value="settings"
-              className="p-4 flex-grow overflow-y-auto"
-            >
-              <SettingsPanel onSettingsChanged={handleSettingsChanged} />
-            </TabsContent>
-          </Tabs>
+          <ResponsiveTabs onSettingsChanged={handleSettingsChanged} />
         </Panel>
       </PanelGroup>
     </div>

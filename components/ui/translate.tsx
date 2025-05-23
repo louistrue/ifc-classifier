@@ -40,16 +40,32 @@ export const LanguageSwitcher = () => {
     return (
         <div className="flex gap-2">
             <button
-                className={`px-2 py-1 rounded ${i18n.language === 'en' ? 'bg-blue-500 text-white' : 'bg-gray-200'}`}
+                className={`px-2 py-1 rounded flex items-center gap-1 ${i18n.language === 'en' ? 'bg-blue-500 text-white' : 'bg-gray-200'}`}
                 onClick={() => changeLanguage('en')}
             >
+                <span className="text-sm">🇬🇧</span>
                 EN
             </button>
             <button
-                className={`px-2 py-1 rounded ${i18n.language === 'de' ? 'bg-blue-500 text-white' : 'bg-gray-200'}`}
+                className={`px-2 py-1 rounded flex items-center gap-1 ${i18n.language === 'de' ? 'bg-blue-500 text-white' : 'bg-gray-200'}`}
                 onClick={() => changeLanguage('de')}
             >
+                <span className="text-sm">🇩🇪</span>
                 DE
+            </button>
+            <button
+                className={`px-2 py-1 rounded flex items-center gap-1 ${i18n.language === 'fr' ? 'bg-blue-500 text-white' : 'bg-gray-200'}`}
+                onClick={() => changeLanguage('fr')}
+            >
+                <span className="text-sm">🇫🇷</span>
+                FR
+            </button>
+            <button
+                className={`px-2 py-1 rounded flex items-center gap-1 ${i18n.language === 'it' ? 'bg-blue-500 text-white' : 'bg-gray-200'}`}
+                onClick={() => changeLanguage('it')}
+            >
+                <span className="text-sm">🇮🇹</span>
+                IT
             </button>
         </div>
     );
