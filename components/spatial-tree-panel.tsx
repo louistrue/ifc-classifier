@@ -668,7 +668,8 @@ export function SpatialTreePanel() {
     if (selectedNodeRef.current && selectedNodeKeyForScroll) {
       selectedNodeRef.current.scrollIntoView({
         behavior: "smooth",
-        block: "nearest",
+        block: "center",
+        inline: "nearest",
       });
     }
   }, [selectedNodeKeyForScroll]);
