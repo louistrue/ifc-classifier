@@ -77,9 +77,9 @@ const renderPropertyValue = (
 
   if (typeof value === "boolean") {
     return value ? (
-      <span className="text-green-600 dark:text-green-400">Yes</span>
+      <span className="text-green-600 dark:text-green-400">{t('yes')}</span>
     ) : (
-      <span className="text-red-600 dark:text-red-400">No</span>
+      <span className="text-red-600 dark:text-red-400">{t('no')}</span>
     );
   }
   if (typeof value === "number") {
@@ -139,13 +139,13 @@ const renderPropertyValue = (
     return value;
   }
   if (value === null || value === undefined) {
-    return <span className="text-muted-foreground italic">Not set</span>;
+    return <span className="text-muted-foreground italic">{t('notSet')}</span>;
   }
 
   // For arrays, show count or a summary
   if (Array.isArray(value)) {
     if (value.length === 0)
-      return <span className="text-muted-foreground italic">Empty list</span>;
+      return <span className="text-muted-foreground italic">{t('emptyList')}</span>;
     // Check if items are simple enough to join, or if they might be objects from a previous (but not unit-wrapped) step
     if (
       value.length <= 5 && // Allow slightly longer lists if they are simple
@@ -159,13 +159,13 @@ const renderPropertyValue = (
       return value.map((v) => renderPropertyValue(v, keyHint, ifcApi)).join(", "); // Render each item
     }
     return (
-      <span className="text-muted-foreground italic">{`List (${value.length} items)`}</span>
+      <span className="text-muted-foreground italic">{t('listCount', { count: value.length })}</span>
     );
   }
 
   // Fallback for other complex objects not specifically handled
   if (typeof value === "object") {
-    return <span className="text-muted-foreground italic">Complex data</span>;
+    return <span className="text-muted-foreground italic">{t('complexData')}</span>;
   }
 
   return String(value); // Last resort
@@ -536,7 +536,7 @@ export function ModelInfo() {
                 <>
                   {schemaLoading && (
                     <p className="text-xs text-muted-foreground pt-1 border-t border-border/30">
-                      Loading schema preview...
+                      {t('loadingSchemaPreview')}
                     </p>
                   )}
                   {schemaError && (
@@ -555,7 +555,7 @@ export function ModelInfo() {
                       >
                         <div className="flex items-center gap-1 text-primary text-xs font-medium">
                           <MousePointer2 className="w-3 h-3" />
-                          Click to explore full documentation
+                          {t('clickToExploreFullDocumentation')}
                         </div>
                       </div>
                     </div>
@@ -657,12 +657,12 @@ export function ModelInfo() {
       {/* Materials section */}
       {materialSets && Object.keys(materialSets).length > 0 && (
         <CollapsibleSection
-          title="Materials"
+          title={t('materials')}
           defaultOpen={true}
           icon={<Palette className="w-4 h-4" />}
           propertyCount={Object.keys(materialSets).length}
-          countUnitSingular="set"
-          countUnitPlural="sets"
+          countUnitSingular={t('set')}
+          countUnitPlural={t('sets')}
         >
           <MaterialSectionDisplay
             materialPropertyGroups={Object.entries(materialSets).map(

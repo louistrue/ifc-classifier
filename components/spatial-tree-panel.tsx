@@ -723,7 +723,7 @@ export function SpatialTreePanel() {
   if (!ifcApi) {
     return (
       <div className="p-4 text-sm text-muted-foreground h-full flex items-center justify-center">
-        IFC API not yet initialized.
+        {t('apiNotReady')}
       </div>
     );
   }
@@ -766,7 +766,7 @@ export function SpatialTreePanel() {
               >
                 <span className="animate-pulse block w-2 h-2 bg-foreground/40 rounded-full"></span>
                 <span className="text-base font-medium">
-                  {modelEntry.name} - Initializing...
+                  {t('modelInitializing', { name: modelEntry.name })}
                 </span>
               </div>
             );
@@ -779,7 +779,7 @@ export function SpatialTreePanel() {
               >
                 <span className="animate-pulse block w-2 h-2 bg-foreground/40 rounded-full"></span>
                 <span className="text-base font-medium">
-                  {modelEntry.name} - Loading structure...
+                  {t('modelLoadingStructure', { name: modelEntry.name })}
                 </span>
               </div>
             );
