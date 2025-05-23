@@ -17,8 +17,12 @@ The toolbar below the canvas offers quick actions:
 - **Zoom to Extents** - \`E\` - fit the whole model
 - **Zoom to Selected** - \`F\` - focus the active element
 - **Hide Selected** - \`Spacebar\` - toggle visibility of the current selection
-- **Unhide Last** - \`Ctrl/Cmd+Z\` - restore the last hidden element
-- **Unhide All** - \`Shift+A\` - show everything again`,
+  - **Unhide Last** - \`Ctrl/Cmd+Z\` - restore the last hidden element
+  - **Unhide All** - \`Shift+A\` - show everything again
+
+### Properties Panel
+
+Use this panel to inspect attributes and property sets. The **Global ID** row includes a small copy button.`,
   de: `## Überblick über die Oberfläche
 
 Die App ist in drei Bereiche gegliedert: Links der **Model Explorer**, in der Mitte die **3D-Ansicht**, rechts die Tabs **Classifications**, **Rules** und **Settings**. Über die Menubar oben kannst du das Theme wechseln und diese Hilfe öffnen.
@@ -37,7 +41,11 @@ Die Leiste unterhalb der Ansicht bietet schnelle Aktionen:
 - **Zoom to Extents** – \`E\` – gesamtes Modell einpassen
 - **Zoom to Selected** – \`F\` – auf aktives Element fokussieren
 - **Hide Selected** – \`Spacebar\` – aktuelle Auswahl ausblenden
-- **Unhide Last** – \`Ctrl/Cmd+Z\` – zuletzt ausgeblendetes Element wiederherstellen
-- **Unhide All** – \`Shift+A\` – alles einblenden`
+  - **Unhide Last** – \`Ctrl/Cmd+Z\` – zuletzt ausgeblendetes Element wiederherstellen
+  - **Unhide All** – \`Shift+A\` – alles einblenden
+
+### Eigenschaften-Panel
+
+Hier siehst du Attribute und Property Sets. Neben der **Global ID** gibt es ein kleines Kopiersymbol.`
 };
 export default content;
