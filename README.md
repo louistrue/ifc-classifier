@@ -40,6 +40,7 @@ IFC Classifier helps you classify IFC elements without needing expert knowledge 
     - 🇬🇧 Uniclass
   - Or create your own custom system
   - Assign colors to visualize different classifications
+  - Import or export classification sets as **JSON** or **Excel** files
 
 - **⚙️ Rule-Based Sorting:**
 
@@ -55,10 +56,47 @@ IFC Classifier helps you classify IFC elements without needing expert knowledge 
   - Save your model with proper `IfcClassificationReference` entities
   - Use the improved file in other BIM tools
 
+- **🔎 Search & Filter:**
+
+  - Search across the model tree or entire 3D scene
+  - Cancel long searches and track progress
+  - Quickly hide or unhide found elements
+
+- **🔄 Map from Model Data:**
+
+  - Automatically map classifications from existing property sets
+  - Wildcard support for flexible property name matching
+  - Central property caching for faster lookups
+
+- **🗣️ Multi-Language UI:**
+
+  - English and German built in
+  - Switch languages from the menu
+  - Add new translations via simple JSON files
+
+- **🔐 Privacy First:**
+
+  - All processing happens locally in your browser
+  - IFC data never leaves your device
+  - Check the Network tab to verify
+
 - **🔮 Coming Soon:**
   - Support for property-based classification (where codes are stored in Psets instead of IfcClassificationReference)
 
 ## 🚀 Recent Updates
+
+**May 22, 2025:**
+
+- Added search across the 3D view and model explorer with progress feedback.
+- Implemented automatic mapping of classifications from property sets with wildcard support.
+- Introduced central IFC property caching for faster lookups.
+- Improved language selection menu and settings layout.
+- Refined properties panel and overall UI styling.
+
+**May 21, 2025:**
+
+- Added ability to import rule definitions from Excel (.xlsx) files.
+- Added ability to export rules to Excel for easier sharing.
 
 **May 20, 2025:**
 
@@ -71,11 +109,6 @@ IFC Classifier helps you classify IFC elements without needing expert knowledge 
 - Added functionality to import and export classifications as JSON files.
 - Added favicons for better cross-browser compatibility.
 - Enhanced property extraction and rendering from IFC models.
-
-**May 21, 2025:**
-
-- Added ability to import rule definitions from Excel (.xlsx) files.
-- Added ability to export rules to Excel for easier sharing.
 
 **May 19, 2025:**
 
