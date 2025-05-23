@@ -11,6 +11,7 @@
   "doc_settings_title": "Settings",
   "doc_workflow_title": "Typical Workflow",
   "closeDocs": "Close documentation",
+  "viewSchema": "View Schema",
   "complexExample": "This is a <1>complex</1> example with <3>HTML elements</3>.",
   "modelExplorer": "Model Explorer",
   "properties": "",

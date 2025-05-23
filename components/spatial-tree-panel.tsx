@@ -46,6 +46,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { Badge } from "@/components/ui/badge";
+import { useSchemaPreview } from "@/lib/useSchemaPreview";
 import { useTranslation } from "react-i18next";
 
 // Helper function to generate a unique key for a node
@@ -233,6 +234,7 @@ const TreeNode: React.FC<TreeNodeProps> = ({
   const naturalNameResult = getNaturalIfcClassName(originalIfcType, lang);
   const naturalIfcName = naturalNameResult?.name ?? "";
   const schemaUrl = naturalNameResult?.schemaUrl ?? "";
+  const schemaPreview = useSchemaPreview(schemaUrl);
 
   const displayName = isRootModelNode
     ? modelFileInfo.name
@@ -311,15 +313,22 @@ const TreeNode: React.FC<TreeNodeProps> = ({
                 </p>
               )}
               {!isRootModelNode && schemaUrl && (
-                <a
-                  href={schemaUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={(e) => e.stopPropagation()}
-                  className="text-xs text-blue-500 hover:text-blue-400 hover:underline flex items-center gap-1 mt-1 pt-1 border-t border-border/30"
-                >
-                  View Schema <ExternalLink className="w-3 h-3" />
-                </a>
+                <>
+                  {schemaPreview && (
+                    <p className="text-xs text-muted-foreground pt-1 border-t border-border/30">
+                      {schemaPreview}
+                    </p>
+                  )}
+                  <a
+                    href={schemaUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={(e) => e.stopPropagation()}
+                    className="text-xs text-blue-500 hover:text-blue-400 hover:underline flex items-center gap-1 mt-1"
+                  >
+                    {t('viewSchema')} <ExternalLink className="w-3 h-3" />
+                  </a>
+                </>
               )}
             </TooltipContent>
           </Tooltip>

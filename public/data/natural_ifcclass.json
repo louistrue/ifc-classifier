@@ -14,6 +14,11 @@
     "de": "Gebäude",
     "schema": "https://ifc43-docs.standards.buildingsmart.org/IFC/RELEASE/IFC4x3/HTML/lexical/IfcBuilding.htm"
   },
+  "IfcBuildingElementPart": {
+    "en": "Building Element Part",
+    "de": "Bauelementteil",
+    "schema": "https://ifc43-docs.standards.buildingsmart.org/IFC/RELEASE/IFC4x3/HTML/lexical/IfcBuildingElementPart.htm"
+  },
   "IfcBuildingElementProxy": {
     "en": "Element Proxy",
     "de": "Bauelement-Platzhalter",

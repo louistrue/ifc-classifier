@@ -33,6 +33,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { useTranslation } from "react-i18next";
+import { useSchemaPreview } from "@/lib/useSchemaPreview";
 
 // Enhanced renderPropertyValue function
 const renderPropertyValue = (
@@ -332,6 +333,12 @@ export function ModelInfo() {
   } = useIFCContext();
   const { t, i18n } = useTranslation();
 
+  const lang = i18n.language === "de" ? "de" : "en";
+  const schemaUrlForHook = elementProperties?.ifcType
+    ? getNaturalIfcClassName(elementProperties.ifcType, lang).schemaUrl
+    : undefined;
+  const schemaPreview = useSchemaPreview(schemaUrlForHook);
+
   const elementClassifications = useMemo(
     () => getClassificationsForElement(selectedElement),
     [getClassificationsForElement, selectedElement],
@@ -482,7 +489,6 @@ export function ModelInfo() {
     materialSets,
   } = processedProps;
 
-  const lang = i18n.language === "de" ? "de" : "en";
   const naturalIfcInfo = getNaturalIfcClassName(ifcType, lang);
 
   // Render the detailed property information
@@ -512,15 +518,22 @@ export function ModelInfo() {
                 {naturalIfcInfo.name || ifcType}
               </p>
               {naturalIfcInfo.schemaUrl && (
-                <a
-                  href={naturalIfcInfo.schemaUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-xs text-blue-500 hover:text-blue-400 hover:underline flex items-center gap-1 mt-1 pt-1 border-t border-border/30"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  View Schema <ExternalLink className="w-3 h-3" />
-                </a>
+                <>
+                  {schemaPreview && (
+                    <p className="text-xs text-muted-foreground pt-1 border-t border-border/30">
+                      {schemaPreview}
+                    </p>
+                  )}
+                  <a
+                    href={naturalIfcInfo.schemaUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs text-blue-500 hover:text-blue-400 hover:underline flex items-center gap-1 mt-1"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    {t('viewSchema')} <ExternalLink className="w-3 h-3" />
+                  </a>
+                </>
               )}
             </TooltipContent>
           </Tooltip>
