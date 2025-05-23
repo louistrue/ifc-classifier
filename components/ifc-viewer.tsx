@@ -367,6 +367,56 @@ const SceneCapture = ({ onSceneCapture }: { onSceneCapture: (scene: THREE.Scene)
   return null;
 };
 
+// Update OrbitControls target to the selected element's center without moving the camera
+const OrbitTargetController = () => {
+  const { scene, controls } = useThree();
+  const { selectedElement } = useIFCContext();
+
+  useEffect(() => {
+    if (!controls) return;
+
+    if (selectedElement) {
+      let selectedMesh: THREE.Object3D | null = null;
+      scene.traverse((obj) => {
+        if (selectedMesh) return;
+        if (
+          obj instanceof THREE.Mesh &&
+          obj.userData.modelID === selectedElement.modelID &&
+          obj.userData.expressID === selectedElement.expressID
+        ) {
+          selectedMesh = obj;
+        }
+      });
+
+      if (selectedMesh) {
+        const bbox = new THREE.Box3().setFromObject(selectedMesh);
+        const center = bbox.getCenter(new THREE.Vector3());
+        (controls as any).target.copy(center);
+        (controls as any).update();
+      }
+    } else {
+      const modelGroups = scene.children.filter(
+        (child) =>
+          child.name.startsWith("IFCModelGroup_") && child instanceof THREE.Group
+      ) as THREE.Group[];
+
+      if (modelGroups.length > 0) {
+        const overallBbox = new THREE.Box3();
+        modelGroups.forEach((group, idx) => {
+          idx === 0 ? overallBbox.setFromObject(group) : overallBbox.expandByObject(group);
+        });
+        if (!overallBbox.isEmpty()) {
+          const center = overallBbox.getCenter(new THREE.Vector3());
+          (controls as any).target.copy(center);
+          (controls as any).update();
+        }
+      }
+    }
+  }, [selectedElement, scene, controls]);
+
+  return null;
+};
+
 // CameraActionsController Component (child of Canvas)
 const CameraActionsController = forwardRef<CameraActions, {}>((props, ref) => {
   const { scene, camera, controls, clock } = useThree();
@@ -1557,6 +1607,7 @@ function ViewerContent() {
             <OrbitControls makeDefault enableDamping={false} />
             <GlobalInteractionHandler />
             <SceneCapture onSceneCapture={captureScene} />
+            <OrbitTargetController />
             {loadedModels.map((modelEntry) => (
               <IFCModel
                 key={modelEntry.id}
