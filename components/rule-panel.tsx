@@ -14,6 +14,7 @@ import {
   DialogClose,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { AutocompleteInput } from "@/components/ui/autocomplete-input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import {
@@ -499,18 +500,13 @@ export function RulePanel() {
         </div>
       </div>
 
-      <Input
+      <AutocompleteInput
         value={searchQuery}
-        onChange={(e) => setSearchQuery(e.target.value)}
+        onChange={setSearchQuery}
+        suggestions={ruleNameSuggestions}
         placeholder={t('rules.searchPlaceholder')}
-        list="rule-name-suggestions"
         className="w-full"
       />
-      <datalist id="rule-name-suggestions">
-        {ruleNameSuggestions.map((name) => (
-          <option key={name} value={name} />
-        ))}
-      </datalist>
 
       {rules.length === 0 ? (
         <div className="flex items-center justify-center flex-col py-8 flex-grow">
