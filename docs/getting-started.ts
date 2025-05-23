@@ -15,6 +15,13 @@ Use the copy icon next to **Global ID** in the **Properties** panel to copy the 
 - Use the **Model Explorer** on the left to browse the spatial tree.
 - Selecting an element shows its properties in the **Properties** panel below.
 
+## Understanding IFC Schema
+
+- **Hover over IFC class names** (like IfcWall, IfcColumn) to see instant schema previews with key information.
+- **Click "View Schema"** to open the full documentation reader with comprehensive details about IFC entities.
+- The documentation includes entity descriptions, attributes, inheritance relationships, and examples.
+- All schema documentation is cached locally for fast access and offline use.
+
 ## Classifying Elements
 
 1. Open the **Classifications** tab on the right.
@@ -31,6 +38,13 @@ Use the copy icon next to **Global ID** in the **Properties** panel to copy the 
 
 - Mit dem **Model Explorer** links die Strukturbäume durchsuchen.
 - Ein ausgewähltes Element zeigt seine Eigenschaften im **Properties**-Panel darunter.
+
+## IFC-Schema verstehen
+
+- **Bewege die Maus über IFC-Klassennamen** (wie IfcWall, IfcColumn) für sofortige Schema-Vorschauen mit wichtigen Informationen.
+- **Klicke auf "Schema anzeigen"** um den vollständigen Dokumentations-Reader mit umfassenden Details zu IFC-Entitäten zu öffnen.
+- Die Dokumentation enthält Entitätsbeschreibungen, Attribute, Vererbungsbeziehungen und Beispiele.
+- Alle Schema-Dokumentation wird lokal zwischengespeichert für schnellen Zugriff und Offline-Nutzung.
 
 ## Elemente klassifizieren
 

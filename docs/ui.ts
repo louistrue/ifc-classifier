@@ -22,7 +22,16 @@ The toolbar below the canvas offers quick actions:
 
 ### Properties Panel
 
-Use this panel to inspect attributes and property sets. The **Global ID** row includes a small copy button.`,
+Use this panel to inspect attributes and property sets. The **Global ID** row includes a small copy button.
+
+### Schema Documentation
+
+Throughout the interface, you'll find interactive schema features:
+
+- **Schema Preview Tooltips** - Hover over IFC class names (like IfcWall, IfcColumn) to see instant previews with entity descriptions and key information
+- **"View Schema" Links** - Click these links to open the full documentation reader with comprehensive details about IFC entities
+- **Documentation Reader** - A modal window that displays complete schema documentation including entity descriptions, attributes, inheritance relationships, and examples
+- **Smart Caching** - Schema data is cached locally for fast access and offline use`,
   de: `## Überblick über die Oberfläche
 
 Die App ist in drei Bereiche gegliedert: Links der **Model Explorer**, in der Mitte die **3D-Ansicht**, rechts die Tabs **Classifications**, **Rules** und **Settings**. Über die Menubar oben kannst du das Theme wechseln und diese Hilfe öffnen.
@@ -46,6 +55,15 @@ Die Leiste unterhalb der Ansicht bietet schnelle Aktionen:
 
 ### Eigenschaften-Panel
 
-Hier siehst du Attribute und Property Sets. Neben der **Global ID** gibt es ein kleines Kopiersymbol.`
+Hier siehst du Attribute und Property Sets. Neben der **Global ID** gibt es ein kleines Kopiersymbol.
+
+### Schema-Dokumentation
+
+In der gesamten Oberfläche findest du interaktive Schema-Funktionen:
+
+- **Schema-Vorschau-Tooltips** - Bewege die Maus über IFC-Klassennamen (wie IfcWall, IfcColumn) für sofortige Vorschauen mit Entitätsbeschreibungen und wichtigen Informationen
+- **"Schema anzeigen"-Links** - Klicke auf diese Links um den vollständigen Dokumentations-Reader mit umfassenden Details zu IFC-Entitäten zu öffnen
+- **Dokumentations-Reader** - Ein Modal-Fenster das vollständige Schema-Dokumentation einschließlich Entitätsbeschreibungen, Attributen, Vererbungsbeziehungen und Beispielen anzeigt
+- **Intelligente Zwischenspeicherung** - Schema-Daten werden lokal zwischengespeichert für schnellen Zugriff und Offline-Nutzung`
 };
 export default content;
