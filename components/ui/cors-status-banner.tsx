@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -46,7 +46,7 @@ export function CorsStatusBanner({ className, onDismiss }: CorsStatusBannerProps
     const [showCacheDetails, setShowCacheDetails] = useState(false);
 
     // Check proxy service health
-    const checkProxyHealth = async (service: ProxyService): Promise<ProxyService> => {
+    const checkProxyHealth = useCallback(async (service: ProxyService): Promise<ProxyService> => {
         const testUrl = 'https://ifc43-docs.standards.buildingsmart.org/robots.txt';
         let proxyUrl: string;
 
@@ -121,19 +121,19 @@ export function CorsStatusBanner({ className, onDismiss }: CorsStatusBannerProps
                 responseTime: Date.now() - startTime
             };
         }
-    };
+    }, []);
 
     // Check all services
-    const checkAllServices = async () => {
+    const checkAllServices = useCallback(async () => {
         const updatedServices = await Promise.all(
             proxyServices.map(service => checkProxyHealth(service))
         );
         setProxyServices(updatedServices);
         setLastGlobalCheck(new Date());
-    };
+    }, [proxyServices, checkProxyHealth]);
 
     // Update cache stats
-    const updateCacheStats = () => {
+    const updateCacheStats = useCallback(() => {
         try {
             const stats = SchemaCache.getCacheStats();
             const health = SchemaCache.getCacheHealth();
@@ -141,7 +141,7 @@ export function CorsStatusBanner({ className, onDismiss }: CorsStatusBannerProps
         } catch (error) {
             console.warn('Failed to get cache stats:', error);
         }
-    };
+    }, []);
 
     // Initial check and periodic updates
     useEffect(() => {
@@ -155,7 +155,7 @@ export function CorsStatusBanner({ className, onDismiss }: CorsStatusBannerProps
         }, 10 * 60 * 1000);
 
         return () => clearInterval(interval);
-    }, []);
+    }, [checkAllServices, updateCacheStats]);
 
     // Don't show if dismissed
     if (isDismissed) return null;

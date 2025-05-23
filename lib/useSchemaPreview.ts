@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 
 // Lightweight preview cache and request management
 const previewCache = new Map<string, string[]>();
@@ -67,48 +67,8 @@ export function useSchemaPreview(schemaUrl?: string) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Fast preview fetch - only try one quick proxy
-  const fetchPreviewFast = async (url: string, ifcClass: string): Promise<string[]> => {
-    console.log(`Fetching preview for: ${url} (Class: ${ifcClass})`);
-
-    try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 3000); // 3 second timeout
-      const proxyUrl = `https://thingproxy.freeboard.io/fetch/${url}`;
-
-      const res = await fetch(proxyUrl, {
-        signal: controller.signal,
-        headers: {
-          'Accept': 'text/html',
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-        }
-      });
-
-      clearTimeout(timeoutId);
-
-      if (res.ok) {
-        const text = await res.text();
-        if (text && text.length > 100 && (text.includes('<html') || text.includes('<!DOCTYPE'))) {
-          const parsed = parsePreviewContent(text, ifcClass);
-          if (parsed && parsed !== GENERIC_FAILURE_MESSAGE && parsed !== NO_DEFINITION_MESSAGE) {
-            console.log('Preview fetch successful for', ifcClass);
-            return parsed;
-          }
-          // If specific parsing failed (e.g. no def found for this class), return that specific message
-          return parsed;
-        }
-      }
-      // If response not ok or content invalid, fall through to generic failure
-      console.warn(`Fetch not OK for ${ifcClass} (${res.status})`);
-    } catch (err) {
-      console.log(`Preview fetch failed for ${ifcClass}:`, err);
-      // Fall through to generic failure
-    }
-    return GENERIC_FAILURE_MESSAGE;
-  };
-
   // Lightweight parsing for semantic definition only
-  const parsePreviewContent = (html: string, targetIfcClass: string): string[] => {
+  const parsePreviewContent = useCallback((html: string, targetIfcClass: string): string[] => {
     try {
       const parser = new DOMParser();
       const doc = parser.parseFromString(html, "text/html");
@@ -191,7 +151,47 @@ export function useSchemaPreview(schemaUrl?: string) {
       console.error(`Failed to parse preview HTML for ${targetIfcClass}:`, error);
       return GENERIC_FAILURE_MESSAGE;
     }
-  };
+  }, []);
+
+  // Fast preview fetch - only try one quick proxy
+  const fetchPreviewFast = useCallback(async (url: string, ifcClass: string): Promise<string[]> => {
+    console.log(`Fetching preview for: ${url} (Class: ${ifcClass})`);
+
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 3000); // 3 second timeout
+      const proxyUrl = `https://thingproxy.freeboard.io/fetch/${url}`;
+
+      const res = await fetch(proxyUrl, {
+        signal: controller.signal,
+        headers: {
+          'Accept': 'text/html',
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+        }
+      });
+
+      clearTimeout(timeoutId);
+
+      if (res.ok) {
+        const text = await res.text();
+        if (text && text.length > 100 && (text.includes('<html') || text.includes('<!DOCTYPE'))) {
+          const parsed = parsePreviewContent(text, ifcClass);
+          if (parsed && parsed !== GENERIC_FAILURE_MESSAGE && parsed !== NO_DEFINITION_MESSAGE) {
+            console.log('Preview fetch successful for', ifcClass);
+            return parsed;
+          }
+          // If specific parsing failed (e.g. no def found for this class), return that specific message
+          return parsed;
+        }
+      }
+      // If response not ok or content invalid, fall through to generic failure
+      console.warn(`Fetch not OK for ${ifcClass} (${res.status})`);
+    } catch (err) {
+      console.log(`Preview fetch failed for ${ifcClass}:`, err);
+      // Fall through to generic failure
+    }
+    return GENERIC_FAILURE_MESSAGE;
+  }, [parsePreviewContent]);
 
   useEffect(() => {
     if (!schemaUrl) {
@@ -304,7 +304,7 @@ export function useSchemaPreview(schemaUrl?: string) {
       cancelled = true;
       // No setLoading(false) here as it might interfere with ongoing request finalization
     };
-  }, [schemaUrl]);
+  }, [schemaUrl, fetchPreviewFast]);
 
   return { preview, loading, error };
 }

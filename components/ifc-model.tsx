@@ -755,14 +755,7 @@ export function IFCModel({ modelData, outlineLayer }: IFCModelProps) {
 
   // New useEffect for initial camera positioning
   useEffect(() => {
-    // Ensure controls are OrbitControls and camera is PerspectiveCamera for fov access
-    if (
-      meshesRef.current &&
-      internalApiIdForEffects !== null &&
-      !modelMeshesProcessedForInitialView &&
-      camera instanceof THREE.PerspectiveCamera && // Type check for fov
-      controls // Check if controls exist (it should if OrbitControls is makeDefault)
-    ) {
+    if (meshesRef.current && internalApiIdForEffects !== null && !modelMeshesProcessedForInitialView && camera instanceof THREE.PerspectiveCamera && controls) {
       console.log(
         `IFCModel (${modelData.id}): Setting initial camera view for model ID ${internalApiIdForEffects}`
       );
@@ -795,13 +788,7 @@ export function IFCModel({ modelData, outlineLayer }: IFCModelProps) {
 
       setModelMeshesProcessedForInitialView(true);
     }
-  }, [
-    internalApiIdForEffects,
-    modelMeshesProcessedForInitialView,
-    camera,
-    controls,
-    modelData.id,
-  ]); // Use controls from useThree()
+  }, [internalApiIdForEffects, modelMeshesProcessedForInitialView, camera, controls, modelData.id]);
 
   // Highlighting and Classification Effects
   useEffect(() => {
@@ -1096,6 +1083,37 @@ export function IFCModel({ modelData, outlineLayer }: IFCModelProps) {
     modelData.id, // Added modelData.id here
     setElementProperties, // Added setElementProperties here
   ]);
+
+  useEffect(() => {
+    if (!ifcApi || internalApiIdForEffects === null) return; // baseCoordinationMatrix and setBaseCoordinationMatrix are checked by linter for this effect
+
+    try {
+      const modelCoordMatrix = ifcApi.GetCoordinationMatrix(internalApiIdForEffects);
+      const relativeMatrix = new THREE.Matrix4();
+      if (!baseCoordinationMatrix) {
+        setBaseCoordinationMatrix(modelCoordMatrix);
+        relativeMatrix.identity();
+      } else {
+        const baseMat = new THREE.Matrix4().fromArray(baseCoordinationMatrix);
+        const currentMat = new THREE.Matrix4().fromArray(modelCoordMatrix);
+        const baseInv = baseMat.clone().invert();
+        relativeMatrix.multiplyMatrices(baseInv, currentMat);
+      }
+      modelTransformRef.current.copy(relativeMatrix);
+      ifcApi.SetGeometryTransformation(internalApiIdForEffects, Array.from(relativeMatrix.elements));
+    } catch (error) {
+      console.error('Error setting geometry transformation:', error);
+    }
+  }, [baseCoordinationMatrix, setBaseCoordinationMatrix, ifcApi, internalApiIdForEffects]);
+
+  useEffect(() => {
+    // This useEffect seems to be a leftover or for a future feature.
+    // If it's intended to react to modelData.id changes for a specific purpose,
+    // that logic should be implemented here.
+    // For now, to satisfy exhaustive-deps if it were to have more logic,
+    // and assuming it is tied to modelData, we keep modelData.id.
+    // If it has no specific logic tied to modelData.id and does nothing, it might be removable.
+  }, [modelData.id]);
 
   return isLoading ? (
     <>{/* Optionally return a per-model loader here */}</>

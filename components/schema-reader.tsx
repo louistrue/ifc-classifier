@@ -37,6 +37,7 @@ import {
     Download,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import NextImage from 'next/image';
 
 interface SchemaContent {
     type: 'text' | 'list' | 'table' | 'image' | 'note' | 'reference' | 'code' | 'diagram';
@@ -71,6 +72,12 @@ const MIN_REQUEST_INTERVAL = 3000; // Increased to 3 seconds due to 403 errors
 const SCHEMA_CACHE_KEY = 'ifc-schema-full-cache';
 const SCHEMA_CACHE_VERSION = 'v1';
 const SCHEMA_CACHE_EXPIRY_HOURS = 48; // Longer cache for full schemas
+
+// Helper function (moved outside component)
+const isHeading = (element: Element): boolean => {
+    const tag = element.tagName.toLowerCase();
+    return ['h1', 'h2', 'h3', 'h4', 'h5', 'h6'].includes(tag);
+};
 
 // Load schema cache from localStorage
 const loadSchemaCacheFromStorage = (): void => {
@@ -138,397 +145,19 @@ export function SchemaReader({
     const [loadingProxy, setLoadingProxy] = useState<string>("");
     const [retryAttempt, setRetryAttempt] = useState(0);
 
-    // Throttled request function
-    const throttledRequest = useCallback(async (url: string, options: RequestInit): Promise<Response> => {
-        const now = Date.now();
-        const timeSinceLastRequest = now - lastRequestTime;
-
-        if (timeSinceLastRequest < MIN_REQUEST_INTERVAL) {
-            const delay = MIN_REQUEST_INTERVAL - timeSinceLastRequest;
-            await new Promise(resolve => setTimeout(resolve, delay));
-        }
-
-        lastRequestTime = Date.now();
-        return fetch(url, options);
+    // Helper functions
+    const getSectionType = useCallback((headingText: string): SchemaSection['type'] => {
+        const lowerText = headingText.toLowerCase();
+        if (lowerText.includes('definition') || lowerText.includes('description')) return 'definition';
+        if (lowerText.includes('attribute') || lowerText.includes('property')) return 'attributes';
+        if (lowerText.includes('inheritance') || lowerText.includes('supertype')) return 'inheritance';
+        if (lowerText.includes('example')) return 'examples';
+        if (lowerText.includes('formal') || lowerText.includes('express')) return 'formal';
+        if (lowerText.includes('proposition')) return 'propositions';
+        if (lowerText.includes('reference') || lowerText.includes('access')) return 'references';
+        return 'other';
     }, []);
 
-    // Load full schema content with enhanced extraction and persistent caching
-    const loadFullSchema = useCallback(async (): Promise<void> => {
-        if (!schemaUrl || loading) return;
-
-        // Check cache first (both memory and localStorage)
-        if (schemaCache.has(schemaUrl)) {
-            console.log('Loading schema from cache:', schemaUrl);
-            setSections(schemaCache.get(schemaUrl)!);
-            return;
-        }
-
-        // Check if already requesting this URL
-        if (requestQueue.has(schemaUrl)) {
-            console.log('Schema request already in progress for:', schemaUrl);
-            try {
-                const cachedSections = await requestQueue.get(schemaUrl)!;
-                setSections(cachedSections);
-                return;
-            } catch (err) {
-                // Continue with new request if cached request failed
-            }
-        }
-
-        setLoading(true);
-        setError(null);
-        setLoadingProxy("");
-
-        // Create request promise and add to queue
-        const requestPromise = loadSchemaWithFallbacks(schemaUrl);
-        requestQueue.set(schemaUrl, requestPromise);
-
-        try {
-            const extractedSections = await requestPromise;
-            setSections(extractedSections);
-            // Cache successful result in both memory and localStorage
-            schemaCache.set(schemaUrl, extractedSections);
-            saveSchemaCacheToStorage();
-            setRetryAttempt(0);
-        } catch (err) {
-            console.error("Failed to load schema:", err);
-            const errorMessage = err instanceof Error ? err.message : "Failed to load schema";
-            setError(errorMessage);
-        } finally {
-            setLoading(false);
-            requestQueue.delete(schemaUrl);
-        }
-    }, [schemaUrl, loading]);
-
-    // Load schema with multiple fallback strategies
-    const loadSchemaWithFallbacks = useCallback(async (url: string): Promise<SchemaSection[]> => {
-        // Strategy 1: Try enhanced CORS proxies
-        const corsProxies = [
-            {
-                name: "thingproxy.freeboard.io",
-                url: (url: string) => `https://thingproxy.freeboard.io/fetch/${url}`,
-                headers: { 'Accept': 'text/html' }
-            },
-            {
-                name: "crossorigin.me",
-                url: (url: string) => `https://crossorigin.me/${url}`,
-                headers: { 'Accept': 'text/html' }
-            },
-            {
-                name: "cors.sh",
-                url: (url: string) => `https://cors.sh/${url}`,
-                headers: { 'Accept': 'text/html' }
-            },
-            {
-                name: "proxy.cors.sh",
-                url: (url: string) => `https://proxy.cors.sh/${url}`,
-                headers: { 'Accept': 'text/html' }
-            },
-            {
-                name: "corsproxy.io",
-                url: (url: string) => `https://corsproxy.io/?${encodeURIComponent(url)}`,
-                headers: { 'Accept': 'text/html' }
-            },
-        ];
-
-        let lastError: Error | null = null;
-
-        // Try CORS proxies with enhanced error handling
-        for (const proxy of corsProxies) {
-            try {
-                setLoadingProxy(proxy.name);
-                console.log(`Trying CORS proxy: ${proxy.name}`);
-
-                const proxyUrl = proxy.url(url);
-                const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 15000);
-
-                const res = await throttledRequest(proxyUrl, {
-                    signal: controller.signal,
-                    headers: {
-                        ...proxy.headers,
-                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-                        'Origin': window.location.origin,
-                        'Referer': window.location.href,
-                    }
-                });
-
-                clearTimeout(timeoutId);
-
-                if (!res.ok) {
-                    if (res.status === 429) {
-                        console.warn(`Rate limited by ${proxy.name}, trying next...`);
-                        await new Promise(resolve => setTimeout(resolve, 5000));
-                        continue;
-                    } else if (res.status === 403) {
-                        console.warn(`Forbidden by ${proxy.name}, trying next...`);
-                        await new Promise(resolve => setTimeout(resolve, 2000));
-                        continue;
-                    }
-                    throw new Error(`HTTP ${res.status}: ${res.statusText}`);
-                }
-
-                const text = await res.text();
-                if (text && text.length > 100 && (text.includes('<html') || text.includes('<!DOCTYPE'))) {
-                    const parsed = parseSchemaContent(text, url);
-                    if (parsed && parsed.length > 0) {
-                        return parsed;
-                    }
-                }
-                throw new Error('Invalid or empty response content');
-
-            } catch (err) {
-                console.error(`Proxy ${proxy.name} failed:`, err);
-                lastError = err instanceof Error ? err : new Error("Unknown error");
-                await new Promise(resolve => setTimeout(resolve, 1500));
-            }
-        }
-
-        // Strategy 2: Return enhanced fallback content
-        console.log('All proxies failed, using enhanced fallback content');
-        return getEnhancedFallbackSections(ifcClassName, url);
-    }, [throttledRequest, ifcClassName]);
-
-    // Enhanced fallback content generator
-    const getEnhancedFallbackSections = useCallback((className: string, url: string): SchemaSection[] => {
-        const sections: SchemaSection[] = [];
-
-        // Main definition section
-        sections.push({
-            id: 'definition',
-            title: 'Semantic Definition',
-            content: [
-                {
-                    type: 'text',
-                    content: `${className} is an IFC (Industry Foundation Classes) entity used in Building Information Modeling (BIM).`
-                },
-                {
-                    type: 'note',
-                    content: 'The detailed documentation for this entity is temporarily unavailable due to network restrictions. You can access the full documentation using the external link.',
-                    style: 'note'
-                }
-            ],
-            type: 'definition'
-        });
-
-        // Add specific information based on class name patterns
-        if (className.includes('Wall')) {
-            sections.push({
-                id: 'usage',
-                title: 'Common Usage',
-                content: [
-                    { type: 'text', content: 'Walls are fundamental building elements that provide structural support, separation of spaces, and environmental barriers.' },
-                    { type: 'text', content: 'They can be load-bearing or non-load-bearing, and may include openings for doors and windows.' }
-                ],
-                type: 'other'
-            });
-        } else if (className.includes('Slab')) {
-            sections.push({
-                id: 'usage',
-                title: 'Common Usage',
-                content: [
-                    { type: 'text', content: 'Slabs are horizontal structural elements that form floors, roofs, or other horizontal surfaces.' },
-                    { type: 'text', content: 'They distribute loads and provide platforms for other building elements.' }
-                ],
-                type: 'other'
-            });
-        } else if (className.includes('Project')) {
-            sections.push({
-                id: 'hierarchy',
-                title: 'Project Hierarchy',
-                content: [
-                    { type: 'text', content: 'IfcProject is the root element of any IFC model and establishes the global context.' },
-                    { type: 'text', content: 'It contains references to units, coordinate systems, and the overall project structure.' }
-                ],
-                type: 'other'
-            });
-        } else if (className.includes('Beam')) {
-            sections.push({
-                id: 'usage',
-                title: 'Structural Element',
-                content: [
-                    { type: 'text', content: 'Beams are horizontal structural elements that carry loads perpendicular to their length.' },
-                    { type: 'text', content: 'They transfer loads from slabs and other elements to columns or walls.' }
-                ],
-                type: 'other'
-            });
-        } else if (className.includes('Column')) {
-            sections.push({
-                id: 'usage',
-                title: 'Structural Element',
-                content: [
-                    { type: 'text', content: 'Columns are vertical structural elements that transfer loads from upper levels to foundations.' },
-                    { type: 'text', content: 'They provide vertical support and can be made of various materials like concrete, steel, or wood.' }
-                ],
-                type: 'other'
-            });
-        } else if (className.includes('Door')) {
-            sections.push({
-                id: 'usage',
-                title: 'Building Element',
-                content: [
-                    { type: 'text', content: 'Doors provide controlled access between spaces and can include various opening mechanisms.' },
-                    { type: 'text', content: 'They may include frames, hardware, and glazing components.' }
-                ],
-                type: 'other'
-            });
-        } else if (className.includes('Window')) {
-            sections.push({
-                id: 'usage',
-                title: 'Building Element',
-                content: [
-                    { type: 'text', content: 'Windows provide natural light, ventilation, and views between interior and exterior spaces.' },
-                    { type: 'text', content: 'They include glazing, frames, and may have various opening configurations.' }
-                ],
-                type: 'other'
-            });
-        } else if (className.includes('Space')) {
-            sections.push({
-                id: 'usage',
-                title: 'Spatial Element',
-                content: [
-                    { type: 'text', content: 'Spaces define functional areas within buildings for specific activities or purposes.' },
-                    { type: 'text', content: 'They contain spatial boundaries and can include environmental and usage requirements.' }
-                ],
-                type: 'other'
-            });
-        }
-
-        // IFC Schema information
-        sections.push({
-            id: 'schema-info',
-            title: 'IFC Schema Information',
-            content: [
-                {
-                    type: 'text',
-                    content: 'IFC (Industry Foundation Classes) is an open international standard for Building Information Modeling data exchange.'
-                },
-                {
-                    type: 'list',
-                    content: '',
-                    data: [
-                        'Standardized by buildingSMART International',
-                        'ISO 16739 certified standard',
-                        'Enables interoperability between different BIM software',
-                        'Supports the entire building lifecycle'
-                    ]
-                }
-            ],
-            type: 'references'
-        });
-
-        // Access information
-        sections.push({
-            id: 'access',
-            title: 'Documentation Access',
-            content: [
-                {
-                    type: 'note',
-                    content: `To access the complete documentation for ${className}, use the external link to view the official IFC documentation on the buildingSMART website.`,
-                    style: 'reference'
-                }
-            ],
-            type: 'references'
-        });
-
-        return sections;
-    }, []);
-
-    // Extract image sources from raw HTML before parsing to avoid URL resolution issues
-    const extractRawImageSources = useCallback((html: string): Map<string, string> => {
-        const imageMap = new Map<string, string>();
-
-        // Use regex to find img tags and extract src attributes before browser resolution
-        const imgRegex = /<img[^>]+src=["']([^"']+)["'][^>]*>/gi;
-        const figureImgRegex = /<figure[^>]*>[\s\S]*?<img[^>]+src=["']([^"']+)["'][^>]*>[\s\S]*?<\/figure>/gi;
-
-        let match;
-
-        // Extract standalone img tags
-        while ((match = imgRegex.exec(html)) !== null) {
-            const rawSrc = match[1];
-            console.log(`Raw HTML extraction found img src: "${rawSrc}"`);
-
-            // Create a unique key based on alt text or src
-            const altMatch = match[0].match(/alt=["']([^"']*)["']/i);
-            const alt = altMatch ? altMatch[1] : rawSrc;
-            imageMap.set(alt, rawSrc);
-        }
-
-        // Extract figure img tags
-        imgRegex.lastIndex = 0; // Reset regex
-        while ((match = figureImgRegex.exec(html)) !== null) {
-            const rawSrc = match[1];
-            console.log(`Raw HTML extraction found figure img src: "${rawSrc}"`);
-
-            // Create a unique key based on figcaption or alt text
-            const captionMatch = match[0].match(/<figcaption[^>]*>([^<]+)<\/figcaption>/i);
-            const altMatch = match[0].match(/alt=["']([^"']*)["']/i);
-            const key = captionMatch ? captionMatch[1] : (altMatch ? altMatch[1] : rawSrc);
-            imageMap.set(key, rawSrc);
-        }
-
-        console.log(`Extracted ${imageMap.size} raw image sources`);
-        return imageMap;
-    }, []);
-
-    // Parse schema content from HTML
-    const parseSchemaContent = useCallback((html: string, baseUrl: string): SchemaSection[] => {
-        console.log(`Parsing schema content for: ${baseUrl}`);
-        console.log(`HTML content preview: ${html.substring(0, 500)}...`);
-
-        // Extract raw image sources before parsing
-        const rawImageSources = extractRawImageSources(html);
-
-        // Extract the base URL for IFC documentation
-        const ifcDocumentationBase = 'https://ifc43-docs.standards.buildingsmart.org/IFC/RELEASE/IFC4x3/HTML';
-
-        // Modify HTML to include proper base tag BEFORE parsing to prevent localhost resolution
-        let modifiedHtml = html;
-        if (!html.includes('<base')) {
-            // Insert base tag right after <head> or at the beginning if no head
-            if (html.includes('<head>')) {
-                modifiedHtml = html.replace('<head>', `<head><base href="${ifcDocumentationBase}/">`);
-            } else if (html.includes('<html>')) {
-                modifiedHtml = html.replace('<html>', `<html><head><base href="${ifcDocumentationBase}/"></head>`);
-            } else {
-                modifiedHtml = `<html><head><base href="${ifcDocumentationBase}/"></head><body>${html}</body></html>`;
-            }
-        }
-
-        console.log(`Modified HTML with base URL for parsing`);
-
-        const parser = new DOMParser();
-        const doc = parser.parseFromString(modifiedHtml, "text/html");
-        const extractedSections: SchemaSection[] = [];
-
-        const headings = Array.from(doc.querySelectorAll("h1, h2, h3, h4, h5, h6"));
-        console.log(`Found ${headings.length} headings`);
-
-        for (const heading of headings) {
-            const headingText = heading.textContent?.trim() || "";
-            if (!headingText) continue;
-
-            const sectionType = getSectionType(headingText);
-            const sectionId = headingText.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]/g, '');
-
-            const content = extractEnhancedSectionContent(heading, doc, baseUrl, rawImageSources);
-
-            if (content.length > 0) {
-                extractedSections.push({
-                    id: sectionId,
-                    title: headingText,
-                    content,
-                    type: sectionType
-                });
-            }
-        }
-
-        console.log(`Extracted ${extractedSections.length} sections`);
-        return extractedSections;
-    }, [extractRawImageSources]);
-
-    // Proper image URL resolution
     const resolveImageUrl = useCallback((src: string, baseHref: string, basePath: string): string => {
         console.log(`Resolving image URL: src="${src}", baseHref="${baseHref}", basePath="${basePath}"`);
 
@@ -614,7 +243,7 @@ export function SchemaReader({
         }
     }, []);
 
-    // Test URL resolution (for debugging) - moved after resolveImageUrl declaration
+    // Test URL resolution (for debugging)
     const testUrlResolution = useCallback(() => {
         const testCases = [
             '/figures/ifcbuildingelement-brep-layout1.gif',
@@ -630,7 +259,7 @@ export function SchemaReader({
         console.log('=== URL Resolution Test ===');
         testCases.forEach(testSrc => {
             const resolved = resolveImageUrl(testSrc, baseHref, basePath);
-            console.log(`"${testSrc}" -> "${resolved}"`);
+            console.log(`&quot;${testSrc}&quot; -> &quot;${resolved}&quot;`);
         });
         console.log('=== End Test ===');
     }, [resolveImageUrl]);
@@ -657,104 +286,6 @@ export function SchemaReader({
         return false; // Be conservative and exclude unknown formats
     }, []);
 
-    // Extract nested list structure recursively
-    const extractNestedList = useCallback((listElement: Element): any[] => {
-        const items: any[] = [];
-
-        // Get direct children li elements only (not nested ones)
-        const directListItems = Array.from(listElement.children).filter(child =>
-            child.tagName.toLowerCase() === 'li'
-        );
-
-        for (const li of directListItems) {
-            const item: any = {
-                text: '',
-                children: []
-            };
-
-            // Extract text content, but exclude nested lists
-            const textNodes: string[] = [];
-            for (const child of Array.from(li.childNodes)) {
-                if (child.nodeType === Node.TEXT_NODE) {
-                    const text = child.textContent?.trim();
-                    if (text) textNodes.push(text);
-                } else if (child.nodeType === Node.ELEMENT_NODE) {
-                    const element = child as Element;
-                    if (!['ul', 'ol'].includes(element.tagName.toLowerCase())) {
-                        const text = element.textContent?.trim();
-                        if (text) textNodes.push(text);
-                    }
-                }
-            }
-            item.text = textNodes.join(' ').trim();
-
-            // Look for nested lists within this li
-            const nestedLists = Array.from(li.querySelectorAll(':scope > ul, :scope > ol'));
-            for (const nestedList of nestedLists) {
-                const nestedItems = extractNestedList(nestedList);
-                item.children.push(...nestedItems);
-            }
-
-            if (item.text || item.children.length > 0) {
-                items.push(item);
-            }
-        }
-
-        return items;
-    }, []);
-
-    // Enhanced table extraction for property sets and complex structures
-    const extractTableData = useCallback((table: HTMLTableElement): any => {
-        const headers: string[] = [];
-        const rows: any[] = [];
-
-        // Extract headers
-        const headerRow = table.querySelector('thead tr') || table.querySelector('tr');
-        if (headerRow) {
-            const headerCells = headerRow.querySelectorAll('th, td');
-            headerCells.forEach(cell => {
-                headers.push(cell.textContent?.trim() || '');
-            });
-        }
-
-        // Extract data rows with enhanced property set handling
-        const dataRows = table.querySelectorAll('tbody tr, tr:not(:first-child)');
-        dataRows.forEach(row => {
-            const cells = row.querySelectorAll('td, th');
-            const rowData: any[] = [];
-
-            cells.forEach((cell, cellIndex) => {
-                const cellText = cell.textContent?.trim() || '';
-
-                // Check if this cell contains nested property lists (common in property sets)
-                const nestedLists = cell.querySelectorAll('ul, ol');
-                if (nestedLists.length > 0 && cellText.length > 100) {
-                    // This cell contains complex content with lists - preserve structure
-                    const cellContent = {
-                        text: cellText,
-                        hasNestedContent: true,
-                        structure: extractCellStructure(cell)
-                    };
-                    rowData.push(cellContent);
-                } else {
-                    // Simple text cell
-                    rowData.push(cellText);
-                }
-            });
-
-            if (rowData.length > 0) {
-                rows.push(rowData);
-            }
-        });
-
-        return {
-            headers, rows, hasComplexContent: rows.some(row =>
-                row.some((cell: any) => typeof cell === 'object' && cell.hasNestedContent)
-            )
-        };
-    }, []);
-
-    // Extract structured content from table cells (for property sets)
     const extractCellStructure = useCallback((cell: Element): any => {
         const structure: any = {
             sections: []
@@ -813,7 +344,101 @@ export function SchemaReader({
         return structure;
     }, []);
 
-    // Enhanced content extraction with better property sets handling
+    const extractNestedList = useCallback((listElement: Element): any[] => {
+        const items: any[] = [];
+
+        // Get direct children li elements only (not nested ones)
+        const directListItems = Array.from(listElement.children).filter(child =>
+            child.tagName.toLowerCase() === 'li'
+        );
+
+        for (const li of directListItems) {
+            const item: any = {
+                text: '',
+                children: []
+            };
+
+            // Extract text content, but exclude nested lists
+            const textNodes: string[] = [];
+            for (const child of Array.from(li.childNodes)) {
+                if (child.nodeType === Node.TEXT_NODE) {
+                    const text = child.textContent?.trim();
+                    if (text) textNodes.push(text);
+                } else if (child.nodeType === Node.ELEMENT_NODE) {
+                    const element = child as Element;
+                    if (!['ul', 'ol'].includes(element.tagName.toLowerCase())) {
+                        const text = element.textContent?.trim();
+                        if (text) textNodes.push(text);
+                    }
+                }
+            }
+            item.text = textNodes.join(' ').trim();
+
+            // Look for nested lists within this li
+            const nestedLists = Array.from(li.querySelectorAll(':scope > ul, :scope > ol'));
+            for (const nestedList of nestedLists) {
+                const nestedItems = extractNestedList(nestedList);
+                item.children.push(...nestedItems);
+            }
+
+            if (item.text || item.children.length > 0) {
+                items.push(item);
+            }
+        }
+
+        return items;
+    }, []);
+
+    const extractTableData = useCallback((table: HTMLTableElement): any => {
+        const headers: string[] = [];
+        const rows: any[] = [];
+
+        // Extract headers
+        const headerRow = table.querySelector('thead tr') || table.querySelector('tr');
+        if (headerRow) {
+            const headerCells = headerRow.querySelectorAll('th, td');
+            headerCells.forEach(cell => {
+                headers.push(cell.textContent?.trim() || '');
+            });
+        }
+
+        // Extract data rows with enhanced property set handling
+        const dataRows = table.querySelectorAll('tbody tr, tr:not(:first-child)');
+        dataRows.forEach(row => {
+            const cells = row.querySelectorAll('td, th');
+            const rowData: any[] = [];
+
+            cells.forEach((cell, cellIndex) => {
+                const cellText = cell.textContent?.trim() || '';
+
+                // Check if this cell contains nested property lists (common in property sets)
+                const nestedLists = cell.querySelectorAll('ul, ol');
+                if (nestedLists.length > 0 && cellText.length > 100) {
+                    // This cell contains complex content with lists - preserve structure
+                    const cellContent = {
+                        text: cellText,
+                        hasNestedContent: true,
+                        structure: extractCellStructure(cell)
+                    };
+                    rowData.push(cellContent);
+                } else {
+                    // Simple text cell
+                    rowData.push(cellText);
+                }
+            });
+
+            if (rowData.length > 0) {
+                rows.push(rowData);
+            }
+        });
+
+        return {
+            headers, rows, hasComplexContent: rows.some(row =>
+                row.some((cell: any) => typeof cell === 'object' && cell.hasNestedContent)
+            )
+        };
+    }, [extractCellStructure]);
+
     const extractEnhancedSectionContent = useCallback((heading: Element, doc: Document, baseUrl: string, rawImageSources: Map<string, string>): SchemaContent[] => {
         const content: SchemaContent[] = [];
         let el = heading.nextElementSibling;
@@ -1003,25 +628,395 @@ export function SchemaReader({
         }
 
         return content;
-    }, [testUrlResolution, isStaticImageFormat, extractNestedList, extractTableData, extractCellStructure]);
+    }, [extractTableData, extractNestedList, resolveImageUrl, isStaticImageFormat, testUrlResolution]);
 
-    // Determine section type from heading text
-    const getSectionType = useCallback((headingText: string): SchemaSection['type'] => {
-        const lower = headingText.toLowerCase();
-        if (lower.includes('semantic definition')) return 'definition';
-        if (lower.includes('attribute')) return 'attributes';
-        if (lower.includes('inheritance')) return 'inheritance';
-        if (lower.includes('example')) return 'examples';
-        if (lower.includes('formal')) return 'formal';
-        if (lower.includes('proposition')) return 'propositions';
-        if (lower.includes('reference')) return 'references';
-        if (lower.includes('property set') || lower.includes('pset')) return 'attributes'; // Property sets are attribute-related
-        return 'other';
+    const extractRawImageSources = useCallback((html: string): Map<string, string> => {
+        const imageMap = new Map<string, string>();
+
+        // Use regex to find img tags and extract src attributes before browser resolution
+        const imgRegex = /<img[^>]+src=["']([^"']+)["'][^>]*>/gi;
+        const figureImgRegex = /<figure[^>]*>[\s\S]*?<img[^>]+src=["']([^"']+)["'][^>]*>[\s\S]*?<\/figure>/gi;
+
+        let match;
+
+        // Extract standalone img tags
+        while ((match = imgRegex.exec(html)) !== null) {
+            const rawSrc = match[1];
+            console.log(`Raw HTML extraction found img src: &quot;${rawSrc}&quot;`);
+
+            // Create a unique key based on alt text or src
+            const altMatch = match[0].match(/alt=["']([^"']*)["']/i);
+            const alt = altMatch ? altMatch[1] : rawSrc;
+            imageMap.set(alt, rawSrc);
+        }
+
+        // Extract figure img tags
+        imgRegex.lastIndex = 0; // Reset regex
+        while ((match = figureImgRegex.exec(html)) !== null) {
+            const rawSrc = match[1];
+            console.log(`Raw HTML extraction found figure img src: &quot;${rawSrc}&quot;`);
+
+            // Create a unique key based on figcaption or alt text
+            const captionMatch = match[0].match(/<figcaption[^>]*>([^<]+)<\/figcaption>/i);
+            const altMatch = match[0].match(/alt=["']([^"']*)["']/i);
+            const key = captionMatch ? captionMatch[1] : (altMatch ? altMatch[1] : rawSrc);
+            imageMap.set(key, rawSrc);
+        }
+
+        console.log(`Extracted ${imageMap.size} raw image sources`);
+        return imageMap;
     }, []);
 
-    const isHeading = useCallback((el: Element): boolean => {
-        return ['h1', 'h2', 'h3', 'h4', 'h5', 'h6'].includes(el.tagName.toLowerCase());
+    const parseSchemaContent = useCallback((html: string, baseUrl: string): SchemaSection[] => {
+        console.log(`Parsing schema content for: ${baseUrl}`);
+        console.log(`HTML content preview: ${html.substring(0, 500)}...`);
+
+        // Extract raw image sources before parsing
+        const rawImageSources = extractRawImageSources(html);
+
+        // Extract the base URL for IFC documentation
+        const ifcDocumentationBase = 'https://ifc43-docs.standards.buildingsmart.org/IFC/RELEASE/IFC4x3/HTML';
+
+        // Modify HTML to include proper base tag BEFORE parsing to prevent localhost resolution
+        let modifiedHtml = html;
+        if (!html.includes('<base')) {
+            // Insert base tag right after <head> or at the beginning if no head
+            if (html.includes('<head>')) {
+                modifiedHtml = html.replace('<head>', `<head><base href="${ifcDocumentationBase}/">`);
+            } else if (html.includes('<html>')) {
+                modifiedHtml = html.replace('<html>', `<html><head><base href="${ifcDocumentationBase}/"></head>`);
+            } else {
+                modifiedHtml = `<html><head><base href="${ifcDocumentationBase}/"></head><body>${html}</body></html>`;
+            }
+        }
+
+        console.log(`Modified HTML with base URL for parsing`);
+
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(modifiedHtml, "text/html");
+        const extractedSections: SchemaSection[] = [];
+
+        const headings = Array.from(doc.querySelectorAll("h1, h2, h3, h4, h5, h6"));
+        console.log(`Found ${headings.length} headings`);
+
+        for (const heading of headings) {
+            const headingText = heading.textContent?.trim() || "";
+            if (!headingText) continue;
+
+            const sectionType = getSectionType(headingText);
+            const sectionId = headingText.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]/g, '');
+
+            const content = extractEnhancedSectionContent(heading, doc, baseUrl, rawImageSources);
+
+            if (content.length > 0) {
+                extractedSections.push({
+                    id: sectionId,
+                    title: headingText,
+                    content,
+                    type: sectionType
+                });
+            }
+        }
+
+        console.log(`Extracted ${extractedSections.length} sections`);
+        return extractedSections;
+    }, [extractRawImageSources, getSectionType, extractEnhancedSectionContent, isHeading]);
+
+    // Throttled request function
+    const throttledRequest = useCallback(async (url: string, options: RequestInit): Promise<Response> => {
+        const now = Date.now();
+        const timeSinceLastRequest = now - lastRequestTime;
+
+        if (timeSinceLastRequest < MIN_REQUEST_INTERVAL) {
+            const delay = MIN_REQUEST_INTERVAL - timeSinceLastRequest;
+            await new Promise(resolve => setTimeout(resolve, delay));
+        }
+
+        lastRequestTime = Date.now();
+        return fetch(url, options);
     }, []);
+
+    // Enhanced fallback content generator
+    const getEnhancedFallbackSections = useCallback((className: string, url: string): SchemaSection[] => {
+        const sections: SchemaSection[] = [];
+
+        // Main definition section
+        sections.push({
+            id: 'definition',
+            title: 'Semantic Definition',
+            content: [
+                {
+                    type: 'text',
+                    content: `${className} is an IFC (Industry Foundation Classes) entity used in Building Information Modeling (BIM).`
+                },
+                {
+                    type: 'note',
+                    content: 'The detailed documentation for this entity is temporarily unavailable due to network restrictions. You can access the full documentation using the external link.',
+                    style: 'note'
+                }
+            ],
+            type: 'definition'
+        });
+
+        // Add specific information based on class name patterns
+        if (className.includes('Wall')) {
+            sections.push({
+                id: 'usage',
+                title: 'Common Usage',
+                content: [
+                    { type: 'text', content: 'Walls are fundamental building elements that provide structural support, separation of spaces, and environmental barriers.' },
+                    { type: 'text', content: 'They can be load-bearing or non-load-bearing, and may include openings for doors and windows.' }
+                ],
+                type: 'other'
+            });
+        } else if (className.includes('Slab')) {
+            sections.push({
+                id: 'usage',
+                title: 'Common Usage',
+                content: [
+                    { type: 'text', content: 'Slabs are horizontal structural elements that form floors, roofs, or other horizontal surfaces.' },
+                    { type: 'text', content: 'They distribute loads and provide platforms for other building elements.' }
+                ],
+                type: 'other'
+            });
+        } else if (className.includes('Project')) {
+            sections.push({
+                id: 'hierarchy',
+                title: 'Project Hierarchy',
+                content: [
+                    { type: 'text', content: 'IfcProject is the root element of any IFC model and establishes the global context.' },
+                    { type: 'text', content: 'It contains references to units, coordinate systems, and the overall project structure.' }
+                ],
+                type: 'other'
+            });
+        } else if (className.includes('Beam')) {
+            sections.push({
+                id: 'usage',
+                title: 'Structural Element',
+                content: [
+                    { type: 'text', content: 'Beams are horizontal structural elements that carry loads perpendicular to their length.' },
+                    { type: 'text', content: 'They transfer loads from slabs and other elements to columns or walls.' }
+                ],
+                type: 'other'
+            });
+        } else if (className.includes('Column')) {
+            sections.push({
+                id: 'usage',
+                title: 'Structural Element',
+                content: [
+                    { type: 'text', content: 'Columns are vertical structural elements that transfer loads from upper levels to foundations.' },
+                    { type: 'text', content: 'They provide vertical support and can be made of various materials like concrete, steel, or wood.' }
+                ],
+                type: 'other'
+            });
+        } else if (className.includes('Door')) {
+            sections.push({
+                id: 'usage',
+                title: 'Building Element',
+                content: [
+                    { type: 'text', content: 'Doors provide controlled access between spaces and can include various opening mechanisms.' },
+                    { type: 'text', content: 'They may include frames, hardware, and glazing components.' }
+                ],
+                type: 'other'
+            });
+        } else if (className.includes('Window')) {
+            sections.push({
+                id: 'usage',
+                title: 'Building Element',
+                content: [
+                    { type: 'text', content: 'Windows provide natural light, ventilation, and views between interior and exterior spaces.' },
+                    { type: 'text', content: 'They include glazing, frames, and may have various opening configurations.' }
+                ],
+                type: 'other'
+            });
+        } else if (className.includes('Space')) {
+            sections.push({
+                id: 'usage',
+                title: 'Spatial Element',
+                content: [
+                    { type: 'text', content: 'Spaces define functional areas within buildings for specific activities or purposes.' },
+                    { type: 'text', content: 'They contain spatial boundaries and can include environmental and usage requirements.' }
+                ],
+                type: 'other'
+            });
+        }
+
+        // IFC Schema information
+        sections.push({
+            id: 'schema-info',
+            title: 'IFC Schema Information',
+            content: [
+                {
+                    type: 'text',
+                    content: 'IFC (Industry Foundation Classes) is an open international standard for Building Information Modeling data exchange.'
+                },
+                {
+                    type: 'list',
+                    content: '',
+                    data: [
+                        'Standardized by buildingSMART International',
+                        'ISO 16739 certified standard',
+                        'Enables interoperability between different BIM software',
+                        'Supports the entire building lifecycle'
+                    ]
+                }
+            ],
+            type: 'references'
+        });
+
+        // Access information
+        sections.push({
+            id: 'access',
+            title: 'Documentation Access',
+            content: [
+                {
+                    type: 'note',
+                    content: `To access the complete documentation for ${className}, use the external link to view the official IFC documentation on the buildingSMART website.`,
+                    style: 'reference'
+                }
+            ],
+            type: 'references'
+        });
+
+        return sections;
+    }, []);
+
+    // Load schema with multiple fallback strategies
+    const loadSchemaWithFallbacks = useCallback(async (url: string): Promise<SchemaSection[]> => {
+        // Strategy 1: Try enhanced CORS proxies
+        const corsProxies = [
+            {
+                name: "thingproxy.freeboard.io",
+                url: (url: string) => `https://thingproxy.freeboard.io/fetch/${url}`,
+                headers: { 'Accept': 'text/html' }
+            },
+            {
+                name: "crossorigin.me",
+                url: (url: string) => `https://crossorigin.me/${url}`,
+                headers: { 'Accept': 'text/html' }
+            },
+            {
+                name: "cors.sh",
+                url: (url: string) => `https://cors.sh/${url}`,
+                headers: { 'Accept': 'text/html' }
+            },
+            {
+                name: "proxy.cors.sh",
+                url: (url: string) => `https://proxy.cors.sh/${url}`,
+                headers: { 'Accept': 'text/html' }
+            },
+            {
+                name: "corsproxy.io",
+                url: (url: string) => `https://corsproxy.io/?${encodeURIComponent(url)}`,
+                headers: { 'Accept': 'text/html' }
+            },
+        ];
+
+        let lastError: Error | null = null;
+
+        // Try CORS proxies with enhanced error handling
+        for (const proxy of corsProxies) {
+            try {
+                setLoadingProxy(proxy.name);
+                console.log(`Trying CORS proxy: ${proxy.name}`);
+
+                const proxyUrl = proxy.url(url);
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 15000);
+
+                const res = await throttledRequest(proxyUrl, {
+                    signal: controller.signal,
+                    headers: {
+                        ...proxy.headers,
+                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+                        'Origin': window.location.origin,
+                        'Referer': window.location.href,
+                    }
+                });
+
+                clearTimeout(timeoutId);
+
+                if (!res.ok) {
+                    if (res.status === 429) {
+                        console.warn(`Rate limited by ${proxy.name}, trying next...`);
+                        await new Promise(resolve => setTimeout(resolve, 5000));
+                        continue;
+                    } else if (res.status === 403) {
+                        console.warn(`Forbidden by ${proxy.name}, trying next...`);
+                        await new Promise(resolve => setTimeout(resolve, 2000));
+                        continue;
+                    }
+                    throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+                }
+
+                const text = await res.text();
+                if (text && text.length > 100 && (text.includes('<html') || text.includes('<!DOCTYPE'))) {
+                    const parsed = parseSchemaContent(text, url);
+                    if (parsed && parsed.length > 0) {
+                        return parsed;
+                    }
+                }
+                throw new Error('Invalid or empty response content');
+
+            } catch (err) {
+                console.error(`Proxy ${proxy.name} failed:`, err);
+                lastError = err instanceof Error ? err : new Error("Unknown error");
+                await new Promise(resolve => setTimeout(resolve, 1500));
+            }
+        }
+
+        // Strategy 2: Return enhanced fallback content
+        console.log('All proxies failed, using enhanced fallback content');
+        return getEnhancedFallbackSections(ifcClassName, url);
+    }, [throttledRequest, ifcClassName, getEnhancedFallbackSections, parseSchemaContent]);
+
+    // Load full schema content with enhanced extraction and persistent caching
+    const loadFullSchema = useCallback(async (): Promise<void> => {
+        if (!schemaUrl || loading) return;
+
+        // Check cache first (both memory and localStorage)
+        if (schemaCache.has(schemaUrl)) {
+            console.log('Loading schema from cache:', schemaUrl);
+            setSections(schemaCache.get(schemaUrl)!);
+            return;
+        }
+
+        // Check if already requesting this URL
+        if (requestQueue.has(schemaUrl)) {
+            console.log('Schema request already in progress for:', schemaUrl);
+            try {
+                const cachedSections = await requestQueue.get(schemaUrl)!;
+                setSections(cachedSections);
+                return;
+            } catch (err) {
+                // Continue with new request if cached request failed
+            }
+        }
+
+        setLoading(true);
+        setError(null);
+        setLoadingProxy("");
+
+        // Create request promise and add to queue
+        const requestPromise = loadSchemaWithFallbacks(schemaUrl);
+        requestQueue.set(schemaUrl, requestPromise);
+
+        try {
+            const extractedSections = await requestPromise;
+            setSections(extractedSections);
+            // Cache successful result in both memory and localStorage
+            schemaCache.set(schemaUrl, extractedSections);
+            saveSchemaCacheToStorage();
+            setRetryAttempt(0);
+        } catch (err) {
+            console.error("Failed to load schema:", err);
+            const errorMessage = err instanceof Error ? err.message : "Failed to load schema";
+            setError(errorMessage);
+        } finally {
+            setLoading(false);
+            requestQueue.delete(schemaUrl);
+        }
+    }, [schemaUrl, loading, loadSchemaWithFallbacks]);
 
     // Search functionality
     const filteredSections = useMemo(() => {
@@ -1247,23 +1242,24 @@ export function SchemaReader({
                     <div key={index} className="mb-6 max-w-full">
                         <div className="rounded-lg border border-border overflow-hidden bg-muted/30 group">
                             <div className="relative">
-                                <img
+                                <NextImage
                                     src={item.data?.src}
                                     alt={item.data?.alt || 'Diagram'}
+                                    width={800}
+                                    height={600}
                                     className="w-full h-auto cursor-pointer transition-transform duration-200 group-hover:scale-[1.02] max-w-full"
                                     onClick={() => openImageModal(item.data?.src, item.data?.alt || 'Diagram')}
                                     onError={(e) => {
-                                        const target = e.target as HTMLImageElement;
-                                        console.error(`Failed to load image: ${target.src}`);
+                                        console.error(`Failed to load image: ${e.currentTarget.src}`);
                                         console.error(`Original source: ${item.data?.originalSrc}`);
 
                                         // Hide the entire image container instead of showing error
-                                        const imageContainer = target.closest('.mb-6');
+                                        const imageContainer = e.currentTarget.closest('.mb-6');
                                         if (imageContainer) {
                                             (imageContainer as HTMLElement).style.display = 'none';
                                         }
                                     }}
-                                    onLoad={() => {
+                                    onLoadingComplete={() => {
                                         console.log(`Successfully loaded image: ${item.data?.src}`);
                                     }}
                                     data-original-src={item.data?.originalSrc}
@@ -1561,7 +1557,7 @@ export function SchemaReader({
                                         </div>
                                         <div>
                                             <p className="text-base font-medium text-foreground mb-2">No Content Available</p>
-                                            <p className="text-sm text-muted-foreground">Click "Load Full Content" to fetch documentation</p>
+                                            <p className="text-sm text-muted-foreground">Click &quot;Load Full Content&quot; to fetch documentation</p>
                                         </div>
                                     </div>
                                 </div>
@@ -1586,9 +1582,11 @@ export function SchemaReader({
 
                         {selectedImage && (
                             <div className="flex flex-col items-center max-w-full max-h-full p-8">
-                                <img
+                                <NextImage
                                     src={selectedImage.src}
                                     alt={selectedImage.alt}
+                                    width={800}
+                                    height={600}
                                     className="max-w-full max-h-[80vh] object-contain animate-in zoom-in duration-300"
                                 />
                                 <div className="text-center text-white mt-4 max-w-2xl">
