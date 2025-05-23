@@ -93,6 +93,11 @@ IFC Classifier helps you classify IFC elements without needing expert knowledge 
 - Improved language selection menu and settings layout.
 - Refined properties panel and overall UI styling.
 
+**May 21, 2025:**
+
+- Added ability to import rule definitions from Excel (.xlsx) files.
+- Added ability to export rules to Excel for easier sharing.
+
 **May 20, 2025:**
 
 - Enhanced user interface with footer improvements.
@@ -104,11 +109,6 @@ IFC Classifier helps you classify IFC elements without needing expert knowledge 
 - Added functionality to import and export classifications as JSON files.
 - Added favicons for better cross-browser compatibility.
 - Enhanced property extraction and rendering from IFC models.
-
-**May 21, 2025:**
-
-- Added ability to import rule definitions from Excel (.xlsx) files.
-- Added ability to export rules to Excel for easier sharing.
 
 **May 19, 2025:**
 
