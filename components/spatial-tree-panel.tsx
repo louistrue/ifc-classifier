@@ -6,6 +6,7 @@ import React, {
   useCallback,
   useRef,
   useMemo,
+  useDeferredValue,
 } from "react";
 import {
   useIFCContext,
@@ -55,7 +56,7 @@ import { SchemaReader } from "./schema-reader";
 const getNodeKey = (
   node: SpatialStructureNode,
   modelID: number | null | undefined,
-  isRootModel: boolean = false
+  isRootModel: boolean = false,
 ) => {
   if (isRootModel && modelID !== null && modelID !== undefined) {
     return `model-root-${modelID}`;
@@ -130,7 +131,7 @@ const TreeNode: React.FC<TreeNodeProps> = ({
 
   const currentModelIDForNode = isRootModelNode
     ? modelFileInfo.modelID
-    : modelFileInfo?.modelID ?? null;
+    : (modelFileInfo?.modelID ?? null);
   const nodeKey = getNodeKey(node, currentModelIDForNode, isRootModelNode);
   const isExpanded = expandedNodeKeys.has(nodeKey);
 
@@ -146,13 +147,19 @@ const TreeNode: React.FC<TreeNodeProps> = ({
   }, [node]);
 
   const isStoreyHidden = useMemo(() => {
-    if (!node.type.includes("STOREY") || modelFileInfo.modelID === null) return false;
+    if (!node.type.includes("STOREY") || modelFileInfo.modelID === null)
+      return false;
     return storeyDescendantIds.every((id) =>
       userHiddenElements.some(
-        (el) => el.modelID === modelFileInfo.modelID && el.expressID === id
-      )
+        (el) => el.modelID === modelFileInfo.modelID && el.expressID === id,
+      ),
     );
-  }, [userHiddenElements, storeyDescendantIds, node.type, modelFileInfo.modelID]);
+  }, [
+    userHiddenElements,
+    storeyDescendantIds,
+    node.type,
+    modelFileInfo.modelID,
+  ]);
 
   const getIcon = (type: string) => {
     if (isRootModelNode)
@@ -270,8 +277,16 @@ const TreeNode: React.FC<TreeNodeProps> = ({
   return (
     <>
       <div
-        className="text-sm"
-        ref={nodeKey === selectedNodeKeyForScroll ? selectedNodeActualRef : null}
+        className={cn(
+          "flex items-center py-1.5 px-2 rounded-md hover:bg-accent group",
+          isSelected && "bg-accent text-accent-foreground font-semibold",
+          !isSelected && matchesSearch && "bg-primary/10",
+          isRootModelNode ? "cursor-default" : "cursor-pointer",
+        )}
+        style={{
+          paddingLeft: `${level * 1.25 + (isRootModelNode ? 0.25 : 0.5)}rem`,
+        }}
+        onClick={handleSelect}
       >
         <div
           className={cn(
@@ -407,30 +422,58 @@ const TreeNode: React.FC<TreeNodeProps> = ({
               ) : (
                 <Eye className="w-4 h-4" />
               )}
-            </Button>
-          )}
-        </div>
-        {isExpanded && node.children && node.children.length > 0 && (
-          <div className={cn(isRootModelNode ? "pl-0" : "pl-0")}>
-            {node.children.map((childNode) => (
-              <TreeNode
-                key={getNodeKey(childNode, modelFileInfo.modelID)}
-                node={childNode}
-                level={level + 1}
-                onSelectNode={onSelectNode}
-                selectedElementInfo={selectedElementInfo}
-                modelFileInfo={modelFileInfo}
-                onAttemptRemoveModel={onAttemptRemoveModel}
-                expandedNodeKeys={expandedNodeKeys}
-                toggleNodeExpansion={toggleNodeExpansion}
-                selectedNodeKeyForScroll={selectedNodeKeyForScroll}
-                selectedNodeActualRef={selectedNodeActualRef}
-                modelID={modelFileInfo.modelID}
-                t={t}
-                searchQuery={searchQuery}
-              />
-            ))}
-          </div>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+        {!memoizedChildren.length && <div className="w-4 mr-1 flex-shrink-0" />}
+        {isRootModelNode && (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="w-6 h-6 ml-1 opacity-0 group-hover:opacity-100 transition-opacity"
+            title={
+              isModelHidden
+                ? t("modelViewer.showModel", { name: modelFileInfo.name })
+                : t("modelViewer.hideModel", { name: modelFileInfo.name })
+            }
+            onClick={handleToggleModelVisibility}
+          >
+            {isModelHidden ? (
+              <EyeOff className="w-4 h-4" />
+            ) : (
+              <Eye className="w-4 h-4" />
+            )}
+          </Button>
+        )}
+        {isRootModelNode && onAttemptRemoveModel && (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="w-6 h-6 ml-1 opacity-0 group-hover:opacity-100 transition-opacity"
+            title={t("modelViewer.removeModel", { name: modelFileInfo.name })}
+            onClick={handleRemoveClick}
+          >
+            <XCircle className="w-4 h-4 text-destructive" />
+          </Button>
+        )}
+        {!isRootModelNode && node.type.includes("STOREY") && (
+          <Button
+            variant="ghost"
+            size="icon"
+            className="w-6 h-6 ml-1 opacity-0 group-hover:opacity-100 transition-opacity"
+            title={
+              isStoreyHidden
+                ? t("modelViewer.showStorey")
+                : t("modelViewer.hideStorey")
+            }
+            onClick={handleToggleStoreyVisibility}
+          >
+            {isStoreyHidden ? (
+              <EyeOff className="w-4 h-4" />
+            ) : (
+              <Eye className="w-4 h-4" />
+            )}
+          </Button>
         )}
       </div>
 
@@ -463,13 +506,14 @@ export function SpatialTreePanel() {
   } | null>(null);
 
   const [expandedNodeKeys, setExpandedNodeKeys] = useState<Set<string>>(
-    new Set()
+    new Set(),
   );
   const selectedNodeRef = useRef<HTMLDivElement>(null);
   const [selectedNodeKeyForScroll, setSelectedNodeKeyForScroll] = useState<
     string | null
   >(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const deferredSearchQuery = useDeferredValue(searchQuery);
 
   const toggleNodeExpansion = useCallback((nodeKeyToToggle: string) => {
     setExpandedNodeKeys((prevKeys) => {
@@ -489,7 +533,7 @@ export function SpatialTreePanel() {
       targetExpressID: number,
       modelID: number,
       currentPathKeys: string[],
-      currentStoreyKey: string | null
+      currentStoreyKey: string | null,
     ): PathFindingResult | null => {
       const nodeKey = getNodeKey(currentNode, modelID);
       currentPathKeys.push(nodeKey);
@@ -514,7 +558,7 @@ export function SpatialTreePanel() {
             targetExpressID,
             modelID,
             [...currentPathKeys],
-            newStoreyKey
+            newStoreyKey,
           );
           if (result) {
             return result;
@@ -523,7 +567,7 @@ export function SpatialTreePanel() {
       }
       return null;
     },
-    []
+    [],
   );
 
   const filterTree = useCallback(
@@ -531,11 +575,14 @@ export function SpatialTreePanel() {
       node: SpatialStructureNode,
       query: string,
       modelId: number | null,
-      keys: Set<string>
+      keys: Set<string>,
     ): SpatialStructureNode | null => {
       const norm = query.toLowerCase();
       const naturalResult = getNaturalIfcClassName(node.type, lang);
-      const natural = naturalResult && naturalResult.name ? naturalResult.name.toLowerCase() : "";
+      const natural =
+        naturalResult && naturalResult.name
+          ? naturalResult.name.toLowerCase()
+          : "";
       const name = (node.Name || "").toLowerCase();
       const expressIdString = String(node.expressID);
       const matches =
@@ -556,20 +603,30 @@ export function SpatialTreePanel() {
       }
       return null;
     },
-    [getNaturalIfcClassName, lang]
+    [getNaturalIfcClassName, lang],
   );
 
   const filteredModels = useMemo(() => {
-    if (!searchQuery.trim()) {
-      return loadedModels.map((m) => ({ ...m, filteredTree: m.spatialTree, matchedKeys: new Set<string>() }));
+    if (!deferredSearchQuery.trim()) {
+      return loadedModels.map((m) => ({
+        ...m,
+        filteredTree: m.spatialTree,
+        matchedKeys: new Set<string>(),
+      }));
     }
     return loadedModels.map((m) => {
-      if (!m.spatialTree || m.modelID === null) return { ...m, filteredTree: null, matchedKeys: new Set<string>() };
+      if (!m.spatialTree || m.modelID === null)
+        return { ...m, filteredTree: null, matchedKeys: new Set<string>() };
       const keys = new Set<string>();
-      const tree = filterTree(m.spatialTree, searchQuery, m.modelID, keys);
+      const tree = filterTree(
+        m.spatialTree,
+        deferredSearchQuery,
+        m.modelID,
+        keys,
+      );
       return { ...m, filteredTree: tree, matchedKeys: keys };
     });
-  }, [loadedModels, searchQuery, filterTree]);
+  }, [loadedModels, deferredSearchQuery, filterTree]);
 
   useEffect(() => {
     const newCalculatedKeys = new Set<string>();
@@ -578,12 +635,12 @@ export function SpatialTreePanel() {
     loadedModels.forEach((modelEntry) => {
       if (modelEntry.modelID !== null) {
         newCalculatedKeys.add(
-          getNodeKey({} as SpatialStructureNode, modelEntry.modelID, true)
+          getNodeKey({} as SpatialStructureNode, modelEntry.modelID, true),
         );
       }
     });
 
-    if (searchQuery.trim()) {
+    if (deferredSearchQuery.trim()) {
       filteredModels.forEach((m) => {
         if (m.modelID !== null && m.filteredTree) {
           m.matchedKeys.forEach((k: string) => newCalculatedKeys.add(k));
@@ -604,7 +661,7 @@ export function SpatialTreePanel() {
           targetExpressID,
           targetModelID,
           [],
-          null
+          null,
         );
 
         if (pathResult) {
@@ -612,7 +669,7 @@ export function SpatialTreePanel() {
           loadedModels.forEach((m) => {
             if (m.modelID !== null) {
               exclusiveKeys.add(
-                getNodeKey({} as SpatialStructureNode, m.modelID, true)
+                getNodeKey({} as SpatialStructureNode, m.modelID, true),
               );
             }
           });
@@ -630,15 +687,25 @@ export function SpatialTreePanel() {
     setExpandedNodeKeys((currentExpandedKeys) => {
       if (
         newCalculatedKeys.size === currentExpandedKeys.size &&
-        Array.from(newCalculatedKeys).every((key) => currentExpandedKeys.has(key))
+        Array.from(newCalculatedKeys).every((key) =>
+          currentExpandedKeys.has(key),
+        )
       ) {
         return currentExpandedKeys;
       }
       return newCalculatedKeys;
     });
 
-    setSelectedNodeKeyForScroll(searchQuery.trim() ? null : newScrollKey);
-  }, [selectedElement, loadedModels, findPathToNodeRecursive, filteredModels, searchQuery]);
+    setSelectedNodeKeyForScroll(
+      deferredSearchQuery.trim() ? null : newScrollKey,
+    );
+  }, [
+    selectedElement,
+    loadedModels,
+    findPathToNodeRecursive,
+    filteredModels,
+    deferredSearchQuery,
+  ]);
 
   useEffect(() => {
     if (selectedNodeRef.current && selectedNodeKeyForScroll) {
@@ -651,7 +718,7 @@ export function SpatialTreePanel() {
 
   const handleNodeSelection = (selection: SelectedElementInfo) => {
     console.log(
-      `SpatialTree: Node selected - ModelID: ${selection.modelID}, ExpressID: ${selection.expressID}`
+      `SpatialTree: Node selected - ModelID: ${selection.modelID}, ExpressID: ${selection.expressID}`,
     );
     selectElement(selection);
   };
@@ -684,9 +751,11 @@ export function SpatialTreePanel() {
           <div className="flex justify-center mb-4">
             <FileText className="h-8 w-8 text-foreground/30" />
           </div>
-          <p className="text-base font-medium text-foreground/80 mb-2">{t('noModelsLoaded')}</p>
+          <p className="text-base font-medium text-foreground/80 mb-2">
+            {t("noModelsLoaded")}
+          </p>
           <p className="text-sm text-foreground/60">
-            {t('modelViewer.useLoadButton')}
+            {t("modelViewer.useLoadButton")}
           </p>
         </div>
       </div>
@@ -699,7 +768,7 @@ export function SpatialTreePanel() {
         <Input
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder={t('modelViewer.searchTreePlaceholder')}
+          placeholder={t("modelViewer.searchTreePlaceholder")}
           className="mb-2"
         />
       </div>
@@ -707,21 +776,33 @@ export function SpatialTreePanel() {
         {filteredModels.map((modelEntry) => {
           if (!modelEntry.spatialTree && modelEntry.modelID === null) {
             return (
-              <div key={modelEntry.id} className="p-2 text-sm text-foreground/80 flex items-center gap-2">
+              <div
+                key={modelEntry.id}
+                className="p-2 text-sm text-foreground/80 flex items-center gap-2"
+              >
                 <span className="animate-pulse block w-2 h-2 bg-foreground/40 rounded-full"></span>
-                <span className="text-base font-medium">{modelEntry.name} - Initializing...</span>
+                <span className="text-base font-medium">
+                  {modelEntry.name} - Initializing...
+                </span>
               </div>
             );
           }
           if (!modelEntry.spatialTree && modelEntry.modelID !== null) {
             return (
-              <div key={modelEntry.id} className="p-2 text-sm text-foreground/80 flex items-center gap-2">
+              <div
+                key={modelEntry.id}
+                className="p-2 text-sm text-foreground/80 flex items-center gap-2"
+              >
                 <span className="animate-pulse block w-2 h-2 bg-foreground/40 rounded-full"></span>
-                <span className="text-base font-medium">{modelEntry.name} - Loading structure...</span>
+                <span className="text-base font-medium">
+                  {modelEntry.name} - Loading structure...
+                </span>
               </div>
             );
           }
-          const treeToRender = searchQuery.trim() ? modelEntry.filteredTree : modelEntry.spatialTree;
+          const treeToRender = deferredSearchQuery.trim()
+            ? modelEntry.filteredTree
+            : modelEntry.spatialTree;
           if (treeToRender) {
             const modelRootNodeForTree: SpatialStructureNode = {
               expressID: -1,
@@ -732,7 +813,7 @@ export function SpatialTreePanel() {
             const modelRootKey = getNodeKey(
               modelRootNodeForTree,
               modelEntry.modelID,
-              true
+              true,
             );
             return (
               <TreeNode
