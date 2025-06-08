@@ -30,6 +30,7 @@ export interface Rule {
   name: string;
   description: string;
   conditions: RuleCondition[];
+  matchType?: "all" | "any"; // how to combine conditions (AND/OR)
   classificationCode: string;
   active: boolean;
 }
@@ -424,6 +425,7 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
     async (
       elementNode: SpatialStructureNode,
       conditions: RuleCondition[],
+      matchType: "all" | "any",
       modelID: number,
       api: IfcAPI, // Passed explicitly, not from context state directly in this func
     ): Promise<boolean> => {
@@ -758,9 +760,13 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
             console.warn("Unsupported operator:", condition.operator);
             return false;
         }
-        if (!conditionMet) return false;
+        if (matchType === "all") {
+          if (!conditionMet) return false;
+        } else {
+          if (conditionMet) return true;
+        }
       }
-      return true;
+      return matchType === "all" ? true : false;
     },
     [],
   );
@@ -877,6 +883,7 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
             const matches = await matchesAllConditionsCallback(
               elementNode,
               rule.conditions,
+              rule.matchType ?? "all",
               model.modelID,
               ifcApiInternal,
             );
@@ -1020,6 +1027,7 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
             const matches = await matchesAllConditionsCallback(
               elementNode,
               rule.conditions,
+              rule.matchType ?? "all",
               model.modelID,
               ifcApiInternal,
             );

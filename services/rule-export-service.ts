@@ -13,13 +13,14 @@ export function exportRulesToExcel(rules: Rule[]): ArrayBuffer {
       0
     );
 
-    const header = [
-      "id",
-      "name",
-      "description",
-      "classificationCode",
-      "active",
-    ];
+  const header = [
+    "id",
+    "name",
+    "description",
+    "classificationCode",
+    "active",
+    "matchType",
+  ];
     for (let i = 1; i <= maxConditions; i++) {
       header.push(`property${i}`);
       header.push(`operator${i}`);
@@ -35,6 +36,7 @@ export function exportRulesToExcel(rules: Rule[]): ArrayBuffer {
         rule.description,
         rule.classificationCode,
         rule.active ? 1 : 0,
+        rule.matchType ?? "all",
       ];
 
       rule.conditions.forEach((c) => {
