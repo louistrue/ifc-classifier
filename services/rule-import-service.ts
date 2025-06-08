@@ -33,7 +33,10 @@ export async function parseRulesFromExcel(file: File): Promise<Rule[]> {
     const activeRaw = row[idx("active")];
     const active = String(activeRaw).toLowerCase() !== "false" && activeRaw !== 0;
 
-    const start = idx("active") + 1;
+    const matchTypeIdx = idx("matchType");
+    const matchType = matchTypeIdx !== -1 ? String(row[matchTypeIdx] || "all").toLowerCase() as "all" | "any" : "all";
+
+    const start = (matchTypeIdx !== -1 ? matchTypeIdx : idx("active")) + 1;
     const conditions: RuleCondition[] = [];
     for (let col = start; col < header.length; col += 3) {
       const property = row[col];
@@ -54,6 +57,7 @@ export async function parseRulesFromExcel(file: File): Promise<Rule[]> {
       description,
       classificationCode,
       active,
+      matchType,
       conditions,
     });
   }

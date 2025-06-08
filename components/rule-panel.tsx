@@ -237,6 +237,7 @@ export function RulePanel() {
           value: "",
         },
       ],
+      matchType: base?.matchType || "all",
       classificationCode:
         base?.classificationCode || Object.keys(classifications)[0] || "",
       active: base?.active ?? true,
@@ -246,7 +247,7 @@ export function RulePanel() {
 
   const openEditRuleDialog = (rule: Rule) => {
     setCurrentRule(rule);
-    setEditingRule({ ...rule });
+    setEditingRule({ matchType: "all", ...rule });
     setIsRuleDialogOpen(true);
   };
 
@@ -634,16 +635,18 @@ export function RulePanel() {
                       {t('rules.conditions')}
                     </div>
                     <div className="space-y-1.5 pl-1">
-                      {rule.conditions.map(
-                        (condition: RuleCondition, index: number) => (
-                          <div
-                            key={index}
-                            className="flex flex-nowrap items-baseline gap-x-2 p-1 bg-muted/30 rounded text-xs"
-                          >
+                      {rule.conditions.map((condition: RuleCondition, index: number) => (
+                        <div key={index} className="space-y-1">
+                          {index > 0 && (
+                            <div className="flex justify-center">
+                              <Badge variant="outline">
+                                {t(`logic.${rule.matchType === 'any' ? 'or' : 'and'}`)}
+                              </Badge>
+                            </div>
+                          )}
+                          <div className="flex flex-nowrap items-baseline gap-x-2 p-1 bg-muted/30 rounded text-xs">
                             <span className="font-medium text-foreground/90 whitespace-nowrap">
-                              {propertyOptions.find(
-                                (p) => p.value === condition.property
-                              )?.label || condition.property}
+                              {propertyOptions.find((p) => p.value === condition.property)?.label || condition.property}
                             </span>
                             <span className="text-muted-foreground whitespace-nowrap">
                               {t(`operators.${condition.operator}`)}
@@ -652,8 +655,8 @@ export function RulePanel() {
                               {String(condition.value)}
                             </span>
                           </div>
-                        )
-                      )}
+                        </div>
+                      ))}
                     </div>
                   </div>
                 )}
@@ -726,17 +729,41 @@ export function RulePanel() {
 
               {/* Conditions Section */}
               <div className="space-y-3">
-                <Label className="font-medium">
-                  {t('rules.conditions')}
-                </Label>
+                <div className="flex items-center justify-between">
+                  <Label className="font-medium">
+                    {t('rules.conditions')}
+                  </Label>
+                  <Select
+                    value={editingRule.matchType || 'all'}
+                    onValueChange={(val) =>
+                      setEditingRule({ ...editingRule!, matchType: val as 'all' | 'any' })
+                    }
+                  >
+                    <SelectTrigger className="w-32">
+                      <SelectValue placeholder={t('rules.matchType')} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">{t('rules.matchAll')}</SelectItem>
+                      <SelectItem value="any">{t('rules.matchAny')}</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
                 <div className="rounded-md border p-3 space-y-3">
                   {editingRule.conditions?.map((condition, index) => (
-                    <div key={index} className="grid sm:grid-cols-12 gap-3 items-center">
-                      <div className="col-span-full sm:col-span-5 mb-2 sm:mb-0">
-                        <div className="relative w-full">
-                          <CreatableCombobox
-                            options={propertyOptions}
-                            value={condition.property}
+                    <div key={index} className="space-y-1">
+                      {index > 0 && (
+                        <div className="flex justify-center">
+                          <Badge variant="outline">
+                            {t(`logic.${editingRule.matchType === 'any' ? 'or' : 'and'}`)}
+                          </Badge>
+                        </div>
+                      )}
+                      <div className="grid sm:grid-cols-12 gap-3 items-center">
+                        <div className="col-span-full sm:col-span-5 mb-2 sm:mb-0">
+                          <div className="relative w-full">
+                            <CreatableCombobox
+                              options={propertyOptions}
+                              value={condition.property}
                             onChange={(value) =>
                               handleConditionChange(index, "property", value)
                             }
@@ -793,6 +820,7 @@ export function RulePanel() {
                         >
                           <Trash2 className="h-4 w-4 text-destructive" />
                         </Button>
+                      </div>
                       </div>
                     </div>
                   ))}

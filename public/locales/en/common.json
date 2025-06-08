@@ -230,6 +230,9 @@
     "operatorPlaceholder": "Select operator",
     "valuePlaceholder": "Value",
     "booleanValuePlaceholder": "e.g., true, false, yes, no",
+    "matchType": "Condition Logic",
+    "matchAll": "All conditions (AND)",
+    "matchAny": "Any condition (OR)",
     "selectClassification": "Select classification to apply",
     "manageRules": "Manage Rules",
     "searchClassificationPlaceholder": "Search or create classification...",
@@ -244,6 +247,10 @@
     "contains": "Contains",
     "greaterThan": "Greater Than",
     "lessThan": "Less Than"
+  },
+  "logic": {
+    "and": "AND",
+    "or": "OR"
   },
   "docs": {
     "latestFeaturesTitle": "Latest Features",

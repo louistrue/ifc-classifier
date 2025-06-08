@@ -232,6 +232,9 @@
     "operatorPlaceholder": "Operator auswählen",
     "valuePlaceholder": "Wert",
     "booleanValuePlaceholder": "z.B. true, false, ja, nein",
+    "matchType": "Bedingungslogik",
+    "matchAll": "Alle Bedingungen (UND)",
+    "matchAny": "Eine Bedingung genügt (ODER)",
     "selectClassification": "Klassifizierung zum Anwenden auswählen",
     "manageRules": "Regeln verwalten",
     "searchClassificationPlaceholder": "Klassifizierungen suchen oder erstellen...",
@@ -246,6 +249,10 @@
     "contains": "Enthält",
     "greaterThan": "Größer als",
     "lessThan": "Kleiner als"
+  },
+  "logic": {
+    "and": "UND",
+    "or": "ODER"
   },
   "docs": {
     "latestFeaturesTitle": "Neueste Funktionen",

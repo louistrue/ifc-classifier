@@ -230,6 +230,9 @@
         "operatorPlaceholder": "Sélectionner un opérateur",
         "valuePlaceholder": "Valeur",
         "booleanValuePlaceholder": "ex. true, false, oui, non",
+        "matchType": "Logique des conditions",
+        "matchAll": "Toutes les conditions (ET)",
+        "matchAny": "N'importe quelle condition (OU)",
         "selectClassification": "Sélectionner la classification à appliquer",
         "manageRules": "Gérer les règles",
         "searchClassificationPlaceholder": "Rechercher ou créer une classification...",
@@ -244,6 +247,10 @@
         "contains": "Contient",
         "greaterThan": "Supérieur à",
         "lessThan": "Inférieur à"
+    },
+    "logic": {
+        "and": "ET",
+        "or": "OU"
     },
     "docs": {
         "latestFeaturesTitle": "Dernières fonctionnalités",
