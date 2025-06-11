@@ -143,6 +143,7 @@
         "resetCamera": "Reimposta camera",
         "showAll": "Mostra tutto",
         "hideAll": "Nascondi tutto",
+        "selectAllVisible": "Seleziona tutti i visibili (Ctrl/Cmd+A)",
         "zoomToSelected": "Zoom su selezionato (F)",
         "toggleVisibility": "Attiva/disattiva visibilità del selezionato (Spazio)",
         "selectElementToToggle": "Seleziona un elemento per attivare/disattivare la visibilità",

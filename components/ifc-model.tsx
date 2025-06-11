@@ -434,6 +434,7 @@ export function IFCModel({ modelData, outlineLayer }: IFCModelProps) {
     setSpatialTreeForModel,
     setElementProperties,
     selectedElement,
+    selectedElements,
     highlightedElements,
     highlightedClassificationCode,
     setModelIDForLoadedModel,
@@ -827,15 +828,14 @@ export function IFCModel({ modelData, outlineLayer }: IFCModelProps) {
       `IFCModel (${modelData.id}) - Highlighting Effect: currentModelID = ${currentModelID}`
     );
 
-    const selectedExpressIDInThisModel =
-      selectedElement?.modelID === currentModelID
-        ? selectedElement.expressID
-        : null;
+    const selectedExpressIDsInThisModel = selectedElements
+      .filter((el) => el.modelID === currentModelID)
+      .map((el) => el.expressID);
 
     console.log(
-      `IFCModel (${modelData.id}) - Highlighting Effect: Calculated selectedExpressIDInThisModel = ${selectedExpressIDInThisModel}`,
-      `Selected Element from context:`,
-      selectedElement
+      `IFCModel (${modelData.id}) - Highlighting Effect: Selected IDs in this model = ${selectedExpressIDsInThisModel.join(',')}`,
+      `Selected Elements from context:`,
+      selectedElements
     );
 
     const highlightedExpressIDsInThisModel = highlightedElements
@@ -965,11 +965,7 @@ export function IFCModel({ modelData, outlineLayer }: IFCModelProps) {
         }
 
         // Step 4: Selected Element (highest priority for visibility and material)
-        if (
-          selectedElement &&
-          selectedElement.modelID === currentModelID &&
-          selectedElement.expressID === expressID
-        ) {
+        if (selectedExpressIDsInThisModel.includes(expressID)) {
           targetMaterial = selectionMaterial;
           isCurrentlyVisible = true;
           console.log(`SELECT OVERRIDE: Element ${currentModelID}-${expressID} visible despite filtering because it's selected`);
@@ -1020,7 +1016,7 @@ export function IFCModel({ modelData, outlineLayer }: IFCModelProps) {
       }
     });
   }, [
-    selectedElement,
+    selectedElements,
     highlightedElements,
     highlightedClassificationCode,
     classifications,

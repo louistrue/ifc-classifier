@@ -24,7 +24,7 @@ import {
   Tag,
   MousePointer2,
 } from "lucide-react";
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { MaterialSectionDisplay } from "./material-section-display";
 import { cn } from "@/lib/utils";
 import {
@@ -36,6 +36,31 @@ import {
 import { useTranslation } from "react-i18next";
 import { useSchemaPreview } from "@/lib/useSchemaPreview";
 import { SchemaReader } from "./schema-reader";
+
+function deepEqual(a: any, b: any) {
+  return JSON.stringify(a) === JSON.stringify(b);
+}
+
+function intersectRecords(records: Record<string, any>[]): Record<string, any> {
+  if (records.length === 0) return {};
+  const result: Record<string, any> = {};
+  for (const key of Object.keys(records[0])) {
+    const first = records[0][key];
+    if (records.every((r) => deepEqual(r[key], first))) {
+      if (
+        first &&
+        typeof first === "object" &&
+        !Array.isArray(first) &&
+        records.every((r) => typeof r[key] === "object")
+      ) {
+        result[key] = intersectRecords(records.map((r) => r[key]));
+      } else {
+        result[key] = first;
+      }
+    }
+  }
+  return result;
+}
 
 // Enhanced renderPropertyValue function
 const renderPropertyValue = (
@@ -331,10 +356,11 @@ const getPropertyIcon = (name: string): React.ReactNode => {
 export function ModelInfo() {
   const {
     selectedElement,
-    elementProperties,
+    selectedElements,
     loadedModels,
     getNaturalIfcClassName,
     getClassificationsForElement,
+    getElementPropertiesCached,
   } = useIFCContext();
   const { t, i18n } = useTranslation();
 
@@ -343,8 +369,47 @@ export function ModelInfo() {
   const [selectedIfcClassName, setSelectedIfcClassName] = useState("");
 
   const lang = i18n.language === "de" ? "de" : "en";
-  const schemaUrlForHook = elementProperties?.ifcType
-    ? getNaturalIfcClassName(elementProperties.ifcType, lang).schemaUrl
+
+  const [selectedProps, setSelectedProps] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (selectedElements.length === 0) {
+      setSelectedProps([]);
+      return;
+    }
+    Promise.all(
+      selectedElements.map((el) =>
+        getElementPropertiesCached(el.modelID, el.expressID),
+      ),
+    ).then((res) => setSelectedProps(res.filter(Boolean)));
+  }, [selectedElements, getElementPropertiesCached]);
+
+  const activeProps = selectedProps[0] || null;
+
+  const elementProperties = useMemo(() => {
+    if (selectedProps.length === 0) return null;
+    if (selectedProps.length === 1) return selectedProps[0];
+    const sameType = selectedProps.every((p) => p.ifcType === selectedProps[0].ifcType);
+    const base = { ...selectedProps[0], ifcType: sameType ? selectedProps[0].ifcType : undefined };
+    const attributes = intersectRecords(selectedProps.map((p) => p.attributes || {}));
+    const propertySets: Record<string, any> = {};
+    const firstSets = selectedProps[0].propertySets || {};
+    for (const name of Object.keys(firstSets)) {
+      const sets = selectedProps
+        .map((p) => p.propertySets && p.propertySets[name])
+        .filter(Boolean);
+      if (sets.length === selectedProps.length) {
+        const inter = intersectRecords(sets as Record<string, any>[]);
+        if (Object.keys(inter).length > 0) {
+          propertySets[name] = inter;
+        }
+      }
+    }
+    return { ...base, attributes, propertySets };
+  }, [selectedProps]);
+
+  const schemaUrlForHook = activeProps?.ifcType
+    ? getNaturalIfcClassName(activeProps.ifcType, lang).schemaUrl
     : undefined;
 
   const { preview: schemaPreview, loading: schemaLoading, error: schemaError } = useSchemaPreview(schemaUrlForHook);
