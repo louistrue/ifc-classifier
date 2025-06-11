@@ -74,6 +74,7 @@ export interface ClassificationItem {
 interface IFCContextType {
   loadedModels: LoadedModelData[]; // Array of loaded models
   selectedElement: SelectedElementInfo | null;
+  selectedElements: SelectedElementInfo[];
   highlightedElements: SelectedElementInfo[]; // Assuming highlights can also be model-specific
   elementProperties: any | null; // Properties of the selectedElement
   availableCategories: Record<number, string[]>; // Categories per modelID
@@ -116,6 +117,9 @@ interface IFCContextType {
   setRawBufferForModel: (id: string, buffer: ArrayBuffer) => void; // Keep this one
 
   selectElement: (selection: SelectedElementInfo | null) => void;
+  selectElements: (selection: SelectedElementInfo[]) => void;
+  toggleElementSelection: (element: SelectedElementInfo, additive: boolean) => void;
+  clearSelection: () => void;
   toggleClassificationHighlight: (classificationCode: string) => void;
   setElementProperties: (properties: any | null) => void;
   setAvailableCategoriesForModel: (
@@ -181,6 +185,7 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
   const [loadedModels, setLoadedModels] = useState<LoadedModelData[]>([]);
   const [selectedElement, setSelectedElement] =
     useState<SelectedElementInfo | null>(null);
+  const [selectedElements, setSelectedElements] = useState<SelectedElementInfo[]>([]);
   const [highlightedElements, setHighlightedElements] = useState<
     SelectedElementInfo[]
   >([]);
@@ -1201,6 +1206,11 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
 
   const selectElement = useCallback(
     (selection: SelectedElementInfo | null) => {
+      if (selection) {
+        setSelectedElements([selection]);
+      } else {
+        setSelectedElements([]);
+      }
       setSelectedElement(selection);
       setHighlightedElements([]);
       setHighlightedClassificationCode(null);
@@ -1209,10 +1219,6 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
       if (!selection) {
         setElementPropertiesInternal(null);
       } else {
-        // Properties will be fetched by IFCModel's useEffect based on selectedElement change
-        // So, we don't necessarily need to set them to null here if a new selection is made.
-        // However, if the old selectedElement was different, its props should be cleared.
-        // For simplicity, if we are selecting something new (or null), clear old props.
         setElementPropertiesInternal(null); // Clear old props before new ones are fetched
       }
     },
@@ -1223,6 +1229,88 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
       setShowAllClassificationColors,
       setElementPropertiesInternal,
       setPreviewingRuleId,
+      setSelectedElements,
+    ],
+  );
+
+  const selectElements = useCallback(
+    (selection: SelectedElementInfo[]) => {
+      setSelectedElements(selection);
+      setSelectedElement(selection.length ? selection[selection.length - 1] : null);
+      setHighlightedElements([]);
+      setHighlightedClassificationCode(null);
+      setShowAllClassificationColors(false);
+      setPreviewingRuleId(null);
+      setElementPropertiesInternal(null);
+    },
+    [
+      setSelectedElements,
+      setSelectedElement,
+      setHighlightedElements,
+      setHighlightedClassificationCode,
+      setShowAllClassificationColors,
+      setPreviewingRuleId,
+      setElementPropertiesInternal,
+    ],
+  );
+
+  const clearSelection = useCallback(() => {
+    setSelectedElements([]);
+    setSelectedElement(null);
+    setHighlightedElements([]);
+    setHighlightedClassificationCode(null);
+    setShowAllClassificationColors(false);
+    setPreviewingRuleId(null);
+    setElementPropertiesInternal(null);
+  }, [
+    setSelectedElements,
+    setSelectedElement,
+    setHighlightedElements,
+    setHighlightedClassificationCode,
+    setShowAllClassificationColors,
+    setPreviewingRuleId,
+    setElementPropertiesInternal,
+  ]);
+
+  const toggleElementSelection = useCallback(
+    (element: SelectedElementInfo, additive: boolean) => {
+      setSelectedElements((prev) => {
+        let newSelection = prev;
+        const exists = prev.some(
+          (el) => el.modelID === element.modelID && el.expressID === element.expressID,
+        );
+        if (additive) {
+          if (exists) {
+            newSelection = prev.filter(
+              (el) => !(el.modelID === element.modelID && el.expressID === element.expressID),
+            );
+          } else {
+            newSelection = [...prev, element];
+          }
+        } else {
+          if (exists && prev.length === 1) {
+            newSelection = [];
+          } else {
+            newSelection = [element];
+          }
+        }
+        setSelectedElement(newSelection.length ? newSelection[newSelection.length - 1] : null);
+        setHighlightedElements([]);
+        setHighlightedClassificationCode(null);
+        setShowAllClassificationColors(false);
+        setPreviewingRuleId(null);
+        setElementPropertiesInternal(null);
+        return newSelection;
+      });
+    },
+    [
+      setSelectedElements,
+      setSelectedElement,
+      setHighlightedElements,
+      setHighlightedClassificationCode,
+      setShowAllClassificationColors,
+      setPreviewingRuleId,
+      setElementPropertiesInternal,
     ],
   );
 
@@ -1822,6 +1910,7 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
       value={{
         loadedModels,
         selectedElement,
+        selectedElements,
         highlightedElements,
         elementProperties,
         availableCategories,
@@ -1841,6 +1930,9 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
         setSpatialTreeForModel,
         setRawBufferForModel,
         selectElement,
+        selectElements,
+        toggleElementSelection,
+        clearSelection,
         toggleClassificationHighlight,
         setElementProperties,
         setAvailableCategoriesForModel,

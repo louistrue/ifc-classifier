@@ -92,14 +92,19 @@ function SpinningBox() {
 // GlobalInteractionHandler - re-enable
 function GlobalInteractionHandler() {
   const { scene, camera, gl, raycaster } = useThree();
-  const { selectElement, selectedElement, loadedModels, userHiddenElements } =
-    useIFCContext();
+  const {
+    toggleElementSelection,
+    selectedElements,
+    loadedModels,
+    userHiddenElements,
+    clearSelection,
+  } = useIFCContext();
 
   const mouseDownPos = useRef<{ x: number; y: number } | null>(null);
   const DRAG_THRESHOLD = 5; // Pixels
 
   useEffect(() => {
-    if (!gl.domElement || !selectElement) return;
+    if (!gl.domElement || !toggleElementSelection) return;
     console.log("GlobalInteractionHandler: Attaching mouse event listeners.");
 
     const handleMouseDown = (event: MouseEvent) => {
@@ -154,7 +159,7 @@ function GlobalInteractionHandler() {
           console.log(
             "GlobalInteractionHandler: No IFCModelGroup found in scene. Deselecting."
           );
-          selectElement(null);
+          clearSelection();
           return;
         }
         console.log(
@@ -202,33 +207,25 @@ function GlobalInteractionHandler() {
             //   return;
             // }
 
-            if (
-              selectedElement &&
-              selectedElement.modelID === clickedModelID &&
-              selectedElement.expressID === clickedExpressID
-            ) {
-              console.log(
-                "GlobalInteractionHandler: Clicked on already selected element. Deselecting."
-              );
-              selectElement(null);
-            } else {
-              console.log(
-                "GlobalInteractionHandler: Selecting new element:",
-                selectionInfo
-              );
-              selectElement(selectionInfo);
-            }
+            const additive = event.ctrlKey || event.metaKey;
+            console.log(
+              "GlobalInteractionHandler: Toggling selection:",
+              selectionInfo,
+              "additive",
+              additive
+            );
+            toggleElementSelection(selectionInfo, additive);
           } else {
             console.log(
               "GlobalInteractionHandler: Clicked on object without valid IFC user data. Deselecting."
             );
-            selectElement(null);
+            clearSelection();
           }
         } else {
           console.log(
             "GlobalInteractionHandler: Clicked on empty space. Deselecting."
           );
-          selectElement(null);
+          clearSelection();
         }
       } else {
         console.log(
@@ -252,8 +249,9 @@ function GlobalInteractionHandler() {
     gl,
     camera,
     raycaster,
-    selectElement,
-    selectedElement,
+    toggleElementSelection,
+    selectedElements,
+    clearSelection,
     scene,
     loadedModels,
     userHiddenElements,
@@ -280,7 +278,7 @@ function ViewToolbar({
   onUnhideLast,
 }: ViewToolbarProps) {
   const {
-    selectedElement,
+    selectedElements,
     toggleUserHideElement,
     userHiddenElements,
   } = useIFCContext();
@@ -288,8 +286,8 @@ function ViewToolbar({
   const { t } = useTranslation();
 
   const handleHideSelected = () => {
-    if (selectedElement) {
-      toggleUserHideElement(selectedElement);
+    if (selectedElements.length) {
+      selectedElements.forEach((el) => toggleUserHideElement(el));
     }
   };
 
@@ -317,9 +315,9 @@ function ViewToolbar({
           variant="ghost"
           size="icon"
           onClick={handleHideSelected}
-          disabled={!selectedElement}
+          disabled={selectedElements.length === 0}
           title={
-            selectedElement
+            selectedElements.length > 0
               ? t('modelViewer.toggleVisibility')
               : t('modelViewer.selectElementToToggle')
           }
@@ -345,6 +343,49 @@ function ViewToolbar({
           <LayersIcon className="w-5 h-5" />
         </Button>
       </div>
+    </div>
+  );
+}
+
+function SelectionListOverlay() {
+  const { selectedElements, getElementPropertiesCached } = useIFCContext();
+  const [names, setNames] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    if (selectedElements.length <= 1) {
+      setNames({});
+      return;
+    }
+    let mounted = true;
+    Promise.all(
+      selectedElements.map((el) =>
+        getElementPropertiesCached(el.modelID, el.expressID).then((p) => ({
+          key: `${el.modelID}-${el.expressID}`,
+          name: p?.attributes?.Name?.value || p?.attributes?.Name || `${el.expressID}`,
+        })),
+      )
+    ).then((res) => {
+      if (!mounted) return;
+      const map: Record<string, string> = {};
+      res.forEach((r) => {
+        map[r.key] = r.name;
+      });
+      setNames(map);
+    });
+    return () => {
+      mounted = false;
+    };
+  }, [selectedElements, getElementPropertiesCached]);
+
+  if (selectedElements.length <= 1) return null;
+
+  return (
+    <div className="absolute top-2 right-2 z-20 max-h-40 overflow-y-auto p-2 text-xs bg-background/80 backdrop-blur-sm border border-border rounded shadow-lg space-y-1 pointer-events-auto">
+      {selectedElements.map((el) => (
+        <div key={`${el.modelID}-${el.expressID}`} className="truncate">
+          {names[`${el.modelID}-${el.expressID}`] || `#${el.expressID}`}
+        </div>
+      ))}
     </div>
   );
 }
@@ -767,6 +808,7 @@ function ViewerContent() {
     setIfcApi,
     ifcApi,
     selectedElement,
+    selectedElements,
     selectElement,
     toggleUserHideElement,
     unhideLastElement,
@@ -1356,9 +1398,9 @@ function ViewerContent() {
 
       switch (event.code) {
         case "Space":
-          if (selectedElement) {
+          if (selectedElements.length) {
             event.preventDefault();
-            toggleUserHideElement(selectedElement);
+            selectedElements.forEach((el) => toggleUserHideElement(el));
           }
           break;
         case "KeyZ":
@@ -1374,7 +1416,7 @@ function ViewerContent() {
           handleZoomExtents();
           break;
         case "KeyF": // F for Zoom to Selected (Focus)
-          if (selectedElement) {
+          if (selectedElements.length) {
             event.preventDefault();
             handleZoomSelected();
           }
@@ -1397,7 +1439,7 @@ function ViewerContent() {
       window.removeEventListener("keydown", handleKeyDown);
     };
   }, [
-    selectedElement,
+    selectedElements,
     toggleUserHideElement,
     unhideLastElement,
     unhideAllElements,
@@ -1783,11 +1825,12 @@ function ViewerContent() {
               <ViewToolbar
                 onZoomExtents={handleZoomExtents}
                 onZoomSelected={handleZoomSelected}
-                isElementSelected={!!selectedElement}
+                isElementSelected={selectedElements.length > 0}
                 onUnhideAll={customUnhideAllElements}
                 onUnhideLast={customUnhideLastElement}
               />
             )}
+            <SelectionListOverlay />
           </div>
         </Panel>
 

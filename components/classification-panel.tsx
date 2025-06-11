@@ -121,6 +121,7 @@ export function ClassificationPanel() {
     toggleShowAllClassificationColors,
     loadedModels,
     selectedElement,
+    selectedElements,
     assignClassificationToElement,
     unassignClassificationFromElement,
     unassignElementFromAllClassifications,
@@ -586,26 +587,26 @@ export function ClassificationPanel() {
   };
 
   const handleAssignSelected = () => {
-    if (selectedElement && highlightedClassificationCode) {
-      assignClassificationToElement(
-        highlightedClassificationCode,
-        selectedElement
+    if (highlightedClassificationCode && selectedElements.length) {
+      selectedElements.forEach((el) =>
+        assignClassificationToElement(highlightedClassificationCode, el)
       );
     }
   };
 
   const handleUnassignSelected = () => {
-    if (selectedElement && highlightedClassificationCode) {
-      unassignClassificationFromElement(
-        highlightedClassificationCode,
-        selectedElement
+    if (highlightedClassificationCode && selectedElements.length) {
+      selectedElements.forEach((el) =>
+        unassignClassificationFromElement(highlightedClassificationCode, el)
       );
     }
   };
 
   const handleClearSelected = () => {
-    if (selectedElement) {
-      unassignElementFromAllClassifications(selectedElement);
+    if (selectedElements.length) {
+      selectedElements.forEach((el) =>
+        unassignElementFromAllClassifications(el)
+      );
     }
   };
 
@@ -1356,7 +1357,7 @@ export function ClassificationPanel() {
         </Dialog>
       )}
 
-      {selectedElement && (
+      {selectedElements.length > 0 && (
         <div className="mt-4 space-y-2 border-t pt-4">
           {highlightedClassificationCode ? (
             <>
