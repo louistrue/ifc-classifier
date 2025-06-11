@@ -331,6 +331,7 @@ const getPropertyIcon = (name: string): React.ReactNode => {
 export function ModelInfo() {
   const {
     selectedElement,
+    selectedElements,
     elementProperties,
     loadedModels,
     getNaturalIfcClassName,
@@ -456,7 +457,7 @@ export function ModelInfo() {
   // Only show messages for "no selection" and "loading"
 
   // Empty state for no selection
-  if (!selectedElement) {
+  if (selectedElements.length === 0) {
     return (
       <div className="flex items-center justify-center h-full">
         <div className="text-center p-6">
@@ -468,6 +469,24 @@ export function ModelInfo() {
           </p>
           <p className="text-sm text-foreground/60">
             {t("clickElementToView")}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (selectedElements.length > 1) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <div className="text-center p-6">
+          <div className="flex justify-center mb-4">
+            <Box className="h-8 w-8 text-foreground/30" />
+          </div>
+          <p className="text-base font-medium text-foreground/80 mb-2">
+            {t("properties")}
+          </p>
+          <p className="text-sm text-foreground/60">
+            {t("messages.multipleSelected", { count: selectedElements.length })}
           </p>
         </div>
       </div>

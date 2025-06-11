@@ -121,6 +121,7 @@ export function ClassificationPanel() {
     toggleShowAllClassificationColors,
     loadedModels,
     selectedElement,
+    selectedElements,
     assignClassificationToElement,
     unassignClassificationFromElement,
     unassignElementFromAllClassifications,
@@ -586,27 +587,25 @@ export function ClassificationPanel() {
   };
 
   const handleAssignSelected = () => {
-    if (selectedElement && highlightedClassificationCode) {
-      assignClassificationToElement(
-        highlightedClassificationCode,
-        selectedElement
+    if (highlightedClassificationCode) {
+      selectedElements.forEach((el) =>
+        assignClassificationToElement(highlightedClassificationCode, el)
       );
     }
   };
 
   const handleUnassignSelected = () => {
-    if (selectedElement && highlightedClassificationCode) {
-      unassignClassificationFromElement(
-        highlightedClassificationCode,
-        selectedElement
+    if (highlightedClassificationCode) {
+      selectedElements.forEach((el) =>
+        unassignClassificationFromElement(highlightedClassificationCode, el)
       );
     }
   };
 
   const handleClearSelected = () => {
-    if (selectedElement) {
-      unassignElementFromAllClassifications(selectedElement);
-    }
+    selectedElements.forEach((el) =>
+      unassignElementFromAllClassifications(el)
+    );
   };
 
   // Component to render each row in the virtualized list
@@ -1356,19 +1355,19 @@ export function ClassificationPanel() {
         </Dialog>
       )}
 
-      {selectedElement && (
+      {selectedElements.length > 0 && (
         <div className="mt-4 space-y-2 border-t pt-4">
           {highlightedClassificationCode ? (
             <>
               <Button className="w-full" onClick={handleAssignSelected}>
-                {t("buttons.assignSelected")}
+                {t("buttons.assignSelected")} {selectedElements.length > 1 && `(${selectedElements.length})`}
               </Button>
               <Button
                 className="w-full"
                 variant="outline"
                 onClick={handleUnassignSelected}
               >
-                {t("buttons.removeSelected")}
+                {t("buttons.removeSelected")} {selectedElements.length > 1 && `(${selectedElements.length})`}
               </Button>
             </>
           ) : (
@@ -1381,7 +1380,7 @@ export function ClassificationPanel() {
             variant="outline"
             onClick={handleClearSelected}
           >
-            {t("buttons.clearFromAll")}
+            {t("buttons.clearFromAll")} {selectedElements.length > 1 && `(${selectedElements.length})`}
           </Button>
         </div>
       )}

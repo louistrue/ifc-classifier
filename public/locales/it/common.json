@@ -135,7 +135,8 @@
         "error": "Si è verificato un errore",
         "success": "Successo!",
         "noDataAvailable": "Nessun dato disponibile",
-        "highlightToAssign": "Evidenzia una classificazione per assegnare."
+        "highlightToAssign": "Evidenzia una classificazione per assegnare.",
+        "multipleSelected": "Selezionati più elementi ({{count}}). Scegline uno per vedere le proprietà."
     },
     "modelViewer": {
         "fitToView": "Adatta alla vista (E)",

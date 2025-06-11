@@ -85,7 +85,7 @@ interface PathFindingResult {
 interface TreeNodeProps {
   node: SpatialStructureNode;
   level: number;
-  onSelectNode: (selection: SelectedElementInfo) => void;
+  onSelectNode: (selection: SelectedElementInfo, additive: boolean) => void;
   selectedElementInfo: SelectedElementInfo | null;
   isRootModelNode?: boolean;
   modelFileInfo?: { id: string; name: string; modelID: number | null };
@@ -201,7 +201,8 @@ const TreeNode: React.FC<TreeNodeProps> = ({
     toggleNodeExpansion(nodeKey);
   };
 
-  const handleSelect = () => {
+  const handleSelect = (e: React.MouseEvent) => {
+    const additive = e.ctrlKey || e.metaKey;
     if (isRootModelNode || modelFileInfo.modelID === null) return;
 
     if (
@@ -214,10 +215,13 @@ const TreeNode: React.FC<TreeNodeProps> = ({
       node.type.includes("SITE") ||
       node.type.includes("PROJECT")
     ) {
-      onSelectNode({
-        modelID: modelFileInfo.modelID,
-        expressID: node.expressID,
-      });
+      onSelectNode(
+        {
+          modelID: modelFileInfo.modelID,
+          expressID: node.expressID,
+        },
+        additive
+      );
     }
   };
 
@@ -700,11 +704,11 @@ export function SpatialTreePanel() {
     }
   }, [selectedNodeKeyForScroll]);
 
-  const handleNodeSelection = (selection: SelectedElementInfo) => {
+  const handleNodeSelection = (selection: SelectedElementInfo, additive: boolean) => {
     console.log(
       `SpatialTree: Node selected - ModelID: ${selection.modelID}, ExpressID: ${selection.expressID}`,
     );
-    selectElement(selection);
+    selectElement(selection, additive);
   };
 
   const handleAttemptRemoveModel = (modelId: string, modelName: string) => {

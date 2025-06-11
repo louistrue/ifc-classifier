@@ -205,7 +205,8 @@ function GlobalInteractionHandler() {
             if (
               selectedElement &&
               selectedElement.modelID === clickedModelID &&
-              selectedElement.expressID === clickedExpressID
+              selectedElement.expressID === clickedExpressID &&
+              !event.ctrlKey
             ) {
               console.log(
                 "GlobalInteractionHandler: Clicked on already selected element. Deselecting."
@@ -216,7 +217,7 @@ function GlobalInteractionHandler() {
                 "GlobalInteractionHandler: Selecting new element:",
                 selectionInfo
               );
-              selectElement(selectionInfo);
+              selectElement(selectionInfo, event.ctrlKey);
             }
           } else {
             console.log(

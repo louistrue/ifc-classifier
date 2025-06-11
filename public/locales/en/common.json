@@ -135,7 +135,8 @@
     "error": "An error occurred",
     "success": "Success!",
     "noDataAvailable": "No data available",
-    "highlightToAssign": "Highlight a classification to assign."
+    "highlightToAssign": "Highlight a classification to assign.",
+    "multipleSelected": "Multiple elements selected ({{count}}). Choose one to view its properties."
   },
   "modelViewer": {
     "fitToView": "Fit to View (E)",

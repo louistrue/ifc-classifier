@@ -74,6 +74,7 @@ export interface ClassificationItem {
 interface IFCContextType {
   loadedModels: LoadedModelData[]; // Array of loaded models
   selectedElement: SelectedElementInfo | null;
+  selectedElements: SelectedElementInfo[];
   highlightedElements: SelectedElementInfo[]; // Assuming highlights can also be model-specific
   elementProperties: any | null; // Properties of the selectedElement
   availableCategories: Record<number, string[]>; // Categories per modelID
@@ -115,7 +116,7 @@ interface IFCContextType {
   ) => void;
   setRawBufferForModel: (id: string, buffer: ArrayBuffer) => void; // Keep this one
 
-  selectElement: (selection: SelectedElementInfo | null) => void;
+  selectElement: (selection: SelectedElementInfo | null, additive?: boolean) => void;
   toggleClassificationHighlight: (classificationCode: string) => void;
   setElementProperties: (properties: any | null) => void;
   setAvailableCategoriesForModel: (
@@ -181,6 +182,7 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
   const [loadedModels, setLoadedModels] = useState<LoadedModelData[]>([]);
   const [selectedElement, setSelectedElement] =
     useState<SelectedElementInfo | null>(null);
+  const [selectedElements, setSelectedElements] = useState<SelectedElementInfo[]>([]);
   const [highlightedElements, setHighlightedElements] = useState<
     SelectedElementInfo[]
   >([]);
@@ -1150,12 +1152,14 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
       });
       if (
         selectedElement &&
-        loadedModels.find((m) => m.id === id)?.modelID ===
-        selectedElement.modelID
+        loadedModels.find((m) => m.id === id)?.modelID === selectedElement.modelID
       ) {
         setSelectedElement(null);
         setElementPropertiesInternal(null);
       }
+      setSelectedElements((prev) =>
+        prev.filter((el) => loadedModels.find((m) => m.id === id)?.modelID !== el.modelID),
+      );
     },
     [
       ifcApiInternal,
@@ -1164,6 +1168,7 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
       setLoadedModels,
       setAvailableCategoriesInternal,
       setSelectedElement,
+      setSelectedElements,
       setElementPropertiesInternal,
     ],
   );
@@ -1200,24 +1205,44 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
   );
 
   const selectElement = useCallback(
-    (selection: SelectedElementInfo | null) => {
-      setSelectedElement(selection);
+    (selection: SelectedElementInfo | null, additive: boolean = false) => {
       setHighlightedElements([]);
       setHighlightedClassificationCode(null);
       setShowAllClassificationColors(false);
       setPreviewingRuleId(null); // Clear active rule preview
-      if (!selection) {
-        setElementPropertiesInternal(null);
-      } else {
-        // Properties will be fetched by IFCModel's useEffect based on selectedElement change
-        // So, we don't necessarily need to set them to null here if a new selection is made.
-        // However, if the old selectedElement was different, its props should be cleared.
-        // For simplicity, if we are selecting something new (or null), clear old props.
-        setElementPropertiesInternal(null); // Clear old props before new ones are fetched
-      }
+
+      setSelectedElements((prev) => {
+        if (!selection) {
+          setSelectedElement(null);
+          setElementPropertiesInternal(null);
+          return [];
+        }
+
+        if (additive) {
+          const exists = prev.some(
+            (el) => el.modelID === selection.modelID && el.expressID === selection.expressID,
+          );
+          let newArr: SelectedElementInfo[];
+          if (exists) {
+            newArr = prev.filter(
+              (el) => !(el.modelID === selection.modelID && el.expressID === selection.expressID),
+            );
+          } else {
+            newArr = [...prev, selection];
+          }
+          setSelectedElement(newArr.length ? newArr[newArr.length - 1] : null);
+          setElementPropertiesInternal(null);
+          return newArr;
+        } else {
+          setSelectedElement(selection);
+          setElementPropertiesInternal(null);
+          return [selection];
+        }
+      });
     },
     [
       setSelectedElement,
+      setSelectedElements,
       setHighlightedElements,
       setHighlightedClassificationCode,
       setShowAllClassificationColors,
@@ -1728,11 +1753,25 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
             setSelectedElement(null); // Deselect
             setElementPropertiesInternal(null); // Clear its properties
           }
+          setSelectedElements((prev) =>
+            prev.filter(
+              (el) =>
+                !(
+                  el.modelID === elementToToggle.modelID &&
+                  el.expressID === elementToToggle.expressID
+                ),
+            ),
+          );
           return [...prevHidden, elementToToggle];
         }
       });
     },
-    [selectedElement, setSelectedElement, setElementPropertiesInternal],
+    [
+      selectedElement,
+      setSelectedElement,
+      setSelectedElements,
+      setElementPropertiesInternal,
+    ],
   );
 
   const unhideLastElement = useCallback(() => {
@@ -1790,10 +1829,18 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
               selectedElement.modelID === el.modelID &&
               selectedElement.expressID === el.expressID
             ) {
-              console.log("IFCContext: Deselecting element that's being hidden:", el);
+              console.log(
+                "IFCContext: Deselecting element that's being hidden:",
+                el,
+              );
               setSelectedElement(null);
               setElementPropertiesInternal(null);
             }
+            setSelectedElements((prev) =>
+              prev.filter(
+                (sel) => !(sel.modelID === el.modelID && sel.expressID === el.expressID),
+              ),
+            );
             newHidden.push(el);
             addedCount++;
           }
@@ -1803,7 +1850,7 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
         return newHidden;
       });
     },
-    [selectedElement, setSelectedElement, setElementPropertiesInternal],
+    [selectedElement, setSelectedElement, setSelectedElements, setElementPropertiesInternal],
   );
 
   const showElements = useCallback((elements: SelectedElementInfo[]) => {
@@ -1822,6 +1869,7 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
       value={{
         loadedModels,
         selectedElement,
+        selectedElements,
         highlightedElements,
         elementProperties,
         availableCategories,

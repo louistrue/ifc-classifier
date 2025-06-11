@@ -135,7 +135,8 @@
         "error": "Une erreur s'est produite",
         "success": "Succès !",
         "noDataAvailable": "Aucune donnée disponible",
-        "highlightToAssign": "Surlignez une classification pour l'assigner."
+        "highlightToAssign": "Surlignez une classification pour l'assigner.",
+        "multipleSelected": "Plusieurs éléments sélectionnés ({{count}}). Choisissez-en un pour voir ses propriétés."
     },
     "modelViewer": {
         "fitToView": "Ajuster à la vue (E)",

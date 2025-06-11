@@ -135,7 +135,8 @@
     "error": "Ein Fehler ist aufgetreten",
     "success": "Erfolg!",
     "noDataAvailable": "Keine Daten verfügbar",
-    "highlightToAssign": "Markieren Sie eine Klassifizierung zum Zuweisen."
+    "highlightToAssign": "Markieren Sie eine Klassifizierung zum Zuweisen.",
+    "multipleSelected": "Mehrere Elemente ausgewählt ({{count}}). Wähle eins, um die Eigenschaften zu sehen."
   },
   "modelViewer": {
     "fitToView": "Ansicht anpassen (E)",
