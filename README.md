@@ -150,3 +150,11 @@ Make IFC classification simple enough that anyone can do it properly.
 ## 📄 License
 
 **GNU Affero General Public License v3.0** - See the [LICENSE](./LICENSE) file for details.
+
+## 🔀 Multi-selection
+
+You can select multiple objects in the 3D viewer using **Ctrl/Cmd + click**. Press
+**Esc** to clear the selection. Keyboard shortcuts:
+
+- **Ctrl/Cmd+A** – select all visible
+- **Shift+Ctrl/Cmd+A** – invert selection

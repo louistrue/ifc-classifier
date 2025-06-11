@@ -55,6 +55,8 @@ import {
   SpatialStructureNode,
 } from "@/context/ifc-context";
 import { IFCContextProvider } from "@/context/ifc-context";
+import { useSelectionStore } from "@/store/selection";
+import { useKeyboardShortcuts } from "@/hooks/useKeyboardShortcuts";
 import { IfcAPI, Properties } from "web-ifc";
 import { SpatialTreePanel } from "@/components/spatial-tree-panel";
 import { cn } from "@/lib/utils";
@@ -92,14 +94,15 @@ function SpinningBox() {
 // GlobalInteractionHandler - re-enable
 function GlobalInteractionHandler() {
   const { scene, camera, gl, raycaster } = useThree();
-  const { selectElement, selectedElement, loadedModels, userHiddenElements } =
-    useIFCContext();
+  const { getElementPropertiesCached } = useIFCContext();
+  const { add, clear } = useSelectionStore();
+  useKeyboardShortcuts();
 
   const mouseDownPos = useRef<{ x: number; y: number } | null>(null);
   const DRAG_THRESHOLD = 5; // Pixels
 
   useEffect(() => {
-    if (!gl.domElement || !selectElement) return;
+    if (!gl.domElement) return;
     console.log("GlobalInteractionHandler: Attaching mouse event listeners.");
 
     const handleMouseDown = (event: MouseEvent) => {
@@ -111,7 +114,7 @@ function GlobalInteractionHandler() {
       mouseDownPos.current = { x: event.clientX, y: event.clientY };
     };
 
-    const handleMouseUp = (event: MouseEvent) => {
+    const handleMouseUp = async (event: MouseEvent) => {
       console.log(
         "GlobalInteractionHandler: Mouse up",
         event.clientX,
@@ -154,7 +157,7 @@ function GlobalInteractionHandler() {
           console.log(
             "GlobalInteractionHandler: No IFCModelGroup found in scene. Deselecting."
           );
-          selectElement(null);
+          clear();
           return;
         }
         console.log(
@@ -181,54 +184,26 @@ function GlobalInteractionHandler() {
           ) {
             const clickedModelID = firstIntersect.userData.modelID;
             const clickedExpressID = firstIntersect.userData.expressID;
-            const selectionInfo: SelectedElementInfo = {
-              modelID: clickedModelID,
-              expressID: clickedExpressID,
-            };
-            console.log(
-              "GlobalInteractionHandler: Clicked on element:",
-              selectionInfo
+            const props = await getElementPropertiesCached?.(
+              clickedModelID,
+              clickedExpressID,
             );
-
-            // Check if this element is user-hidden. If so, do not select it.
-            // (Though it shouldn't be in visibleIntersects if mesh.visible was set correctly by IFCModel)
-            // This is more of a double-check or alternative if direct mesh.visible check fails for some reason.
-            // const isClickedElementUserHidden = userHiddenElements.some(
-            //   (hiddenEl) => hiddenEl.modelID === clickedModelID && hiddenEl.expressID === clickedExpressID
-            // );
-            // if (isClickedElementUserHidden) {
-            //   console.log("GlobalInteractionHandler: Clicked on a user-hidden element. Deselecting.");
-            //   selectElement(null);
-            //   return;
-            // }
-
-            if (
-              selectedElement &&
-              selectedElement.modelID === clickedModelID &&
-              selectedElement.expressID === clickedExpressID
-            ) {
-              console.log(
-                "GlobalInteractionHandler: Clicked on already selected element. Deselecting."
-              );
-              selectElement(null);
+            const guid =
+              props?.propertySets?.["Element Attributes"]?.GlobalId ??
+              props?.attributes?.GlobalId?.value ??
+              props?.attributes?.GlobalId;
+            if (!guid) return;
+            if (event.ctrlKey || event.metaKey) {
+              add(guid);
             } else {
-              console.log(
-                "GlobalInteractionHandler: Selecting new element:",
-                selectionInfo
-              );
-              selectElement(selectionInfo);
+              clear();
+              add(guid);
             }
-          } else {
-            console.log(
-              "GlobalInteractionHandler: Clicked on object without valid IFC user data. Deselecting."
-            );
-            selectElement(null);
+          } else if (!(event.ctrlKey || event.metaKey)) {
+            clear();
           }
-        } else {
-          console.log(
-            "GlobalInteractionHandler: Clicked on empty space. Deselecting."
-          );
-          selectElement(null);
+        } else if (!(event.ctrlKey || event.metaKey)) {
+          clear();
         }
       } else {
         console.log(
@@ -248,17 +223,7 @@ function GlobalInteractionHandler() {
       canvasElement.removeEventListener("mouseup", handleMouseUp);
       mouseDownPos.current = null;
     };
-  }, [
-    gl,
-    camera,
-    raycaster,
-    selectElement,
-    selectedElement,
-    scene,
-    loadedModels,
-    userHiddenElements,
-    DRAG_THRESHOLD,
-  ]);
+  }, [gl, camera, raycaster, scene, getElementPropertiesCached, add, clear, DRAG_THRESHOLD]);
 
   return null;
 }
