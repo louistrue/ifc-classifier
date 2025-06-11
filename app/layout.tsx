@@ -9,8 +9,6 @@ import Script from "next/script";
 import Menubar from "@/components/layout/Menubar";
 import Footer from "@/components/layout/Footer";
 import { Analytics } from "@vercel/analytics/next";
-import { PHProvider, PostHogPageview } from "./providers";
-import { Suspense } from "react";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -39,24 +37,19 @@ export default function RootLayout({
         <meta name="theme-color" content="#ffffff" />
       </head>
       <body className={`${inter.className} h-full flex flex-col overflow-hidden`}>
-        <Suspense>
-          <PostHogPageview />
-        </Suspense>
-        <PHProvider>
-          <IFCContextProvider>
-            <I18nClientProvider>
-              <I18nProvider>
-                <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
-                  <div className="flex flex-col h-full">
-                    <Menubar />
-                    <main className="flex-1 overflow-hidden">{children}</main>
-                    <Footer />
-                  </div>
-                </ThemeProvider>
-              </I18nProvider>
-            </I18nClientProvider>
-          </IFCContextProvider>
-        </PHProvider>
+        <IFCContextProvider>
+          <I18nClientProvider>
+            <I18nProvider>
+              <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
+                <div className="flex flex-col h-full">
+                  <Menubar />
+                  <main className="flex-1 overflow-hidden">{children}</main>
+                  <Footer />
+                </div>
+              </ThemeProvider>
+            </I18nProvider>
+          </I18nClientProvider>
+        </IFCContextProvider>
         <Analytics />
         <Script src="https://cdn.jsdelivr.net/pyodide/v0.26.0/full/pyodide.js" strategy="beforeInteractive" />
       </body>
