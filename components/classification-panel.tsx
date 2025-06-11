@@ -120,7 +120,6 @@ export function ClassificationPanel() {
     showAllClassificationColors,
     toggleShowAllClassificationColors,
     loadedModels,
-    selectedElement,
     selectedElements,
     assignClassificationToElement,
     unassignClassificationFromElement,

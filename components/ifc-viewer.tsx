@@ -393,7 +393,7 @@ function SelectionListOverlay() {
 // Define the interface for the actions exposed by CameraActionsController
 export interface CameraActions {
   zoomToExtents: () => void;
-  zoomToSelected: (selection: SelectedElementInfo | null) => void;
+  zoomToSelected: (selections: SelectedElementInfo[]) => void;
 }
 
 // Simple component to capture the scene for external reference
@@ -548,28 +548,31 @@ const CameraActionsController = forwardRef<CameraActions, {}>((props, ref) => {
         );
       }
     },
-    zoomToSelected: (selection: SelectedElementInfo | null) => {
+    zoomToSelected: (selections: SelectedElementInfo[]) => {
       console.log(
         "CameraActionsController: zoomToSelected called with",
-        selection
+        selections,
       );
-      if (!selection || !(camera instanceof THREE.PerspectiveCamera)) return;
+      if (selections.length === 0 || !(camera instanceof THREE.PerspectiveCamera)) return;
 
-      let selectedMesh: THREE.Mesh | null = null;
+      const bbox = new THREE.Box3();
+      let found = false;
       scene.traverse((object) => {
-        if (selectedMesh) return;
         if (
           object instanceof THREE.Mesh &&
-          object.userData.modelID === selection.modelID &&
-          object.userData.expressID === selection.expressID
+          selections.some(
+            (s) =>
+              object.userData.modelID === s.modelID &&
+              object.userData.expressID === s.expressID,
+          )
         ) {
-          selectedMesh = object;
+          bbox.expandByObject(object);
+          found = true;
         }
       });
 
-      if (!selectedMesh) return;
+      if (!found) return;
 
-      const bbox = new THREE.Box3().setFromObject(selectedMesh);
       const center = bbox.getCenter(new THREE.Vector3());
       const sphere = bbox.getBoundingSphere(new THREE.Sphere());
       const radius = sphere.radius;
@@ -583,7 +586,7 @@ const CameraActionsController = forwardRef<CameraActions, {}>((props, ref) => {
         radius / Math.sin(Math.atan(Math.tan(fov / 2) * aspect));
       distance = Math.max(distance, effectiveRadiusForHorizontalFit);
 
-      distance *= 1.5; // Add a bit more padding for single selected objects
+      distance *= 1.5; // Add padding
       if (distance === 0 || !isFinite(distance) || distance < 0.1) distance = 5; // Fallback
       if (distance < pCamera.near * 2) distance = pCamera.near * 2 + radius; // Ensure it's not too close to near plane
 
@@ -807,7 +810,6 @@ function ViewerContent() {
     loadedModels,
     setIfcApi,
     ifcApi,
-    selectedElement,
     selectedElements,
     selectElement,
     toggleUserHideElement,
@@ -867,8 +869,8 @@ function ViewerContent() {
 
   const handleZoomSelected = useCallback(() => {
     console.log("ViewerContent: handleZoomSelected called");
-    cameraActionsRef.current?.zoomToSelected(selectedElement);
-  }, [selectedElement]);
+    cameraActionsRef.current?.zoomToSelected(selectedElements);
+  }, [selectedElements]);
 
   const toggleLeftPanel = () => {
     if (leftPanelRef.current) {
@@ -1364,14 +1366,10 @@ function ViewerContent() {
     }
   }, [ifcEngineReady, hasAutoLoadedModels, loadedModels, addIFCModel]);
 
-  // Re-enable selectedElement logging if desired, or keep it minimal
+  // Log selection changes for debugging
   useEffect(() => {
-    if (selectedElement) {
-      console.log("ViewerContent: Selected element changed: ", selectedElement);
-    } else {
-      console.log("ViewerContent: No element selected / selection cleared.");
-    }
-  }, [selectedElement]);
+    console.log("ViewerContent: Selection changed", selectedElements);
+  }, [selectedElements]);
 
   const customUnhideAllElements = useCallback(() => {
     unhideAllElements();

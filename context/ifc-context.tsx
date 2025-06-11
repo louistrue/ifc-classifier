@@ -73,10 +73,9 @@ export interface ClassificationItem {
 
 interface IFCContextType {
   loadedModels: LoadedModelData[]; // Array of loaded models
-  selectedElement: SelectedElementInfo | null;
   selectedElements: SelectedElementInfo[];
   highlightedElements: SelectedElementInfo[]; // Assuming highlights can also be model-specific
-  elementProperties: any | null; // Properties of the selectedElement
+  elementProperties: any | null; // Properties of the selection
   availableCategories: Record<number, string[]>; // Categories per modelID
   classifications: Record<string, any>; // Global classifications for now
   rules: Rule[]; // Global rules for now
@@ -183,8 +182,6 @@ const IFCContext = createContext<IFCContextType | undefined>(undefined);
 
 export function IFCContextProvider({ children }: { children: ReactNode }) {
   const [loadedModels, setLoadedModels] = useState<LoadedModelData[]>([]);
-  const [selectedElement, setSelectedElement] =
-    useState<SelectedElementInfo | null>(null);
   const [selectedElements, setSelectedElements] = useState<SelectedElementInfo[]>([]);
   const [highlightedElements, setHighlightedElements] = useState<
     SelectedElementInfo[]
@@ -1086,7 +1083,7 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
   const commonLoadLogic = useCallback(
     (url: string, name: string, fileIdToUse?: string): LoadedModelData => {
       const id = fileIdToUse || generateFileId();
-      setSelectedElement(null);
+      setSelectedElements([]);
       setElementPropertiesInternal(null);
       setHighlightedElements([]);
       return {
@@ -1100,7 +1097,7 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
     },
     [
       generateFileId,
-      setSelectedElement,
+      setSelectedElements,
       setElementPropertiesInternal,
       setHighlightedElements,
     ],
@@ -1154,21 +1151,21 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
         return filtered;
       });
       if (
-        selectedElement &&
-        loadedModels.find((m) => m.id === id)?.modelID ===
-        selectedElement.modelID
+        selectedElements.some(
+          (el) => loadedModels.find((m) => m.id === id)?.modelID === el.modelID,
+        )
       ) {
-        setSelectedElement(null);
+        setSelectedElements([]);
         setElementPropertiesInternal(null);
       }
     },
     [
       ifcApiInternal,
-      selectedElement,
+      selectedElements,
       loadedModels,
       setLoadedModels,
       setAvailableCategoriesInternal,
-      setSelectedElement,
+      setSelectedElements,
       setElementPropertiesInternal,
     ],
   );
@@ -1211,7 +1208,6 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
       } else {
         setSelectedElements([]);
       }
-      setSelectedElement(selection);
       setHighlightedElements([]);
       setHighlightedClassificationCode(null);
       setShowAllClassificationColors(false);
@@ -1223,7 +1219,6 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
       }
     },
     [
-      setSelectedElement,
       setHighlightedElements,
       setHighlightedClassificationCode,
       setShowAllClassificationColors,
@@ -1236,7 +1231,6 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
   const selectElements = useCallback(
     (selection: SelectedElementInfo[]) => {
       setSelectedElements(selection);
-      setSelectedElement(selection.length ? selection[selection.length - 1] : null);
       setHighlightedElements([]);
       setHighlightedClassificationCode(null);
       setShowAllClassificationColors(false);
@@ -1245,7 +1239,6 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
     },
     [
       setSelectedElements,
-      setSelectedElement,
       setHighlightedElements,
       setHighlightedClassificationCode,
       setShowAllClassificationColors,
@@ -1256,7 +1249,6 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
 
   const clearSelection = useCallback(() => {
     setSelectedElements([]);
-    setSelectedElement(null);
     setHighlightedElements([]);
     setHighlightedClassificationCode(null);
     setShowAllClassificationColors(false);
@@ -1264,7 +1256,6 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
     setElementPropertiesInternal(null);
   }, [
     setSelectedElements,
-    setSelectedElement,
     setHighlightedElements,
     setHighlightedClassificationCode,
     setShowAllClassificationColors,
@@ -1294,7 +1285,6 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
             newSelection = [element];
           }
         }
-        setSelectedElement(newSelection.length ? newSelection[newSelection.length - 1] : null);
         setHighlightedElements([]);
         setHighlightedClassificationCode(null);
         setShowAllClassificationColors(false);
@@ -1305,7 +1295,6 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
     },
     [
       setSelectedElements,
-      setSelectedElement,
       setHighlightedElements,
       setHighlightedClassificationCode,
       setShowAllClassificationColors,
@@ -1804,23 +1793,25 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
             "IFCContext: Element was visible, now hiding:",
             elementToToggle,
           );
-          // Check if the element being hidden is the currently selected element
+          // Deselect if the element being hidden was selected
           if (
-            selectedElement &&
-            selectedElement.modelID === elementToToggle.modelID &&
-            selectedElement.expressID === elementToToggle.expressID
+            selectedElements.some(
+              (sel) =>
+                sel.modelID === elementToToggle.modelID &&
+                sel.expressID === elementToToggle.expressID,
+            )
           ) {
             console.log(
               "IFCContext: Deselecting element because it is now hidden.",
             );
-            setSelectedElement(null); // Deselect
-            setElementPropertiesInternal(null); // Clear its properties
+            setSelectedElements([]);
+            setElementPropertiesInternal(null);
           }
           return [...prevHidden, elementToToggle];
         }
       });
     },
-    [selectedElement, setSelectedElement, setElementPropertiesInternal],
+    [selectedElements, setSelectedElements, setElementPropertiesInternal],
   );
 
   const unhideLastElement = useCallback(() => {
@@ -1874,12 +1865,15 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
             )
           ) {
             if (
-              selectedElement &&
-              selectedElement.modelID === el.modelID &&
-              selectedElement.expressID === el.expressID
+              selectedElements.some(
+                (sel) => sel.modelID === el.modelID && sel.expressID === el.expressID,
+              )
             ) {
-              console.log("IFCContext: Deselecting element that's being hidden:", el);
-              setSelectedElement(null);
+              console.log(
+                "IFCContext: Deselecting element that's being hidden:",
+                el,
+              );
+              setSelectedElements([]);
               setElementPropertiesInternal(null);
             }
             newHidden.push(el);
@@ -1891,7 +1885,7 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
         return newHidden;
       });
     },
-    [selectedElement, setSelectedElement, setElementPropertiesInternal],
+    [selectedElements, setSelectedElements, setElementPropertiesInternal],
   );
 
   const showElements = useCallback((elements: SelectedElementInfo[]) => {
@@ -1909,7 +1903,6 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
     <IFCContext.Provider
       value={{
         loadedModels,
-        selectedElement,
         selectedElements,
         highlightedElements,
         elementProperties,

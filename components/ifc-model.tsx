@@ -433,7 +433,6 @@ export function IFCModel({ modelData, outlineLayer }: IFCModelProps) {
     ifcApi,
     setSpatialTreeForModel,
     setElementProperties,
-    selectedElement,
     selectedElements,
     highlightedElements,
     highlightedClassificationCode,
@@ -796,7 +795,6 @@ export function IFCModel({ modelData, outlineLayer }: IFCModelProps) {
     console.log(
       `IFCModel (${modelData.id}) - Highlighting Effect Triggered. Dependencies:`,
       {
-        selectedElement,
         highlightedElementsCount: highlightedElements.length,
         classificationsKeys: Object.keys(classifications),
         internalApiIdForEffects,
@@ -828,9 +826,11 @@ export function IFCModel({ modelData, outlineLayer }: IFCModelProps) {
       `IFCModel (${modelData.id}) - Highlighting Effect: currentModelID = ${currentModelID}`
     );
 
-    const selectedExpressIDsInThisModel = selectedElements
-      .filter((el) => el.modelID === currentModelID)
-      .map((el) => el.expressID);
+    const selectedExpressIDsInThisModel = new Set(
+      selectedElements
+        .filter((el) => el.modelID === currentModelID)
+        .map((el) => el.expressID),
+    );
 
     console.log(
       `IFCModel (${modelData.id}) - Highlighting Effect: Selected IDs in this model = ${selectedExpressIDsInThisModel.join(',')}`,
@@ -838,9 +838,11 @@ export function IFCModel({ modelData, outlineLayer }: IFCModelProps) {
       selectedElements
     );
 
-    const highlightedExpressIDsInThisModel = highlightedElements
-      .filter((h) => h.modelID === currentModelID)
-      .map((h) => h.expressID);
+    const highlightedExpressIDsInThisModel = new Set(
+      highlightedElements
+        .filter((h) => h.modelID === currentModelID)
+        .map((h) => h.expressID),
+    );
 
     meshesRef.current.traverse((child) => {
       if (
@@ -965,7 +967,7 @@ export function IFCModel({ modelData, outlineLayer }: IFCModelProps) {
         }
 
         // Step 4: Selected Element (highest priority for visibility and material)
-        if (selectedExpressIDsInThisModel.includes(expressID)) {
+        if (selectedExpressIDsInThisModel.has(expressID)) {
           targetMaterial = selectionMaterial;
           isCurrentlyVisible = true;
           console.log(`SELECT OVERRIDE: Element ${currentModelID}-${expressID} visible despite filtering because it's selected`);
@@ -1046,39 +1048,6 @@ export function IFCModel({ modelData, outlineLayer }: IFCModelProps) {
     return foundMesh;
   };
 
-  // Memoized function for fetching properties
-  const fetchPropertiesForSelectedElement = useCallback(async () => {
-    if (!ifcApi || !selectedElement || internalApiIdForEffects === null || selectedElement.modelID !== internalApiIdForEffects) {
-      if (!selectedElement) setElementProperties(null);
-      return;
-    }
-    const props = await getElementPropertiesCached(internalApiIdForEffects, selectedElement.expressID);
-    if (props) {
-      setElementProperties(props);
-    } else {
-      setElementProperties({ error: "Failed to fetch properties" });
-    }
-  }, [ifcApi, selectedElement, internalApiIdForEffects, setElementProperties, getElementPropertiesCached]);
-
-
-  // Fetch properties effect - This is the useEffect that calls the memoized callback
-  useEffect(() => {
-    if (
-      selectedElement &&
-      internalApiIdForEffects !== null &&
-      selectedElement.modelID === internalApiIdForEffects
-    ) {
-      fetchPropertiesForSelectedElement();
-    } else {
-      setElementProperties(null);
-    }
-  }, [
-    selectedElement,
-    internalApiIdForEffects,
-    fetchPropertiesForSelectedElement,
-    modelData.id, // Added modelData.id here
-    setElementProperties, // Added setElementProperties here
-  ]);
 
   useEffect(() => {
     if (!ifcApi || internalApiIdForEffects === null) return; // baseCoordinationMatrix and setBaseCoordinationMatrix are checked by linter for this effect

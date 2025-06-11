@@ -355,7 +355,6 @@ const getPropertyIcon = (name: string): React.ReactNode => {
 
 export function ModelInfo() {
   const {
-    selectedElement,
     selectedElements,
     loadedModels,
     getNaturalIfcClassName,
@@ -417,15 +416,24 @@ export function ModelInfo() {
   const openSchemaReader = () => {
     if (naturalIfcInfo.schemaUrl) {
       setSelectedSchemaUrl(naturalIfcInfo.schemaUrl);
-      setSelectedIfcClassName(naturalIfcInfo.name || ifcType);
+      setSelectedIfcClassName(naturalIfcInfo.name || ifcType || "");
       setSchemaReaderOpen(true);
     }
   };
 
-  const elementClassifications = useMemo(
-    () => getClassificationsForElement(selectedElement),
-    [getClassificationsForElement, selectedElement],
-  );
+  const elementClassifications = useMemo(() => {
+    if (selectedElements.length === 0) return [] as any[];
+    if (selectedElements.length === 1)
+      return getClassificationsForElement(selectedElements[0]);
+    const sets = selectedElements.map((el) =>
+      getClassificationsForElement(el).map((c) => c.code),
+    );
+    const intersection = sets.reduce((acc, arr) =>
+      acc.filter((code) => arr.includes(code)),
+    sets[0]);
+    const all = getClassificationsForElement(selectedElements[0]);
+    return all.filter((c) => intersection.includes(c.code));
+  }, [getClassificationsForElement, selectedElements]);
 
   // Always compute processedProps, but handle null case
   const processedProps = useMemo(() => {
@@ -521,7 +529,7 @@ export function ModelInfo() {
   // Only show messages for "no selection" and "loading"
 
   // Empty state for no selection
-  if (!selectedElement) {
+  if (selectedElements.length === 0) {
     return (
       <div className="flex items-center justify-center h-full">
         <div className="text-center p-6">
@@ -572,7 +580,9 @@ export function ModelInfo() {
     materialSets,
   } = processedProps;
 
-  const naturalIfcInfo = getNaturalIfcClassName(ifcType, lang);
+  const naturalIfcInfo = ifcType
+    ? getNaturalIfcClassName(ifcType, lang)
+    : { name: t("multipleTypes"), schemaUrl: undefined };
 
   // Render the detailed property information
   return (

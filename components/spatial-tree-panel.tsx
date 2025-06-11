@@ -86,7 +86,7 @@ interface TreeNodeProps {
   node: SpatialStructureNode;
   level: number;
   onSelectNode: (selection: SelectedElementInfo) => void;
-  selectedElementInfo: SelectedElementInfo | null;
+  selectedElements: SelectedElementInfo[];
   isRootModelNode?: boolean;
   modelFileInfo?: { id: string; name: string; modelID: number | null };
   onAttemptRemoveModel?: (modelId: string, modelName: string) => void;
@@ -103,7 +103,7 @@ const TreeNode: React.FC<TreeNodeProps> = ({
   node,
   level,
   onSelectNode,
-  selectedElementInfo,
+  selectedElements,
   isRootModelNode = false,
   modelFileInfo = { id: "unknown", name: "Model", modelID: null },
   onAttemptRemoveModel,
@@ -201,7 +201,8 @@ const TreeNode: React.FC<TreeNodeProps> = ({
     toggleNodeExpansion(nodeKey);
   };
 
-  const handleSelect = () => {
+  const handleSelect = (e: React.MouseEvent) => {
+    const additive = e.ctrlKey || e.metaKey;
     if (isRootModelNode || modelFileInfo.modelID === null) return;
 
     if (
@@ -214,10 +215,13 @@ const TreeNode: React.FC<TreeNodeProps> = ({
       node.type.includes("SITE") ||
       node.type.includes("PROJECT")
     ) {
-      onSelectNode({
-        modelID: modelFileInfo.modelID,
-        expressID: node.expressID,
-      });
+      onSelectNode(
+        {
+          modelID: modelFileInfo.modelID,
+          expressID: node.expressID,
+        },
+        additive,
+      );
     }
   };
 
@@ -281,8 +285,9 @@ const TreeNode: React.FC<TreeNodeProps> = ({
   const isSelected =
     !isRootModelNode &&
     modelFileInfo.modelID !== null &&
-    selectedElementInfo?.modelID === modelFileInfo.modelID &&
-    selectedElementInfo?.expressID === node.expressID;
+    selectedElements.some(
+      (sel) => sel.modelID === modelFileInfo.modelID && sel.expressID === node.expressID,
+    );
 
   return (
     <>
@@ -431,7 +436,7 @@ const TreeNode: React.FC<TreeNodeProps> = ({
           node={child}
           level={level + 1}
           onSelectNode={onSelectNode}
-          selectedElementInfo={selectedElementInfo}
+          selectedElements={selectedElements}
           isRootModelNode={false}
           modelFileInfo={modelFileInfo}
           onAttemptRemoveModel={onAttemptRemoveModel}
@@ -460,7 +465,8 @@ export function SpatialTreePanel() {
   const {
     loadedModels,
     selectElement,
-    selectedElement,
+    selectedElements,
+    toggleElementSelection,
     ifcApi,
     removeIFCModel,
     getNaturalIfcClassName,
@@ -617,24 +623,22 @@ export function SpatialTreePanel() {
         }
       });
       newScrollKey = null; // Don't scroll during search
-    } else if (
-      selectedElement &&
-      selectedElement.modelID !== null &&
-      loadedModels.length > 0
-    ) {
-      const targetModelID = selectedElement.modelID;
-      const targetExpressID = selectedElement.expressID;
-      const model = loadedModels.find((m) => m.modelID === targetModelID);
+    } else {
+      const activeSel = selectedElements[selectedElements.length - 1];
+      if (activeSel && activeSel.modelID !== null && loadedModels.length > 0) {
+        const targetModelID = activeSel.modelID;
+        const targetExpressID = activeSel.expressID;
+        const model = loadedModels.find((m) => m.modelID === targetModelID);
 
-      if (model && model.spatialTree) {
-        console.log(`Finding path to element: modelID=${targetModelID}, expressID=${targetExpressID}`);
-        const pathResult = findPathToNodeRecursive(
-          model.spatialTree,
-          targetExpressID,
-          targetModelID,
-          [],
-          null,
-        );
+        if (model && model.spatialTree) {
+          console.log(`Finding path to element: modelID=${targetModelID}, expressID=${targetExpressID}`);
+          const pathResult = findPathToNodeRecursive(
+            model.spatialTree,
+            targetExpressID,
+            targetModelID,
+            [],
+            null,
+          );
 
         if (pathResult) {
           console.log(`Path found, expanding keys:`, pathResult.pathKeys);
@@ -657,6 +661,7 @@ export function SpatialTreePanel() {
         } else {
           console.log(`No path found for element: modelID=${targetModelID}, expressID=${targetExpressID}`);
         }
+        }
       }
     }
 
@@ -674,7 +679,7 @@ export function SpatialTreePanel() {
 
     setSelectedNodeKeyForScroll(newScrollKey);
   }, [
-    selectedElement,
+    selectedElements,
     loadedModels,
     findPathToNodeRecursive,
     filteredModels,
@@ -700,11 +705,11 @@ export function SpatialTreePanel() {
     }
   }, [selectedNodeKeyForScroll]);
 
-  const handleNodeSelection = (selection: SelectedElementInfo) => {
+  const handleNodeSelection = (selection: SelectedElementInfo, additive: boolean) => {
     console.log(
       `SpatialTree: Node selected - ModelID: ${selection.modelID}, ExpressID: ${selection.expressID}`,
     );
-    selectElement(selection);
+    toggleElementSelection(selection, additive);
   };
 
   const handleAttemptRemoveModel = (modelId: string, modelName: string) => {
@@ -805,7 +810,7 @@ export function SpatialTreePanel() {
                 node={modelRootNodeForTree}
                 level={0}
                 onSelectNode={handleNodeSelection}
-                selectedElementInfo={selectedElement}
+                selectedElements={selectedElements}
                 isRootModelNode={true}
                 modelFileInfo={{
                   id: modelEntry.id,
