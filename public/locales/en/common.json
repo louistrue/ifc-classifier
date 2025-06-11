@@ -143,6 +143,7 @@
     "resetCamera": "Reset Camera",
     "showAll": "Show All",
     "hideAll": "Hide All",
+    "selectAllVisible": "Select All Visible (Ctrl/Cmd+A)",
     "zoomToSelected": "Zoom to Selected (F)",
     "toggleVisibility": "Toggle Visibility of Selected (Spacebar)",
     "selectElementToToggle": "Select an element to toggle visibility",

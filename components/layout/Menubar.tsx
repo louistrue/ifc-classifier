@@ -76,33 +76,51 @@ const Menubar = () => {
                 />
               </button>
               {isLangDropdownOpen && (
-                <div className="absolute top-full mt-1 w-full rounded-md bg-background border border-border shadow-lg z-10 py-1">
+                <div className="absolute top-full mt-2 min-w-[120px] rounded-md bg-background border border-border shadow-lg z-10 p-1">
                   <button
                     onClick={() => changeLanguage("en")}
-                    className="w-full text-left px-3 py-1.5 text-sm text-foreground hover:bg-accent flex items-center gap-2"
+                    className="w-full text-left px-3 py-2 text-sm text-foreground hover:bg-accent rounded-sm flex items-center gap-3 transition-colors"
                   >
-                    <span className="text-base">🇬🇧</span>
+                    <svg className="w-5 h-4 rounded-sm overflow-hidden flex-shrink-0" viewBox="0 0 60 40">
+                      <rect width="60" height="40" fill="#012169"/>
+                      <path d="M0,0 L60,40 M60,0 L0,40" stroke="#fff" strokeWidth="8"/>
+                      <path d="M0,0 L60,40 M60,0 L0,40" stroke="#C8102E" strokeWidth="5" strokeDasharray="0,8,0,8"/>
+                      <path d="M30,0 v40 M0,20 h60" stroke="#fff" strokeWidth="13"/>
+                      <path d="M30,0 v40 M0,20 h60" stroke="#C8102E" strokeWidth="8"/>
+                    </svg>
                     EN
                   </button>
                   <button
                     onClick={() => changeLanguage("de")}
-                    className="w-full text-left px-3 py-1.5 text-sm text-foreground hover:bg-accent flex items-center gap-2"
+                    className="w-full text-left px-3 py-2 text-sm text-foreground hover:bg-accent rounded-sm flex items-center gap-3 transition-colors"
                   >
-                    <span className="text-base">🇩🇪</span>
+                    <svg className="w-5 h-4 rounded-sm overflow-hidden flex-shrink-0" viewBox="0 0 60 40">
+                      <rect width="60" height="13.33" y="0" fill="#000"/>
+                      <rect width="60" height="13.33" y="13.33" fill="#D00"/>
+                      <rect width="60" height="13.34" y="26.66" fill="#FFCE00"/>
+                    </svg>
                     DE
                   </button>
                   <button
                     onClick={() => changeLanguage("fr")}
-                    className="w-full text-left px-3 py-1.5 text-sm text-foreground hover:bg-accent flex items-center gap-2"
+                    className="w-full text-left px-3 py-2 text-sm text-foreground hover:bg-accent rounded-sm flex items-center gap-3 transition-colors"
                   >
-                    <span className="text-base">🇫🇷</span>
+                    <svg className="w-5 h-4 rounded-sm overflow-hidden flex-shrink-0" viewBox="0 0 60 40">
+                      <rect width="20" height="40" x="0" fill="#002654"/>
+                      <rect width="20" height="40" x="20" fill="#fff"/>
+                      <rect width="20" height="40" x="40" fill="#ED2939"/>
+                    </svg>
                     FR
                   </button>
                   <button
                     onClick={() => changeLanguage("it")}
-                    className="w-full text-left px-3 py-1.5 text-sm text-foreground hover:bg-accent flex items-center gap-2"
+                    className="w-full text-left px-3 py-2 text-sm text-foreground hover:bg-accent rounded-sm flex items-center gap-3 transition-colors"
                   >
-                    <span className="text-base">🇮🇹</span>
+                    <svg className="w-5 h-4 rounded-sm overflow-hidden flex-shrink-0" viewBox="0 0 60 40">
+                      <rect width="20" height="40" x="0" fill="#009246"/>
+                      <rect width="20" height="40" x="20" fill="#fff"/>
+                      <rect width="20" height="40" x="40" fill="#CE2B37"/>
+                    </svg>
                     IT
                   </button>
                 </div>

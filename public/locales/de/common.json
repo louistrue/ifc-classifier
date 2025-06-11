@@ -143,6 +143,7 @@
     "resetCamera": "Kamera zurücksetzen",
     "showAll": "Alle anzeigen",
     "hideAll": "Alle ausblenden",
+    "selectAllVisible": "Alle sichtbaren auswählen (Strg/Cmd+A)",
     "zoomToSelected": "Zum ausgewählten Element zoomen (F)",
     "toggleVisibility": "Sichtbarkeit des ausgewählten Elements umschalten (Leertaste)",
     "selectElementToToggle": "Wählen Sie ein Element aus, um die Sichtbarkeit umzuschalten",

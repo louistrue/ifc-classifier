@@ -131,6 +131,7 @@ export function ClassificationPanel() {
     importClassificationsFromJson,
     importClassificationsFromExcel,
     mapClassificationsFromModel,
+    clearSelection,
   } = useIFCContext();
   const { t } = useTranslation();
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
@@ -870,8 +871,10 @@ export function ClassificationPanel() {
                             : "bg-transparent text-muted-foreground hover:bg-accent hover:text-accent-foreground"
                         }`}
                       onClick={() => {
-                        if (!showAllClassificationColors)
+                        if (!showAllClassificationColors) {
+                          clearSelection();
                           toggleShowAllClassificationColors();
+                        }
                       }}
                     >
                       <Palette

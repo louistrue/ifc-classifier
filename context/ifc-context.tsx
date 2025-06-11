@@ -335,59 +335,126 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
         if (ifcApiInternal.properties) {
           // Ensure properties helper is available on the API instance
           try {
-            // 1. Get Property Sets (including those from types)
-            const psets = await ifcApiInternal.properties.getPropertySets(
-              model.modelID,
-              0, // Get for all elements/types in the model
-              true, // Recursive
-              true, // Include type properties
-            );
-            psets.forEach((pset: any) => {
-              if (pset.Name?.value && pset.HasProperties) {
-                const psetName = pset.Name.value;
-                pset.HasProperties.forEach((prop: any) => {
-                  if (prop.Name?.value) {
-                    allProps.add(`${psetName}.${prop.Name.value}`);
-                  }
-                });
-              }
-            });
-
-            // 2. Get Type Properties (for attributes not in Psets on types)
-            const typeObjects =
-              await ifcApiInternal.properties.getTypeProperties(
-                model.modelID,
-                0, // Get all type objects
-                true, // Recursive for their properties
-              );
-            typeObjects.forEach((typeObj: any) => {
-              // Add direct properties of the type object itself if they are simple
-              // (e.g. if ObjectType, Tag are directly on the type)
-              // This might be duplicative of the initial set but ensures capture.
-              if (typeObj.Name?.value) allProps.add("Name"); // Name of the type
-              if (typeObj.GlobalId?.value) allProps.add("GlobalId");
-              if (typeObj.Description?.value) allProps.add("Description");
-              if (typeObj.ObjectType?.value) allProps.add("ObjectType");
-              if (typeObj.Tag?.value) allProps.add("Tag");
-              if (typeObj.PredefinedType?.value) allProps.add("PredefinedType");
-
-              // If type objects themselves have property sets (common for IfcElementType)
-              if (typeObj.HasPropertySets) {
-                typeObj.HasPropertySets.forEach((pset: any) => {
-                  if (pset.Name?.value && pset.HasProperties) {
-                    const psetName = pset.Name.value;
-                    pset.HasProperties.forEach((prop: any) => {
+            // Get all property set types to find property sets in the model
+            const psetTypeCode = ifcApiInternal.GetTypeCodeFromName("IFCPROPERTYSET");
+            const psetIds = await ifcApiInternal.GetLineIDsWithType(model.modelID, psetTypeCode);
+            
+            // Process each property set
+            for (let i = 0; i < psetIds.size(); i++) {
+              const psetId = psetIds.get(i);
+              try {
+                const pset = await ifcApiInternal.GetLine(model.modelID, psetId, true);
+                if (pset && pset.Name?.value && pset.HasProperties) {
+                  const psetName = pset.Name.value;
+                  if (Array.isArray(pset.HasProperties)) {
+                    for (const prop of pset.HasProperties) {
                       if (prop.Name?.value) {
-                        // To distinguish from instance psets, could prefix, but web-ifc might already handle this
-                        // by returning them via getPropertySets with includeTypeProperties=true.
-                        // For now, just add them; duplicates are handled by the Set.
                         allProps.add(`${psetName}.${prop.Name.value}`);
                       }
-                    });
+                    }
                   }
-                });
+                }
+              } catch (e) {
+                // Skip individual property sets that fail
+                console.debug(`Skipping property set ${psetId}:`, e);
               }
-            });
+            }
+            
+            // Also check property sets that are related through IFCRELDEFINESBYPROPERTIES
+            try {
+              const relDefinesByPropsTypeCode = ifcApiInternal.GetTypeCodeFromName("IFCRELDEFINESBYPROPERTIES");
+              const relIds = await ifcApiInternal.GetLineIDsWithType(model.modelID, relDefinesByPropsTypeCode);
+              
+              const processedPsets = new Set<number>(); // To avoid processing the same pset multiple times
+              
+              for (let i = 0; i < relIds.size(); i++) {
+                const relId = relIds.get(i);
+                try {
+                  const rel = await ifcApiInternal.GetLine(model.modelID, relId, false);
+                  
+                  if (rel.RelatingPropertyDefinition?.value && !processedPsets.has(rel.RelatingPropertyDefinition.value)) {
+                    processedPsets.add(rel.RelatingPropertyDefinition.value);
+                    
+                    try {
+                      const pset = await ifcApiInternal.GetLine(model.modelID, rel.RelatingPropertyDefinition.value, true);
+                      if (pset && pset.Name?.value && pset.HasProperties) {
+                        const psetName = pset.Name.value;
+                        if (Array.isArray(pset.HasProperties)) {
+                          for (const prop of pset.HasProperties) {
+                            if (prop.Name?.value) {
+                              allProps.add(`${psetName}.${prop.Name.value}`);
+                            }
+                          }
+                        }
+                      }
+                    } catch (e) {
+                      console.debug(`Skipping related property set:`, e);
+                    }
+                  }
+                } catch (e) {
+                  console.debug(`Skipping relationship ${relId}:`, e);
+                }
+              }
+            } catch (e) {
+              console.debug(`Error processing property relationships:`, e);
+            }
+
+            // Also get properties from element types
+            const elementTypes = [
+              "IFCWALLTYPE", "IFCSLABTYPE", "IFCDOORTYPE", "IFCWINDOWTYPE",
+              "IFCCOLUMNTYPE", "IFCBEAMTYPE", "IFCPLATETYPE", "IFCMEMBERTYPE",
+              "IFCRAILINGTYPE", "IFCSTAIRTYPE", "IFCRAMPTYPE", "IFCROOFTYPE",
+              "IFCCURTAINWALLTYPE", "IFCBUILDINGTYPE", "IFCSPACETYPE"
+            ];
+            
+            for (const typeName of elementTypes) {
+              try {
+                const typeCode = ifcApiInternal.GetTypeCodeFromName(typeName);
+                const typeIds = await ifcApiInternal.GetLineIDsWithType(model.modelID, typeCode);
+                
+                for (let i = 0; i < typeIds.size(); i++) {
+                  const typeId = typeIds.get(i);
+                  try {
+                    const typeObj = await ifcApiInternal.GetLine(model.modelID, typeId, true);
+                    
+                    // Add direct type properties
+                    if (typeObj.Name?.value) allProps.add("Name");
+                    if (typeObj.GlobalId?.value) allProps.add("GlobalId");
+                    if (typeObj.Description?.value) allProps.add("Description");
+                    if (typeObj.ObjectType?.value) allProps.add("ObjectType");
+                    if (typeObj.Tag?.value) allProps.add("Tag");
+                    if (typeObj.PredefinedType?.value) allProps.add("PredefinedType");
+                    
+                    // Process property sets attached to types
+                    if (typeObj.HasPropertySets && Array.isArray(typeObj.HasPropertySets)) {
+                      for (const psetRef of typeObj.HasPropertySets) {
+                        if (psetRef?.value) {
+                          try {
+                            const pset = await ifcApiInternal.GetLine(model.modelID, psetRef.value, true);
+                            if (pset && pset.Name?.value && pset.HasProperties) {
+                              const psetName = pset.Name.value;
+                              if (Array.isArray(pset.HasProperties)) {
+                                for (const prop of pset.HasProperties) {
+                                  if (prop.Name?.value) {
+                                    allProps.add(`${psetName}.${prop.Name.value}`);
+                                  }
+                                }
+                              }
+                            }
+                          } catch (e) {
+                            console.debug(`Skipping type property set:`, e);
+                          }
+                        }
+                      }
+                    }
+                  } catch (e) {
+                    console.debug(`Skipping type ${typeId}:`, e);
+                  }
+                }
+              } catch (e) {
+                console.debug(`Skipping type ${typeName}:`, e);
+              }
+            }
           } catch (error) {
             console.error(
               `Error fetching properties for model ${model.modelID}:`,
@@ -515,30 +582,98 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
                 );
               }
               try {
-                const typeObjects = await api.properties.getTypeProperties(
+                // First try to get property sets directly for this element
+                const elementPsets = await api.properties.getPropertySets(
                   modelID,
                   elementNode.expressID,
-                  true,
+                  true, // recursive
+                  true  // include type properties
                 );
-                for (const typeObj of typeObjects) {
-                  if (
-                    typeObj.HasPropertySets &&
-                    Array.isArray(typeObj.HasPropertySets)
-                  ) {
-                    const foundPsetInType = typeObj.HasPropertySets.find(
-                      (ps: any) => ps.Name?.value === psetName,
-                    );
-                    if (foundPsetInType) {
-                      psetObject = foundPsetInType;
+                
+                if (elementPsets && elementPsets.length > 0) {
+                  for (const ps of elementPsets) {
+                    if (ps.Name?.value === psetName) {
+                      psetObject = ps;
                       if (condition.property === "Pset_WallCommon.IsExternal") {
                         console.log(
-                          `[DEBUG RULE TRACE - Type Fetch] Element ID: ${elementNode.expressID}, Found PSet ${psetName} in Type Object:`,
-                          psetObject
-                            ? JSON.parse(JSON.stringify(psetObject))
-                            : "undefined",
+                          `[DEBUG RULE TRACE - Direct PSets] Element ID: ${elementNode.expressID}, Found PSet ${psetName} via getPropertySets`
                         );
                       }
-                      break; // Found the PSet in a type object
+                      break;
+                    }
+                  }
+                }
+                
+                // If still not found, try type properties
+                if (!psetObject) {
+                  const typeObjects = await api.properties.getTypeProperties(
+                    modelID,
+                    elementNode.expressID,
+                    true,
+                  );
+                  for (const typeObj of typeObjects) {
+                    if (
+                      typeObj.HasPropertySets &&
+                      Array.isArray(typeObj.HasPropertySets)
+                    ) {
+                      const foundPsetInType = typeObj.HasPropertySets.find(
+                        (ps: any) => ps.Name?.value === psetName,
+                      );
+                      if (foundPsetInType) {
+                        psetObject = foundPsetInType;
+                        if (condition.property === "Pset_WallCommon.IsExternal") {
+                          console.log(
+                            `[DEBUG RULE TRACE - Type Fetch] Element ID: ${elementNode.expressID}, Found PSet ${psetName} in Type Object:`,
+                            psetObject
+                              ? JSON.parse(JSON.stringify(psetObject))
+                              : "undefined",
+                          );
+                        }
+                        break; // Found the PSet in a type object
+                      }
+                    }
+                  }
+                }
+                
+                // If STILL not found, try direct relationship query
+                if (!psetObject) {
+                  // Query for IFCRELDEFINESBYPROPERTIES relationships
+                  const relDefinesByPropsTypeCode = api.GetTypeCodeFromName("IFCRELDEFINESBYPROPERTIES");
+                  const relIds = await api.GetLineIDsWithType(modelID, relDefinesByPropsTypeCode);
+                  
+                  for (let i = 0; i < relIds.size(); i++) {
+                    const relId = relIds.get(i);
+                    try {
+                      const rel = await api.GetLine(modelID, relId, false);
+                      
+                      // Check if this relationship relates to our element
+                      if (rel.RelatedObjects && Array.isArray(rel.RelatedObjects)) {
+                        const isRelatedToElement = rel.RelatedObjects.some(
+                          (obj: any) => obj.value === elementNode.expressID
+                        );
+                        
+                        if (isRelatedToElement && rel.RelatingPropertyDefinition?.value) {
+                          // Get the property set
+                          const propDef = await api.GetLine(
+                            modelID, 
+                            rel.RelatingPropertyDefinition.value, 
+                            true
+                          );
+                          
+                          if (propDef && propDef.Name?.value === psetName) {
+                            psetObject = propDef;
+                            if (condition.property === "Pset_WallCommon.IsExternal") {
+                              console.log(
+                                `[DEBUG RULE TRACE - Direct Relationship] Element ID: ${elementNode.expressID}, Found PSet ${psetName} via relationship query`
+                              );
+                            }
+                            break;
+                          }
+                        }
+                      }
+                    } catch (e) {
+                      // Skip this relationship if there's an error
+                      continue;
                     }
                   }
                 }
@@ -599,6 +734,22 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
                 console.log(
                   `[DEBUG RULE TRACE - Fallback] PSet Object for ${psetName} was not found directly or lacked HasProperties.`,
                 );
+                
+                // Log all available property sets for debugging
+                try {
+                  const allPsets = await api.properties.getPropertySets(
+                    modelID,
+                    elementNode.expressID,
+                    true,
+                    true
+                  );
+                  console.log(
+                    `[DEBUG RULE TRACE - Available PSets] Element ID: ${elementNode.expressID}, Available property sets:`,
+                    allPsets?.map((ps: any) => ps.Name?.value || 'Unnamed') || []
+                  );
+                } catch (e) {
+                  console.log(`[DEBUG RULE TRACE] Could not fetch property sets for debugging`);
+                }
               }
               // DEBUG LOGGING END for fallback path
             }

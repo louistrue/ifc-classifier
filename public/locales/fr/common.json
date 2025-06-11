@@ -143,6 +143,7 @@
         "resetCamera": "Réinitialiser la caméra",
         "showAll": "Tout afficher",
         "hideAll": "Tout masquer",
+        "selectAllVisible": "Sélectionner tout le visible (Ctrl/Cmd+A)",
         "zoomToSelected": "Zoomer sur la sélection (F)",
         "toggleVisibility": "Basculer la visibilité de la sélection (Espace)",
         "selectElementToToggle": "Sélectionnez un élément pour basculer la visibilité",
