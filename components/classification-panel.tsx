@@ -1403,9 +1403,44 @@ export function ClassificationPanel() {
               <p className="text-base font-medium text-foreground/80 mb-2">
                 {t("noClassificationsAdded")}
               </p>
-              <p className="text-sm text-foreground/60">
+              <p className="text-sm text-foreground/60 mb-4">
                 {t("addClassification")}
               </p>
+              <div className="flex flex-col items-center gap-2">
+                {!isLoadingUniclass &&
+                  !errorLoadingUniclass &&
+                  defaultUniclassPr.length > 0 && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleAddAllUniclassPr}
+                      disabled={areAllUniclassAdded()}
+                    >
+                      {t("buttons.loadUniclass", {
+                        count: defaultUniclassPr.length,
+                      })}
+                    </Button>
+                  )}
+                {!isLoadingEBKPH &&
+                  !errorLoadingEBKPH &&
+                  defaultEBKPH.length > 0 && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleAddAlleBKPH}
+                      disabled={areAlleBKPHAdded()}
+                    >
+                      {t("buttons.loadEbkph", { count: defaultEBKPH.length })}
+                    </Button>
+                  )}
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => setIsAddDialogOpen(true)}
+                >
+                  {t("buttons.addNewClassification")}
+                </Button>
+              </div>
             </>
           )}
         </div>
