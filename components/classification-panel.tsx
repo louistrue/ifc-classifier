@@ -1403,9 +1403,43 @@ export function ClassificationPanel() {
               <p className="text-base font-medium text-foreground/80 mb-2">
                 {t("noClassificationsAdded")}
               </p>
-              <p className="text-sm text-foreground/60">
+              <p className="text-sm text-foreground/60 mb-4">
                 {t("addClassification")}
               </p>
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-2">
+                {isLoadingUniclass ? (
+                  <Button disabled>{t("buttons.loadingUniclass")}</Button>
+                ) : errorLoadingUniclass ? (
+                  <Button variant="destructive" disabled>
+                    {t("buttons.uniclassError", { message: errorLoadingUniclass })}
+                  </Button>
+                ) : defaultUniclassPr.length > 0 ? (
+                  <Button
+                    onClick={handleAddAllUniclassPr}
+                    disabled={areAllUniclassAdded()}
+                  >
+                    {t("buttons.loadUniclass", { count: defaultUniclassPr.length })}
+                  </Button>
+                ) : (
+                  <Button disabled>{t("buttons.noUniclassFound")}</Button>
+                )}
+                {isLoadingEBKPH ? (
+                  <Button disabled>{t("buttons.loadingEbkph")}</Button>
+                ) : errorLoadingEBKPH ? (
+                  <Button variant="destructive" disabled>
+                    {t("buttons.ebkphError", { message: errorLoadingEBKPH })}
+                  </Button>
+                ) : defaultEBKPH.length > 0 ? (
+                  <Button
+                    onClick={handleAddAlleBKPH}
+                    disabled={areAlleBKPHAdded()}
+                  >
+                    {t("buttons.loadEbkph", { count: defaultEBKPH.length })}
+                  </Button>
+                ) : (
+                  <Button disabled>{t("buttons.noEbkphFound")}</Button>
+                )}
+              </div>
             </>
           )}
         </div>

@@ -531,9 +531,27 @@ export function RulePanel() {
             <Settings2 className="h-12 w-12 text-foreground/30" />
           </div>
           <p className="text-base font-medium text-foreground/80 mb-2">{t('noRulesDefined')}</p>
-          <p className="text-sm text-foreground/60">
+          <p className="text-sm text-foreground/60 mb-4">
             {t('createRulesDescription')}
           </p>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-2">
+            {isLoadingEBKPHRules ? (
+              <Button disabled>{t('rules.loadingEbkph')}</Button>
+            ) : errorLoadingEBKPHRules ? (
+              <Button variant="destructive" disabled>
+                {t('rules.ebkphError', { message: errorLoadingEBKPHRules })}
+              </Button>
+            ) : defaultEBKPHRules.length > 0 ? (
+              <Button
+                onClick={handleAddDefaultEBKPHRules}
+                disabled={areAllDefaultEBKPHRulesAdded()}
+              >
+                {t('rules.loadEbkph', { count: defaultEBKPHRules.length })}
+              </Button>
+            ) : (
+              <Button disabled>{t('rules.noEbkphFound')}</Button>
+            )}
+          </div>
         </div>
       ) : filteredRules.length === 0 ? (
         <div className="text-center py-8 flex-grow flex items-center justify-center">
