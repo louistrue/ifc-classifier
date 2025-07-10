@@ -202,6 +202,10 @@
     "noSearchResults": "No classifications match your search.",
     "mapFromModelTitle": "Map Classifications from Model",
     "mapFromModelDescription": "Extract classifications from property values in the model",
+    "export": "Export",
+    "classificationSystem": "Classification System Metadata",
+    "showMetadataFields": "Show metadata fields…",
+    "editMetadata": "Edit…",
     "psetName": "PSet Name",
     "propertyName": "Property Name"
   },

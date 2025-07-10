@@ -118,27 +118,59 @@ def export_ifc_with_classifications(ifc_file_uint8array_js, classifications_json
         owner_history = get_or_create_owner_history(model)
         classifications_data = json.loads(classifications_json_str)
 
+        # ------------------------------------------------------------------
+        # Create / reuse ONE classification system for this export so that
+        # every reference belongs to the same IfcClassification. Using the
+        # individual classification item name here is wrong and led to
+        # duplicated systems such as "Aussenstütze". Instead we use a
+        # stable name.
+        # ------------------------------------------------------------------
+        # Pop metadata block (if any) so it doesn't interfere with iteration later
+        metadata = classifications_data.pop("__meta__", {}) if isinstance(classifications_data, dict) else {}
+
+        classification_system_name = metadata.get("name", "IFC Classifier")
+        classification_system_source = None
+        for c in model.by_type("IfcClassification"):
+            if c.Name == classification_system_name:
+                classification_system_source = c
+                break
+
+        if classification_system_source is None:
+            classification_kwargs = {"Name": classification_system_name}
+
+            if metadata.get("source"):
+                classification_kwargs["Source"] = metadata["source"]
+            if metadata.get("edition"):
+                classification_kwargs["Edition"] = metadata["edition"]
+            if metadata.get("editionDate"):
+                classification_kwargs["EditionDate"] = metadata["editionDate"]
+            if metadata.get("description"):
+                classification_kwargs["Description"] = metadata["description"]
+            if metadata.get("specification"):
+                classification_kwargs["Specification"] = metadata["specification"]
+            if metadata.get("referenceTokens"):
+                classification_kwargs["ReferenceTokens"] = metadata["referenceTokens"]
+
+            # Reduce attributes to those supported by current schema
+            # Determine model schema once for attribute decisions
+            schema_lower = model.schema.lower() if hasattr(model, "schema") else ""
+            if "ifc2x3" in schema_lower:
+                allowed = {"Source", "Edition", "EditionDate", "Name"}
+            else:
+                allowed = {"Source", "Edition", "EditionDate", "Name", "Description", "Specification", "ReferenceTokens"}
+
+            filtered_kwargs = {k: v for k, v in classification_kwargs.items() if k in allowed}
+
+            classification_system_source = model.create_entity("IfcClassification", **filtered_kwargs)
+
         for code, data in classifications_data.items():
             class_name = data.get("name", str(code)) 
             identification = str(code) 
             
-            existing_classification_source = None
-            for c in model.by_type("IfcClassification"):
-                if c.Name == class_name: # Assuming name is unique identifier for IfcClassification
-                    existing_classification_source = c
-                    break
-            
-            classification_source = existing_classification_source or model.create_entity(
-                "IfcClassification", 
-                Source="IFC Classifier Tool", # Added Source
-                Edition="1.0", # Added Edition
-                Name=class_name, 
-                # OwnerHistory=owner_history # OwnerHistory is not directly on IfcClassification
-            )
+            classification_source = classification_system_source
             
             existing_class_ref = None
-            # Determine which attribute to use for classification codes based on schema
-            schema_lower = model.schema.lower() if hasattr(model, "schema") else ""
+            # Use pre-computed attribute name for classification codes
             class_ref_code_attr = "ItemReference" if "ifc2x3" in schema_lower else "Identification"
             # Ensure we are checking against the correct classification_source
             for cr in model.by_type("IfcClassificationReference"):
@@ -221,6 +253,16 @@ export interface ExportClassificationData {
     };
 }
 
+export interface ClassificationSystemMeta {
+    name?: string;
+    source?: string;
+    edition?: string;
+    editionDate?: string; // ISO date string
+    description?: string;
+    specification?: string; // URL or URI
+    referenceTokens?: string[];
+}
+
 /**
  * Exports an IFC model with added classifications.
  * This function will initialize Pyodide, load IfcOpenShell, and run a Python script.
@@ -230,7 +272,8 @@ export interface ExportClassificationData {
  */
 export async function exportIfcWithClassificationsService(
     ifcFileBuffer: ArrayBuffer,
-    classifications: ExportClassificationData
+    classifications: ExportClassificationData,
+    classificationMeta: ClassificationSystemMeta = {}
 ): Promise<string | null> {
     console.log("Starting IFC export process...");
     try {
@@ -251,7 +294,8 @@ export async function exportIfcWithClassificationsService(
         console.log("Python export function retrieved from Pyodide.");
 
         const jsUint8Array = new Uint8Array(ifcFileBuffer);
-        const classificationsJsonStr = JSON.stringify(classifications);
+        const payload = { __meta__: classificationMeta, ...classifications };
+        const classificationsJsonStr = JSON.stringify(payload);
         console.log("Data prepared for Python script.");
 
         // Call the Python function
