@@ -118,6 +118,10 @@ def export_ifc_with_classifications(ifc_file_uint8array_js, classifications_json
         owner_history = get_or_create_owner_history(model)
         classifications_data = json.loads(classifications_json_str)
 
+        # IFC 2x3 stores classification codes in ItemReference, whereas IFC4 and later use Identification.
+        schema_lower = model.schema.lower() if hasattr(model, "schema") else ""
+        class_ref_code_attr = "ItemReference" if "ifc2x3" in schema_lower else "Identification"
+
         for code, data in classifications_data.items():
             class_name = data.get("name", str(code)) 
             identification = str(code) 
@@ -140,14 +144,14 @@ def export_ifc_with_classifications(ifc_file_uint8array_js, classifications_json
             # Ensure we are checking against the correct classification_source
             for cr in model.by_type("IfcClassificationReference"):
                 # Check if ReferencedSource exists and it's the same entity instance
-                if cr.ReferencedSource == classification_source and cr.Identification == identification:
+                if cr.ReferencedSource == classification_source and getattr(cr, class_ref_code_attr, None) == identification:
                     existing_class_ref = cr
                     break
             
             class_ref = existing_class_ref or model.create_entity(
                 "IfcClassificationReference",
-                Identification=identification,
-                Name=class_name, 
+                **{class_ref_code_attr: identification},
+                Name=class_name,
                 ReferencedSource=classification_source,
                 # OwnerHistory=owner_history # OwnerHistory not directly on IfcClassificationReference
             )
