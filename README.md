@@ -23,6 +23,32 @@ IFC Classifier helps you classify IFC elements without needing expert knowledge 
 
 **Note:** This is a **Work In Progress** and open source under the **AGPL v3** license.
 
+## 🏗️ Architecture Overview
+
+<table>
+<tr>
+<td width="70%">
+
+### Tech Stack
+![Tech Stack Architecture](docs/assets/IfcClassifier-tech.excalidraw.png)
+
+</td>
+<td width="30%">
+
+
+![Data Flow Diagram](docs/assets/IfcClassifier-flow.excalidraw.png)
+
+</td>
+</tr>
+</table>
+
+The application follows a modern web architecture with:
+- **Frontend**: Next.js + React with TypeScript for type safety
+- **3D Visualization**: Three.js with React Three Fiber for IFC model rendering
+- **IFC Processing**: web-ifc for parsing and IfcOpenShell via Pyodide/WASM for advanced operations
+- **Styling**: Tailwind CSS with Shadcn/ui components for a consistent design system
+- **Privacy-First**: All processing happens locally in the browser - no data leaves your device
+
 ## 🌟 Features
 
 - **🖼️ IFC Viewer:**
@@ -67,28 +93,30 @@ IFC Classifier helps you classify IFC elements without needing expert knowledge 
   - Cancel long searches and track progress
   - Quickly hide or unhide found elements
 
-- **🔄 Map from Model Data:**
+- **📋 Property-Based Classification:**
 
-  - Automatically map classifications from existing property sets
-  - Wildcard support for flexible property name matching
-  - Central property caching for faster lookups
+  - Support for classification codes stored in property sets (Psets)
+  - Automatically map full classifications from existing Psets
+  - Extract classifications from existing property values in the model
+  - Flexible property set name matching with wildcard support
 
 - **🗣️ Multi-Language UI:**
 
-  - English and German built in
-  - Switch languages from the menu
+  - English, French, Italian and German built in
+  - Switch languages from the menu or settings panel
   - Add new translations via simple JSON files
 
 - **🔐 Privacy First:**
 
   - All processing happens locally in your browser
   - IFC data never leaves your device
-  - Check the Network tab to verify
-
-- **🔮 Coming Soon:**
-  - Support for property-based classification (where codes are stored in Psets instead of IfcClassificationReference)
+  - Open DevTools → Network to confirm no IFC file is uploaded
 
 ## 🚀 Recent Updates
+
+**July 10, 2025:**
+
+- README update, added architecture overview diagrams
 
 **May 23, 2025:**
 
