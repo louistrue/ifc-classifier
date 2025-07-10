@@ -195,6 +195,7 @@
         "classificationSystem": "Métadonnées du système de classification",
         "showMetadataFields": "Afficher les champs de métadonnées…",
         "editMetadata": "Modifier…",
+        "export": "Exporter",
         "createFromRule": "Créer une nouvelle classification",
         "codePlaceholder": "Entrez un code (ex. A1.1)",
         "namePlaceholder": "Entrez un nom descriptif",

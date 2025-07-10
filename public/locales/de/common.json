@@ -195,6 +195,7 @@
     "classificationSystem": "Klassifizierungssystem-Metadaten",
     "showMetadataFields": "Metadatenfelder anzeigen…",
     "editMetadata": "Bearbeiten…",
+    "export": "Exportieren",
     "createFromRule": "Neue Klassifizierung erstellen",
     "codePlaceholder": "Geben Sie einen Code ein (z.B. A1.1)",
     "namePlaceholder": "Geben Sie einen beschreibenden Namen ein",
