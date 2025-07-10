@@ -34,6 +34,11 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import {
+  Popover,
+  PopoverTrigger,
+  PopoverContent,
+} from "@/components/ui/popover";
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -77,6 +82,7 @@ import {
   exportIfcWithClassificationsService,
   downloadFile,
   type ExportClassificationData,
+  type ClassificationSystemMeta,
 } from "@/services/ifc-export-service";
 import {
   Select,
@@ -169,6 +175,31 @@ export function ClassificationPanel() {
   );
   const [hasAutoLoaded, setHasAutoLoaded] = useState(false);
 
+  // ----- Export classification system metadata -----
+  const presetMeta: Record<"ebkp" | "uniclass", ClassificationSystemMeta> = {
+    ebkp: {
+      name: "eBKP-H",
+      source: "Bauen digital Schweiz / CRB",
+      edition: "2012",
+      description: "Elementbaukostenplan Hochbau",
+      referenceTokens: ["."],
+    },
+    uniclass: {
+      name: "Uniclass 2015",
+      source: "NBS",
+      edition: "v1.11",
+      description: "Table PR – Products",
+      referenceTokens: ["_"],
+    },
+  };
+
+  const [classificationPreset, setClassificationPreset] = useState<
+    "ebkp" | "uniclass" | "custom"
+  >("custom");
+  const [customMeta, setCustomMeta] = useState<ClassificationSystemMeta>({
+    name: "MyClassification",
+  });
+
   const [sortConfig, setSortConfig] = useState<{
     key: SortableKey;
     direction: "ascending" | "descending";
@@ -204,6 +235,21 @@ export function ClassificationPanel() {
   const [selectedModelIdForExport, setSelectedModelIdForExport] = useState<
     string | undefined
   >(undefined);
+  const [exportPopoverOpen, setExportPopoverOpen] = useState(false);
+  const [showAdvancedMeta, setShowAdvancedMeta] = useState(false);
+
+  // Detect which presets are relevant based on loaded classifications
+  const hasEBKPPreset = useMemo(() => {
+    if (defaultEBKPH.length === 0) return false;
+    const ebkpCodes = new Set(defaultEBKPH.map((c) => c.code));
+    return Object.keys(classifications).some((code) => ebkpCodes.has(code));
+  }, [classifications, defaultEBKPH]);
+
+  const hasUniclassPreset = useMemo(() => {
+    if (defaultUniclassPr.length === 0) return false;
+    const uniclassCodes = new Set(defaultUniclassPr.map((c) => c.code));
+    return Object.keys(classifications).some((code) => uniclassCodes.has(code));
+  }, [classifications, defaultUniclassPr]);
 
   // Determine if any classifications have elements assigned
   const hasClassifiedElements = useMemo(() => {
@@ -655,9 +701,8 @@ export function ClassificationPanel() {
           <div className="flex items-center gap-2 truncate">
             {/* Removed ring from color dot, consider a scale or opacity change if needed */}
             <div
-              className={`w-3 h-3 rounded-full flex-shrink-0 transition-transform duration-150 ${
-                isHighlighted ? "scale-110" : ""
-              }`}
+              className={`w-3 h-3 rounded-full flex-shrink-0 transition-transform duration-150 ${isHighlighted ? "scale-110" : ""
+                }`}
               style={{ backgroundColor: item.color }}
             />
             <span className="truncate" title={code}>
@@ -672,11 +717,10 @@ export function ClassificationPanel() {
         {/* Elements cell */}
         <div
           style={{ width: elementsColWidth }}
-          className={`flex items-center justify-center p-2 text-sm ${
-            isHighlighted
-              ? "text-accent-foreground/80"
-              : "text-muted-foreground"
-          }`}
+          className={`flex items-center justify-center p-2 text-sm ${isHighlighted
+            ? "text-accent-foreground/80"
+            : "text-muted-foreground"
+            }`}
         >
           <span>{item.elements?.length || 0}</span>
         </div>
@@ -758,9 +802,18 @@ export function ClassificationPanel() {
         return;
       }
 
+      // Determine metadata to send based on preset
+      let meta: ClassificationSystemMeta;
+      if (classificationPreset === "custom") {
+        meta = customMeta;
+      } else {
+        meta = presetMeta[classificationPreset];
+      }
+
       const modifiedIfcData = await exportIfcWithClassificationsService(
         modelToExport.rawBuffer,
-        exportData
+        exportData,
+        meta
       );
 
       if (modifiedIfcData) {
@@ -827,10 +880,9 @@ export function ClassificationPanel() {
                     <Button
                       size="sm"
                       className={`px-2 py-1 h-auto rounded-full text-xs transition-all duration-150 ease-in-out flex items-center justify-center
-                        ${
-                          !showAllClassificationColors
-                            ? "bg-primary text-primary-foreground shadow-sm"
-                            : "bg-transparent text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                        ${!showAllClassificationColors
+                          ? "bg-primary text-primary-foreground shadow-sm"
+                          : "bg-transparent text-muted-foreground hover:bg-accent hover:text-accent-foreground"
                         }`}
                       onClick={() => {
                         if (showAllClassificationColors)
@@ -838,9 +890,8 @@ export function ClassificationPanel() {
                       }}
                     >
                       <CircleOff
-                        className={`w-4 h-4 flex-shrink-0 ${
-                          !showAllClassificationColors ? "md:mr-1.5" : ""
-                        }`}
+                        className={`w-4 h-4 flex-shrink-0 ${!showAllClassificationColors ? "md:mr-1.5" : ""
+                          }`}
                       />
                       <span
                         className={
@@ -865,10 +916,9 @@ export function ClassificationPanel() {
                     <Button
                       size="sm"
                       className={`px-2 py-1 h-auto rounded-full text-xs transition-all duration-150 ease-in-out flex items-center justify-center
-                        ${
-                          showAllClassificationColors
-                            ? "bg-primary text-primary-foreground shadow-sm"
-                            : "bg-transparent text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                        ${showAllClassificationColors
+                          ? "bg-primary text-primary-foreground shadow-sm"
+                          : "bg-transparent text-muted-foreground hover:bg-accent hover:text-accent-foreground"
                         }`}
                       onClick={() => {
                         if (!showAllClassificationColors) {
@@ -878,9 +928,8 @@ export function ClassificationPanel() {
                       }}
                     >
                       <Palette
-                        className={`w-4 h-4 flex-shrink-0 ${
-                          showAllClassificationColors ? "md:mr-1.5" : ""
-                        }`}
+                        className={`w-4 h-4 flex-shrink-0 ${showAllClassificationColors ? "md:mr-1.5" : ""
+                          }`}
                       />
                       <span
                         className={
@@ -1522,7 +1571,7 @@ export function ClassificationPanel() {
                               onClick={() => {
                                 const item =
                                   classifications[
-                                    highlightedClassificationCode!
+                                  highlightedClassificationCode!
                                   ];
                                 if (item) handleOpenEditDialog(item);
                                 setIsSpeedDialOpen(false);
@@ -1584,6 +1633,8 @@ export function ClassificationPanel() {
           <h4 className="text-md font-medium">
             {t("classifications.exportClassifiedModel")}
           </h4>
+          {/* Metadata removed from inline — now handled in popup */}
+
           {exportableModels.length > 1 && (
             <div>
               <Label
@@ -1618,20 +1669,161 @@ export function ClassificationPanel() {
               </span>
             </div>
           )}
-          <Button
-            onClick={handleExportIFC}
-            disabled={isExporting || !selectedModelIdForExport}
-            className="w-full bg-primary text-primary-foreground hover:bg-primary/90 transition-colors duration-150 ease-in-out shadow hover:shadow-md flex items-center justify-center py-2.5"
+          <Popover
+            open={exportPopoverOpen}
+            onOpenChange={(open) => {
+              if (open) {
+                const defaultPreset = hasEBKPPreset
+                  ? "ebkp"
+                  : hasUniclassPreset
+                    ? "uniclass"
+                    : "custom";
+                setClassificationPreset(
+                  defaultPreset as "ebkp" | "uniclass" | "custom"
+                );
+                setShowAdvancedMeta(false);
+              }
+              setExportPopoverOpen(open);
+            }}
           >
-            <Download
-              className={`mr-2 h-5 w-5 ${isExporting ? "animate-spin" : ""}`}
-            />
-            <span className="text-base font-medium">
-              {isExporting
-                ? t("classifications.exporting")
-                : t("classifications.exportIFC")}
-            </span>
-          </Button>
+            <PopoverTrigger asChild>
+              <Button
+                disabled={isExporting || !selectedModelIdForExport || exportPopoverOpen}
+                style={{ visibility: exportPopoverOpen ? "hidden" : "visible" }}
+                className="w-full bg-primary text-primary-foreground hover:bg-primary/90 transition-colors duration-150 ease-in-out shadow hover:shadow-md flex items-center justify-center py-2.5"
+              >
+                <Download
+                  className={`mr-2 h-5 w-5 ${isExporting ? "animate-spin" : ""}`}
+                />
+                <span className="text-base font-medium">
+                  {isExporting
+                    ? t("classifications.exporting")
+                    : t("classifications.exportIFC")}
+                </span>
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent side="top" align="end" className="w-80">
+              <div className="space-y-3">
+                <div>
+                  <Label className="text-sm font-normal text-muted-foreground">
+                    {t("classifications.classificationSystem")}
+                  </Label>
+                  <Select
+                    value={classificationPreset}
+                    onValueChange={(val) =>
+                      setClassificationPreset(
+                        val as "ebkp" | "uniclass" | "custom"
+                      )
+                    }
+                  >
+                    <SelectTrigger className="w-full mt-1 h-8 text-sm">
+                      <SelectValue placeholder="Choose" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {hasEBKPPreset && <SelectItem value="ebkp">eBKP-H</SelectItem>}
+                      {hasUniclassPreset && (
+                        <SelectItem value="uniclass">Uniclass</SelectItem>
+                      )}
+                      <SelectItem value="custom">Custom</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {classificationPreset !== "custom" && (
+                  <div className="text-xs text-muted-foreground border rounded p-2">
+                    {Object.entries(
+                      classificationPreset === "ebkp" ? presetMeta.ebkp : presetMeta.uniclass
+                    ).map(([k, v]) => (
+                      <div key={k} className="flex justify-between gap-1">
+                        <span className="capitalize">{k}</span>
+                        <span className="text-right break-all">{v as string}</span>
+                      </div>
+                    ))}
+                    <Button
+                      variant="link"
+                      size="sm"
+                      className="px-0 mt-1"
+                      onClick={() => {
+                        const meta =
+                          classificationPreset === "ebkp"
+                            ? presetMeta.ebkp
+                            : presetMeta.uniclass;
+                        setCustomMeta(meta);
+                        setClassificationPreset("custom");
+                        setShowAdvancedMeta(true);
+                      }}
+                    >
+                      {t("classifications.editMetadata")}
+                    </Button>
+                  </div>
+                )}
+
+                {classificationPreset === "custom" && (
+                  <div className="space-y-2">
+                    {!showAdvancedMeta && (
+                      <Button
+                        variant="link"
+                        size="sm"
+                        className="px-0"
+                        onClick={() => setShowAdvancedMeta(true)}
+                      >
+                        {t("classifications.showMetadataFields")}
+                      </Button>
+                    )}
+
+                    {showAdvancedMeta && (
+                      <div className="grid grid-cols-2 gap-2">
+                        <Input
+                          placeholder="Name"
+                          value={customMeta.name ?? ""}
+                          onChange={(e) =>
+                            setCustomMeta({ ...customMeta, name: e.target.value })
+                          }
+                          className="col-span-2 h-8"
+                        />
+                        <Input
+                          placeholder="Source"
+                          value={customMeta.source ?? ""}
+                          onChange={(e) =>
+                            setCustomMeta({ ...customMeta, source: e.target.value })
+                          }
+                          className="col-span-2 h-8"
+                        />
+                        <Input
+                          placeholder="Edition"
+                          value={customMeta.edition ?? ""}
+                          onChange={(e) =>
+                            setCustomMeta({ ...customMeta, edition: e.target.value })
+                          }
+                          className="h-8"
+                        />
+                        <Input
+                          placeholder="Edition Date"
+                          value={customMeta.editionDate ?? ""}
+                          onChange={(e) =>
+                            setCustomMeta({ ...customMeta, editionDate: e.target.value })
+                          }
+                          className="h-8"
+                        />
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                <Button
+                  size="sm"
+                  disabled={isExporting}
+                  className="w-full mt-2"
+                  onClick={async () => {
+                    await handleExportIFC();
+                    setExportPopoverOpen(false);
+                  }}
+                >
+                  {isExporting ? t("classifications.exporting") : t("classifications.export")}
+                </Button>
+              </div>
+            </PopoverContent>
+          </Popover>
         </div>
       )}
       {classificationCodeToRemove && (
@@ -1733,6 +1925,8 @@ export function ClassificationPanel() {
         onChange={handleImportExcel}
         className="hidden"
       />
+      {/* ──────────────────────────  Export Metadata Dialog  ───────────────────────── */}
+      {/* This dialog is now replaced by the Popover in the export section */}
     </div>
   );
 }
