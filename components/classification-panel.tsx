@@ -125,6 +125,8 @@ export function ClassificationPanel() {
     highlightedClassificationCode,
     showAllClassificationColors,
     toggleShowAllClassificationColors,
+    isolateUnclassified,
+    toggleIsolateUnclassified,
     loadedModels,
     selectedElement,
     selectedElements,
@@ -880,13 +882,13 @@ export function ClassificationPanel() {
                     <Button
                       size="sm"
                       className={`px-2 py-1 h-auto rounded-full text-xs transition-all duration-150 ease-in-out flex items-center justify-center
-                        ${!showAllClassificationColors
+                        ${!showAllClassificationColors && !isolateUnclassified
                           ? "bg-primary text-primary-foreground shadow-sm"
                           : "bg-transparent text-muted-foreground hover:bg-accent hover:text-accent-foreground"
                         }`}
                       onClick={() => {
-                        if (showAllClassificationColors)
-                          toggleShowAllClassificationColors();
+                        if (showAllClassificationColors) toggleShowAllClassificationColors();
+                        if (isolateUnclassified) toggleIsolateUnclassified();
                       }}
                     >
                       <CircleOff
@@ -922,6 +924,7 @@ export function ClassificationPanel() {
                         }`}
                       onClick={() => {
                         if (!showAllClassificationColors) {
+                          if (isolateUnclassified) toggleIsolateUnclassified();
                           clearSelection();
                           toggleShowAllClassificationColors();
                         }
@@ -947,6 +950,28 @@ export function ClassificationPanel() {
                   </TooltipTrigger>
                   <TooltipContent>
                     <p>{t("tooltips.classificationColors")}</p>
+                  </TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      size="sm"
+                      className={`px-2 py-1 h-auto rounded-full text-xs transition-all duration-150 ease-in-out flex items-center justify-center
+                        ${isolateUnclassified ? "bg-primary text-primary-foreground shadow-sm" : "bg-transparent text-muted-foreground hover:bg-accent hover:text-accent-foreground"}
+                      `}
+                      onClick={() => {
+                        toggleIsolateUnclassified();
+                      }}
+                    >
+                      <Eye className={`w-4 h-4 flex-shrink-0 ${isolateUnclassified ? "md:mr-1.5" : ""}`} />
+                      <span className={isolateUnclassified ? "hidden md:inline" : "hidden"}>
+                        {t("unclassifiedOnly")}
+                      </span>
+                      <span className="sr-only">{t("tooltips.unclassifiedOnly")}</span>
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>{t("tooltips.unclassifiedOnly")}</p>
                   </TooltipContent>
                 </Tooltip>
               </div>
