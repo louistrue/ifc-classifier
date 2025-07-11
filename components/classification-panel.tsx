@@ -54,6 +54,7 @@ import {
   Trash2,
   Edit,
   Eye,
+  EyeOff,
   Palette,
   Eraser,
   CircleOff,
@@ -125,6 +126,8 @@ export function ClassificationPanel() {
     highlightedClassificationCode,
     showAllClassificationColors,
     toggleShowAllClassificationColors,
+    showOnlyUnclassified,
+    toggleShowOnlyUnclassified,
     loadedModels,
     selectedElement,
     selectedElements,
@@ -950,6 +953,34 @@ export function ClassificationPanel() {
                   </TooltipContent>
                 </Tooltip>
               </div>
+            </TooltipProvider>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    size="sm"
+                    className={`p-2 h-auto rounded-full ${showOnlyUnclassified ? "bg-primary text-primary-foreground" : "bg-transparent text-muted-foreground hover:bg-accent hover:text-accent-foreground"}`}
+                    onClick={toggleShowOnlyUnclassified}
+                  >
+                    {showOnlyUnclassified ? (
+                      <EyeOff className="w-4 h-4 md:mr-1.5" />
+                    ) : (
+                      <Eye className="w-4 h-4" />
+                    )}
+                    <span
+                      className={
+                        showOnlyUnclassified ? "hidden md:inline" : "hidden"
+                      }
+                    >
+                      {t("unclassified")}
+                    </span>
+                    <span className="sr-only">{t("tooltips.unclassifiedOnly")}</span>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>{t("tooltips.unclassifiedOnly")}</p>
+                </TooltipContent>
+              </Tooltip>
             </TooltipProvider>
             {/* 3-dot Manage Menu */}
             <DropdownMenu>

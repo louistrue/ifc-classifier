@@ -441,6 +441,7 @@ export function IFCModel({ modelData, outlineLayer }: IFCModelProps) {
     setAvailableCategoriesForModel,
     classifications,
     showAllClassificationColors,
+    showOnlyUnclassified,
     userHiddenElements,
     hiddenModelIds,
     setRawBufferForModel,
@@ -859,46 +860,63 @@ export function IFCModel({ modelData, outlineLayer }: IFCModelProps) {
           trueOriginalMaterial;
         let isCurrentlyVisible = true;
 
+        // Determine if element is classified
+        const isClassified = Object.values(
+          classifications as Record<string, any>
+        ).some((classification) =>
+          classification.elements?.some(
+            (el: SelectedElementInfo) =>
+              el && el.modelID === currentModelID && el.expressID === expressID
+          )
+        );
+
         // Step 1: Apply "Show All Classification Colors" if active
         if (showAllClassificationColors) {
-          let elementClassificationColor: string | null = null;
-          for (const classification of Object.values(
-            classifications as Record<string, any>
-          )) {
-            const isInClassification = classification.elements?.some(
-              (el: SelectedElementInfo) =>
-                el &&
-                el.modelID === currentModelID &&
-                el.expressID === expressID
-            );
-            if (isInClassification) {
-              elementClassificationColor = classification.color || "#808080";
-              break;
-            }
-          }
-          if (elementClassificationColor) {
-            let isCorrectMaterial = false;
-            if (mesh.material instanceof THREE.MeshStandardMaterial) {
-              if (
-                mesh.material.color.getHexString().toLowerCase() ===
-                elementClassificationColor.substring(1).toLowerCase() &&
-                mesh.material.opacity === 0.9 &&
-                mesh.material.transparent
-              ) {
-                isCorrectMaterial = true;
-                targetMaterial = mesh.material; // Use existing material instance
+          if (isClassified) {
+            let elementClassificationColor: string | null = null;
+            for (const classification of Object.values(
+              classifications as Record<string, any>
+            )) {
+              const isInClassification = classification.elements?.some(
+                (el: SelectedElementInfo) =>
+                  el &&
+                  el.modelID === currentModelID &&
+                  el.expressID === expressID
+              );
+              if (isInClassification) {
+                elementClassificationColor = classification.color || "#808080";
+                break;
               }
             }
-            if (!isCorrectMaterial) {
-              targetMaterial = new THREE.MeshStandardMaterial({
-                color: new THREE.Color(elementClassificationColor),
-                transparent: true,
-                opacity: 0.9,
-                side: THREE.DoubleSide,
-              });
+            if (elementClassificationColor) {
+              let isCorrectMaterial = false;
+              if (mesh.material instanceof THREE.MeshStandardMaterial) {
+                if (
+                  mesh.material.color.getHexString().toLowerCase() ===
+                    elementClassificationColor.substring(1).toLowerCase() &&
+                  mesh.material.opacity === 0.9 &&
+                  mesh.material.transparent
+                ) {
+                  isCorrectMaterial = true;
+                  targetMaterial = mesh.material;
+                }
+              }
+              if (!isCorrectMaterial) {
+                targetMaterial = new THREE.MeshStandardMaterial({
+                  color: new THREE.Color(elementClassificationColor),
+                  transparent: true,
+                  opacity: 0.9,
+                  side: THREE.DoubleSide,
+                });
+              }
             }
           } else {
-            targetMaterial = trueOriginalMaterial;
+            targetMaterial = new THREE.MeshStandardMaterial({
+              color: new THREE.Color("#bbbbbb"),
+              transparent: true,
+              opacity: 0.1,
+              side: THREE.DoubleSide,
+            });
           }
         }
 
@@ -964,7 +982,12 @@ export function IFCModel({ modelData, outlineLayer }: IFCModelProps) {
           console.log(`HIDE: Element ${currentModelID}-${expressID} hidden by user filters`);
         }
 
-        // Step 4: Selected Element (highest priority for visibility and material)
+        // Step 4: If isolating unclassified elements, hide classified ones
+        if (showOnlyUnclassified && isClassified) {
+          isCurrentlyVisible = false;
+        }
+
+        // Step 5: Selected Element (highest priority for visibility and material)
         if (selectedExpressIDsInThisModel.includes(expressID)) {
           targetMaterial = selectionMaterial;
           isCurrentlyVisible = true;
@@ -1027,6 +1050,7 @@ export function IFCModel({ modelData, outlineLayer }: IFCModelProps) {
     selectionMaterial,
     userHiddenElements,
     hiddenModelIds,
+    showOnlyUnclassified,
   ]);
 
   // Renamed to avoid conflict if a global findMeshByExpressID is ever introduced
