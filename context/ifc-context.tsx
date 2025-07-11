@@ -1575,6 +1575,13 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
         setHighlightedClassificationCode(null);
         setHighlightedElements([]);
         setPreviewingRuleId(null); // Clear rule preview if showing all colors
+        if (isolateUnclassified) {
+          setIsolateUnclassified(false);
+          if (isolationHiddenElements.length > 0) {
+            showElements(isolationHiddenElements);
+            setIsolationHiddenElements([]);
+          }
+        }
       }
       // If turning off showAll, we don't automatically re-enable a specific preview or highlight.
       return newShowAllState;
@@ -1584,6 +1591,11 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
     setHighlightedClassificationCode,
     setHighlightedElements,
     setPreviewingRuleId,
+    isolateUnclassified,
+    isolationHiddenElements,
+    showElements,
+    setIsolateUnclassified,
+    setIsolationHiddenElements,
   ]);
 
   const addClassification = useCallback(
@@ -2066,6 +2078,7 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
     setIsolateUnclassified((prev) => {
       const newState = !prev;
       if (newState) {
+        setShowAllClassificationColors(false);
         const allClassified: SelectedElementInfo[] = [];
         Object.values(classifications).forEach((cls: any) => {
           if (cls.elements) allClassified.push(...cls.elements);
@@ -2091,7 +2104,14 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
       }
       return newState;
     });
-  }, [classifications, userHiddenElements, hideElements, showElements, isolationHiddenElements]);
+  }, [
+    classifications,
+    userHiddenElements,
+    hideElements,
+    showElements,
+    isolationHiddenElements,
+    setShowAllClassificationColors,
+  ]);
 
   return (
     <IFCContext.Provider

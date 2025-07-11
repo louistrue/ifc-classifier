@@ -882,26 +882,28 @@ export function ClassificationPanel() {
                     <Button
                       size="sm"
                       className={`px-2 py-1 h-auto rounded-full text-xs transition-all duration-150 ease-in-out flex items-center justify-center
-                        ${!showAllClassificationColors
+                        ${!showAllClassificationColors && !isolateUnclassified
                           ? "bg-primary text-primary-foreground shadow-sm"
                           : "bg-transparent text-muted-foreground hover:bg-accent hover:text-accent-foreground"
                         }`}
                       onClick={() => {
-                        if (showAllClassificationColors)
+                        if (showAllClassificationColors) {
                           toggleShowAllClassificationColors();
+                        } else if (isolateUnclassified) {
+                          toggleIsolateUnclassified();
+                        }
                       }}
                     >
-                      <CircleOff
-                        className={`w-4 h-4 flex-shrink-0 ${!showAllClassificationColors ? "md:mr-1.5" : ""
-                          }`}
-                      />
-                      <span
-                        className={
-                          !showAllClassificationColors
-                            ? "hidden md:inline"
-                            : "hidden"
-                        }
-                      >
+                        <CircleOff
+                          className={`w-4 h-4 flex-shrink-0 ${!showAllClassificationColors && !isolateUnclassified ? "md:mr-1.5" : ""}`}
+                        />
+                        <span
+                          className={
+                            !showAllClassificationColors && !isolateUnclassified
+                              ? "hidden md:inline"
+                              : "hidden"
+                          }
+                        >
                         {t("original")}
                       </span>
                       <span className="sr-only">
