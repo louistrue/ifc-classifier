@@ -124,7 +124,9 @@ export function ClassificationPanel() {
     toggleClassificationHighlight,
     highlightedClassificationCode,
     showAllClassificationColors,
+    showOnlyUnclassified,
     toggleShowAllClassificationColors,
+    toggleShowOnlyUnclassified,
     loadedModels,
     selectedElement,
     selectedElements,
@@ -947,6 +949,24 @@ export function ClassificationPanel() {
                   </TooltipTrigger>
                   <TooltipContent>
                     <p>{t("tooltips.classificationColors")}</p>
+                  </TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      size="sm"
+                      className={`px-2 py-1 h-auto rounded-full text-xs transition-all duration-150 ease-in-out flex items-center justify-center ${showOnlyUnclassified ? "bg-primary text-primary-foreground shadow-sm" : "bg-transparent text-muted-foreground hover:bg-accent hover:text-accent-foreground"}`}
+                      onClick={toggleShowOnlyUnclassified}
+                    >
+                      <Eye className={`w-4 h-4 flex-shrink-0 ${showOnlyUnclassified ? "md:mr-1.5" : ""}`} />
+                      <span className={showOnlyUnclassified ? "hidden md:inline" : "hidden"}>
+                        {t("unclassified")}
+                      </span>
+                      <span className="sr-only">{t("tooltips.showUnclassified")}</span>
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>{t("tooltips.showUnclassified")}</p>
                   </TooltipContent>
                 </Tooltip>
               </div>

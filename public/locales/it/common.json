@@ -50,6 +50,7 @@
     "settingsPanel": "Impostazioni",
     "original": "Originale",
     "colors": "Colori",
+    "unclassified": "Non classificato",
     "ifcModelViewer": "Visualizzatore modello IFC",
     "uploadIFCFile": "Carica un file IFC per iniziare o scegli un modello demo",
     "loadIFCFile": "Carica file IFC",
@@ -167,6 +168,7 @@
         "modelUrls": "Gestisci un elenco di URL di modelli IFC. Puoi aggiungere URL personalizzati o utilizzare i modelli demo.",
         "originalColors": "Mostra i colori originali del modello (nasconde tutti i colori di classificazione).",
         "classificationColors": "Applica tutti i colori di classificazione al modello.",
+        "showUnclassified": "Mostra solo gli elementi non classificati.",
         "canvasSearch": "Filtra elementi per proprietà. Supporta jolly * e regex.",
         "psetNameHelp": "Nome del set di proprietà contenente i valori di classificazione. Supporta jolly *",
         "propertyNameHelp": "Il nome esatto della proprietà contenente il codice di classificazione o l'identificatore"

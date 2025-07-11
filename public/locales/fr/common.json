@@ -50,6 +50,7 @@
     "settingsPanel": "Paramètres",
     "original": "Original",
     "colors": "Couleurs",
+    "unclassified": "Non classé",
     "ifcModelViewer": "Visualiseur de modèle IFC",
     "uploadIFCFile": "Téléchargez un fichier IFC pour commencer ou choisissez un modèle de démonstration",
     "loadIFCFile": "Charger le fichier IFC",
@@ -167,6 +168,7 @@
         "modelUrls": "Gérez une liste d'URLs de modèles IFC. Vous pouvez ajouter des URLs personnalisées ou utiliser les modèles de démonstration.",
         "originalColors": "Afficher les couleurs originales du modèle (masque toutes les couleurs de classification).",
         "classificationColors": "Appliquer toutes les couleurs de classification au modèle.",
+        "showUnclassified": "Afficher uniquement les éléments non classés.",
         "canvasSearch": "Filtrer les éléments par propriétés. Prend en charge le joker * et les regex.",
         "psetNameHelp": "Nom du jeu de propriétés contenant les valeurs de classification. Prend en charge le joker *",
         "propertyNameHelp": "Le nom exact de la propriété contenant le code de classification ou l'identifiant"

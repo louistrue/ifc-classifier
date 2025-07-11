@@ -132,6 +132,7 @@ interface IFCContextType {
     expressID: number,
   ) => Promise<ParsedElementProperties | null>;
   toggleShowAllClassificationColors: () => void; // Added new toggle function
+  toggleShowOnlyUnclassified: () => void;
 
   // Classification and Rule methods (can remain global or be refactored later if needed per model)
   addClassification: (classification: any) => void;
@@ -198,6 +199,8 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
   const [highlightedClassificationCode, setHighlightedClassificationCode] =
     useState<string | null>(null);
   const [showAllClassificationColors, setShowAllClassificationColors] =
+    useState<boolean>(false);
+  const [showOnlyUnclassified, setShowOnlyUnclassified] =
     useState<boolean>(false);
   const [previewingRuleId, setPreviewingRuleId] = useState<string | null>(null); // Added state
   const [userHiddenElements, setUserHiddenElements] = useState<
@@ -1580,6 +1583,10 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
     setPreviewingRuleId,
   ]);
 
+  const toggleShowOnlyUnclassified = useCallback(() => {
+    setShowOnlyUnclassified((prev) => !prev);
+  }, []);
+
   const addClassification = useCallback(
     (classificationItem: any) => {
       setClassifications((prev) => ({
@@ -2070,6 +2077,7 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
         ifcApi: ifcApiInternal,
         highlightedClassificationCode,
         showAllClassificationColors,
+        showOnlyUnclassified,
         previewingRuleId,
         userHiddenElements,
         hiddenModelIds,
@@ -2091,6 +2099,7 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
         setIfcApi,
         getElementPropertiesCached,
         toggleShowAllClassificationColors,
+        toggleShowOnlyUnclassified,
         baseCoordinationMatrix,
         setBaseCoordinationMatrix: setBaseCoordinationMatrixFn,
         addClassification,

@@ -441,6 +441,7 @@ export function IFCModel({ modelData, outlineLayer }: IFCModelProps) {
     setAvailableCategoriesForModel,
     classifications,
     showAllClassificationColors,
+    showOnlyUnclassified,
     userHiddenElements,
     hiddenModelIds,
     setRawBufferForModel,
@@ -477,6 +478,15 @@ export function IFCModel({ modelData, outlineLayer }: IFCModelProps) {
       opacity: 0.85, // Slightly more opaque than general highlight
       side: THREE.DoubleSide, // Ensure it's visible from all angles
       depthTest: true, // Standard depth testing
+    });
+  }, []);
+
+  const unclassifiedMaterial = useMemo(() => {
+    return new THREE.MeshStandardMaterial({
+      color: 0x888888,
+      transparent: true,
+      opacity: 0.1,
+      side: THREE.DoubleSide,
     });
   }, []);
 
@@ -517,8 +527,9 @@ export function IFCModel({ modelData, outlineLayer }: IFCModelProps) {
       }
       highlightMaterial.dispose();
       selectionMaterial.dispose();
+      unclassifiedMaterial.dispose();
     };
-  }, [scene, ifcApi, modelData.id, highlightMaterial, selectionMaterial]);
+  }, [scene, ifcApi, modelData.id, highlightMaterial, selectionMaterial, unclassifiedMaterial]);
 
   const createThreeJSGeometry = useCallback(
     (ifcGeomData: any) => {
@@ -858,25 +869,27 @@ export function IFCModel({ modelData, outlineLayer }: IFCModelProps) {
         let targetMaterial: THREE.Material | THREE.Material[] =
           trueOriginalMaterial;
         let isCurrentlyVisible = true;
+        let isUnclassified = true;
+        let elementClassificationColor: string | null = null;
+        for (const classification of Object.values(
+          classifications as Record<string, any>
+        )) {
+          const inCls = classification.elements?.some(
+            (el: SelectedElementInfo) =>
+              el &&
+              el.modelID === currentModelID &&
+              el.expressID === expressID
+          );
+          if (inCls) {
+            elementClassificationColor = classification.color || "#808080";
+            isUnclassified = false;
+            break;
+          }
+        }
 
         // Step 1: Apply "Show All Classification Colors" if active
         if (showAllClassificationColors) {
-          let elementClassificationColor: string | null = null;
-          for (const classification of Object.values(
-            classifications as Record<string, any>
-          )) {
-            const isInClassification = classification.elements?.some(
-              (el: SelectedElementInfo) =>
-                el &&
-                el.modelID === currentModelID &&
-                el.expressID === expressID
-            );
-            if (isInClassification) {
-              elementClassificationColor = classification.color || "#808080";
-              break;
-            }
-          }
-          if (elementClassificationColor) {
+          if (!isUnclassified && elementClassificationColor) {
             let isCorrectMaterial = false;
             if (mesh.material instanceof THREE.MeshStandardMaterial) {
               if (
@@ -898,8 +911,14 @@ export function IFCModel({ modelData, outlineLayer }: IFCModelProps) {
               });
             }
           } else {
-            targetMaterial = trueOriginalMaterial;
+            targetMaterial = unclassifiedMaterial;
           }
+          if (showOnlyUnclassified && !isUnclassified) {
+            isCurrentlyVisible = false;
+          }
+        }
+        if (!showAllClassificationColors && showOnlyUnclassified && !isUnclassified) {
+          isCurrentlyVisible = false;
         }
 
         // Step 2: Apply single highlighted classification effects
@@ -1021,10 +1040,12 @@ export function IFCModel({ modelData, outlineLayer }: IFCModelProps) {
     highlightedClassificationCode,
     classifications,
     showAllClassificationColors,
+    showOnlyUnclassified,
     internalApiIdForEffects,
     ifcApi,
     highlightMaterial,
     selectionMaterial,
+    unclassifiedMaterial,
     userHiddenElements,
     hiddenModelIds,
   ]);
