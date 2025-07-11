@@ -173,6 +173,8 @@ interface IFCContextType {
   getClassificationsForElement: (
     element: SelectedElementInfo | null,
   ) => ClassificationItem[];
+  isolateUnclassified: boolean;
+  toggleIsolateUnclassified: () => void;
   mapClassificationsFromModel: (
     psetName: string,
     propertyName: string,
@@ -200,6 +202,10 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
   const [showAllClassificationColors, setShowAllClassificationColors] =
     useState<boolean>(false);
   const [previewingRuleId, setPreviewingRuleId] = useState<string | null>(null); // Added state
+  const [isolateUnclassified, setIsolateUnclassified] = useState<boolean>(false);
+  const [isolationHiddenElements, setIsolationHiddenElements] = useState<
+    SelectedElementInfo[]
+  >([]);
   const [userHiddenElements, setUserHiddenElements] = useState<
     SelectedElementInfo[]
   >([]); // New state
@@ -1563,6 +1569,9 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
   );
 
   const toggleShowAllClassificationColors = useCallback(() => {
+    if (!showAllClassificationColors && isolateUnclassified) {
+      toggleIsolateUnclassified();
+    }
     setShowAllClassificationColors((prev) => {
       const newShowAllState = !prev;
       if (newShowAllState) {
@@ -1574,6 +1583,9 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
       return newShowAllState;
     });
   }, [
+    showAllClassificationColors,
+    isolateUnclassified,
+    toggleIsolateUnclassified,
     setShowAllClassificationColors,
     setHighlightedClassificationCode,
     setHighlightedElements,
@@ -2056,6 +2068,38 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
     );
   }, []);
 
+  const toggleIsolateUnclassified = useCallback(() => {
+    setIsolateUnclassified((prev) => {
+      const newState = !prev;
+      if (newState) {
+        if (showAllClassificationColors) setShowAllClassificationColors(false);
+        const allClassified: SelectedElementInfo[] = [];
+        Object.values(classifications).forEach((cls: any) => {
+          if (cls.elements) allClassified.push(...cls.elements);
+        });
+        const uniqueMap = new Map<string, SelectedElementInfo>();
+        allClassified.forEach((el) => {
+          const key = `${el.modelID}-${el.expressID}`;
+          if (!uniqueMap.has(key)) uniqueMap.set(key, el);
+        });
+        const toHide = Array.from(uniqueMap.values()).filter(
+          (el) =>
+            !userHiddenElements.some(
+              (h) => h.modelID === el.modelID && h.expressID === el.expressID,
+            ),
+        );
+        if (toHide.length > 0) hideElements(toHide);
+        setIsolationHiddenElements(toHide);
+      } else {
+        if (isolationHiddenElements.length > 0) {
+          showElements(isolationHiddenElements);
+        }
+        setIsolationHiddenElements([]);
+      }
+      return newState;
+    });
+  }, [classifications, userHiddenElements, hideElements, showElements, isolationHiddenElements]);
+
   return (
     <IFCContext.Provider
       value={{
@@ -2070,6 +2114,7 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
         ifcApi: ifcApiInternal,
         highlightedClassificationCode,
         showAllClassificationColors,
+        isolateUnclassified,
         previewingRuleId,
         userHiddenElements,
         hiddenModelIds,
@@ -2091,6 +2136,7 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
         setIfcApi,
         getElementPropertiesCached,
         toggleShowAllClassificationColors,
+        toggleIsolateUnclassified,
         baseCoordinationMatrix,
         setBaseCoordinationMatrix: setBaseCoordinationMatrixFn,
         addClassification,

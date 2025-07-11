@@ -889,18 +889,36 @@ export function IFCModel({ modelData, outlineLayer }: IFCModelProps) {
                 targetMaterial = mesh.material; // Use existing material instance
               }
             }
-            if (!isCorrectMaterial) {
-              targetMaterial = new THREE.MeshStandardMaterial({
-                color: new THREE.Color(elementClassificationColor),
-                transparent: true,
-                opacity: 0.9,
-                side: THREE.DoubleSide,
-              });
+          if (!isCorrectMaterial) {
+            targetMaterial = new THREE.MeshStandardMaterial({
+              color: new THREE.Color(elementClassificationColor),
+              transparent: true,
+              opacity: 0.9,
+              side: THREE.DoubleSide,
+            });
+          }
+        } else {
+          let isCorrectMaterial = false;
+          if (mesh.material instanceof THREE.MeshStandardMaterial) {
+            if (
+              mesh.material.color.getHexString().toLowerCase() === "cccccc" &&
+              mesh.material.opacity === 0.1 &&
+              mesh.material.transparent
+            ) {
+              isCorrectMaterial = true;
+              targetMaterial = mesh.material;
             }
-          } else {
-            targetMaterial = trueOriginalMaterial;
+          }
+          if (!isCorrectMaterial) {
+            targetMaterial = new THREE.MeshStandardMaterial({
+              color: new THREE.Color("#cccccc"),
+              transparent: true,
+              opacity: 0.1,
+              side: THREE.DoubleSide,
+            });
           }
         }
+      }
 
         // Step 2: Apply single highlighted classification effects
         if (highlightedClassificationCode) {
