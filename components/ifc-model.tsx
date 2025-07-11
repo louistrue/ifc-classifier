@@ -441,6 +441,7 @@ export function IFCModel({ modelData, outlineLayer }: IFCModelProps) {
     setAvailableCategoriesForModel,
     classifications,
     showAllClassificationColors,
+    showOnlyUnclassified,
     userHiddenElements,
     hiddenModelIds,
     setRawBufferForModel,
@@ -859,47 +860,79 @@ export function IFCModel({ modelData, outlineLayer }: IFCModelProps) {
           trueOriginalMaterial;
         let isCurrentlyVisible = true;
 
-        // Step 1: Apply "Show All Classification Colors" if active
-        if (showAllClassificationColors) {
-          let elementClassificationColor: string | null = null;
-          for (const classification of Object.values(
-            classifications as Record<string, any>
-          )) {
-            const isInClassification = classification.elements?.some(
+        // Determine if element is classified
+        let isClassified = false;
+        for (const classification of Object.values(
+          classifications as Record<string, any>
+        )) {
+          if (
+            classification.elements?.some(
               (el: SelectedElementInfo) =>
                 el &&
                 el.modelID === currentModelID &&
-                el.expressID === expressID
-            );
-            if (isInClassification) {
-              elementClassificationColor = classification.color || "#808080";
-              break;
-            }
+                el.expressID === expressID,
+            )
+          ) {
+            isClassified = true;
+            break;
           }
-          if (elementClassificationColor) {
-            let isCorrectMaterial = false;
-            if (mesh.material instanceof THREE.MeshStandardMaterial) {
-              if (
-                mesh.material.color.getHexString().toLowerCase() ===
-                elementClassificationColor.substring(1).toLowerCase() &&
-                mesh.material.opacity === 0.9 &&
-                mesh.material.transparent
-              ) {
-                isCorrectMaterial = true;
-                targetMaterial = mesh.material; // Use existing material instance
+        }
+
+        // Step 1: Apply "Show All Classification Colors" if active
+        if (showAllClassificationColors) {
+          if (isClassified) {
+            let elementClassificationColor: string | null = null;
+            for (const classification of Object.values(
+              classifications as Record<string, any>
+            )) {
+              const isInClassification = classification.elements?.some(
+                (el: SelectedElementInfo) =>
+                  el &&
+                  el.modelID === currentModelID &&
+                  el.expressID === expressID,
+              );
+              if (isInClassification) {
+                elementClassificationColor = classification.color || "#808080";
+                break;
               }
             }
-            if (!isCorrectMaterial) {
-              targetMaterial = new THREE.MeshStandardMaterial({
-                color: new THREE.Color(elementClassificationColor),
-                transparent: true,
-                opacity: 0.9,
-                side: THREE.DoubleSide,
-              });
+            if (elementClassificationColor) {
+              let isCorrectMaterial = false;
+              if (mesh.material instanceof THREE.MeshStandardMaterial) {
+                if (
+                  mesh.material.color.getHexString().toLowerCase() ===
+                    elementClassificationColor.substring(1).toLowerCase() &&
+                  mesh.material.opacity === 0.9 &&
+                  mesh.material.transparent
+                ) {
+                  isCorrectMaterial = true;
+                  targetMaterial = mesh.material;
+                }
+              }
+              if (!isCorrectMaterial) {
+                targetMaterial = new THREE.MeshStandardMaterial({
+                  color: new THREE.Color(elementClassificationColor),
+                  transparent: true,
+                  opacity: 0.9,
+                  side: THREE.DoubleSide,
+                });
+              }
             }
           } else {
-            targetMaterial = trueOriginalMaterial;
+            // Unclassified elements appear faint grey
+            targetMaterial = new THREE.MeshStandardMaterial({
+              color: new THREE.Color("#cccccc"),
+              transparent: true,
+              opacity: 0.1,
+              side: THREE.DoubleSide,
+              wireframe: true,
+            });
           }
+        }
+
+        // Step 1.5: Isolate unclassified if requested
+        if (showOnlyUnclassified && isClassified) {
+          isCurrentlyVisible = false;
         }
 
         // Step 2: Apply single highlighted classification effects
@@ -1027,6 +1060,7 @@ export function IFCModel({ modelData, outlineLayer }: IFCModelProps) {
     selectionMaterial,
     userHiddenElements,
     hiddenModelIds,
+    showOnlyUnclassified,
   ]);
 
   // Renamed to avoid conflict if a global findMeshByExpressID is ever introduced

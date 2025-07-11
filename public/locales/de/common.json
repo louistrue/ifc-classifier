@@ -50,6 +50,7 @@
   "settingsPanel": "Einstellungen",
   "original": "Original",
   "colors": "Farben",
+  "unclassified": "Unklassifiziert",
   "ifcModelViewer": "IFC Modell-Viewer",
   "uploadIFCFile": "Laden Sie eine IFC-Datei hoch oder wählen Sie ein Demomodell",
   "loadIFCFile": "IFC-Datei laden",
@@ -169,7 +170,8 @@
     "classificationColors": "Wendet alle Klassifizierungsfarben auf das Modell an.",
     "canvasSearch": "Elemente nach Eigenschaften filtern. Unterstützt * Platzhalter und Regex.",
     "psetNameHelp": "Name des Eigenschaftssatzes mit Klassifizierungswerten. Unterstützt * Platzhalter.",
-    "propertyNameHelp": "Der exakte Name der Eigenschaft, die den Klassifizierungscode oder Kennung enthält."
+    "propertyNameHelp": "Der exakte Name der Eigenschaft, die den Klassifizierungscode oder Kennung enthält.",
+    "showUnclassifiedOnly": "Nur unklassifizierte Elemente anzeigen"
   },
   "sections": {
     "defaultSets": "Standard-Sets",

@@ -50,6 +50,7 @@
   "settingsPanel": "Settings",
   "original": "Original",
   "colors": "Colors",
+  "unclassified": "Unclassified",
   "ifcModelViewer": "IFC Model Viewer",
   "uploadIFCFile": "Upload an IFC file to get started or choose a demo model",
   "loadIFCFile": "Load IFC File",
@@ -169,7 +170,8 @@
     "classificationColors": "Apply all classification colors to the model.",
     "canvasSearch": "Filter elements by properties. Supports * wildcard and regex.",
     "psetNameHelp": "Name of the property set containing classification values. Supports * wildcard",
-    "propertyNameHelp": "The exact name of the property containing the classification code or identifier"
+    "propertyNameHelp": "The exact name of the property containing the classification code or identifier",
+    "showUnclassifiedOnly": "Show only unclassified elements"
   },
   "sections": {
     "defaultSets": "Default Sets",
