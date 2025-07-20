@@ -50,7 +50,7 @@ export default function RootLayout({
                 >
                   <div className="flex flex-col h-full">
                     <Menubar />
-                    <main className="flex-1 overflow-hidden">{children}</main>
+                    <main className="flex-1 overflow-hidden pb-26 md:pb-0">{children}</main>
                     <Footer />
                   </div>
                 </ThemeProvider>

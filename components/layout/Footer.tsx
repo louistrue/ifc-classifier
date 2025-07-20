@@ -8,45 +8,46 @@ const Footer: React.FC = () => {
   const { t } = useTranslation();
 
   return (
-    <footer className="bg-transparent text-[var(--color-text)] py-1 relative overflow-hidden">
-      <div className="bg-gradient-to-t from-[hsl(var(--background,_0_0%_100%))]/60 to-transparent pointer-events-auto">
-        <div className="px-4 py-1 flex flex-col md:flex-row items-center justify-between relative z-10">
-          <div className="flex flex-col md:flex-row items-center space-y-2 md:space-y-0 md:space-x-6 text-sm">
-            <a
-              href="https://github.com/louistrue/ifc-classifier"
-              target="_blank"
-              rel="noopener noreferrer"
-              aria-label="View our GitHub repository"
-              className="flex items-center hover:text-[var(--color-primary)] transition-colors duration-300"
-            >
-              <Github size={16} className="mr-1.5" />
-              GitHub
-            </a>
-            <a
-              href="https://www.lt.plus"
-              target="_blank"
-              rel="noopener noreferrer"
-              aria-label="Visit our website"
-              className="hover:text-[var(--color-primary)] hover:underline transition-colors duration-300"
-            >
-              lt.plus
-            </a>
-          </div>
-          <div className="text-xs text-[var(--color-text-muted)] mt-2 md:mt-0">
-            <span>© {new Date().getFullYear()} </span>
-            <a
-              href="https://www.gnu.org/licenses/agpl-3.0.en.html"
-              target="_blank"
-              rel="noopener noreferrer"
-              aria-label="View AGPL-3.0 License terms"
-              className="font-medium hover:text-[var(--color-primary)] hover:underline transition-colors duration-300"
-            >
-              AGPL-3.0
-            </a>
-            <span> {t('footer.license')}</span>
+    <footer className="hidden md:block bg-transparent text-[var(--color-text)] py-1 relative overflow-hidden">
+        <div className="bg-gradient-to-t from-[hsl(var(--background,_0_0%_100%))]/60 to-transparent pointer-events-auto">
+          <div className="px-4 py-1 flex flex-col items-center justify-center lg:justify-between lg:flex-row relative z-10">
+            {/* Desktop: Side-by-side layout */}
+            <div className="flex flex-col lg:flex-row items-center space-y-1 lg:space-y-0 lg:space-x-6 text-sm">
+              <a
+                href="https://github.com/louistrue/ifc-classifier"
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="View our GitHub repository"
+                className="flex items-center hover:text-[var(--color-primary)] transition-colors duration-300"
+              >
+                <Github size={16} className="mr-1.5" />
+                <span>GitHub</span>
+              </a>
+              <a
+                href="https://www.lt.plus"
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Visit our website"
+                className="hover:text-[var(--color-primary)] hover:underline transition-colors duration-300"
+              >
+                lt.plus
+              </a>
+            </div>
+            <div className="text-xs text-[var(--color-text-muted)] mt-1 lg:mt-0 text-center lg:text-right">
+              <span>© {new Date().getFullYear()} </span>
+              <a
+                href="https://www.gnu.org/licenses/agpl-3.0.en.html"
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="View AGPL-3.0 License terms"
+                className="font-medium hover:text-[var(--color-primary)] hover:underline transition-colors duration-300"
+              >
+                AGPL-3.0
+              </a>
+              <span> {t('footer.license')}</span>
+            </div>
           </div>
         </div>
-      </div>
       <style jsx global>{`
         footer {
           color: var(--color-text);
@@ -55,6 +56,7 @@ const Footer: React.FC = () => {
           color: var(--color-primary);
         }
 
+        /* Wave animation - hidden on mobile for better performance */
         footer::before {
           content: "";
           position: absolute;
@@ -73,12 +75,33 @@ const Footer: React.FC = () => {
           animation: waveAnimation 25s linear infinite;
         }
 
+        /* Hide wave animation on mobile devices */
+        @media (max-width: 640px) {
+          footer::before {
+            display: none;
+          }
+          
+          /* Ensure footer has minimal height on mobile */
+          footer {
+            min-height: auto;
+          }
+        }
+
         @keyframes waveAnimation {
           0% {
             background-position: 0% 0%;
           }
           100% {
             background-position: 100% 0%;
+          }
+        }
+
+        /* Mobile-specific optimizations */
+        @media (max-width: 768px) {
+          /* Mobile footer is now handled by separate div - no additional styles needed */
+          footer {
+            /* Ensure minimal height on mobile */
+            min-height: auto;
           }
         }
 
@@ -91,6 +114,7 @@ const Footer: React.FC = () => {
           --color-text
           --color-primary
           --color-text-muted
+          --border
         */
       `}</style>
     </footer>

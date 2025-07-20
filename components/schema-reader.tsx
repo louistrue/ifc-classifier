@@ -1423,18 +1423,18 @@ export function SchemaReader({
     return (
         <>
             <Dialog open={isOpen} onOpenChange={onClose}>
-                <DialogContent className="max-w-6xl h-[95vh] p-0 flex flex-col">
-                    <DialogHeader className="p-6 pb-4 border-b bg-gradient-to-r from-primary/5 to-primary/10 flex-shrink-0">
+                <DialogContent className="max-w-sm sm:max-w-4xl md:max-w-6xl h-[95vh] sm:h-[90vh] p-0 flex flex-col">
+                    <DialogHeader className="p-4 sm:p-6 pb-3 sm:pb-4 border-b bg-gradient-to-r from-primary/5 to-primary/10 flex-shrink-0">
                         <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                                <div className="p-3 bg-primary/20 rounded-xl">
-                                    <Zap className="w-6 h-6 text-primary" />
+                            <div className="flex items-center gap-2 sm:gap-3">
+                                <div className="p-2 sm:p-3 bg-primary/20 rounded-lg sm:rounded-xl">
+                                    <Zap className="w-4 h-4 sm:w-6 sm:h-6 text-primary" />
                                 </div>
                                 <div>
-                                    <DialogTitle className="text-2xl font-bold bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
+                                    <DialogTitle className="text-lg sm:text-2xl font-bold bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
                                         {ifcClassName}
                                     </DialogTitle>
-                                    <p className="text-sm text-muted-foreground">IFC Schema Documentation</p>
+                                    <p className="text-xs sm:text-sm text-muted-foreground">IFC Schema Documentation</p>
                                 </div>
                             </div>
                             <div className="flex items-center gap-2">
