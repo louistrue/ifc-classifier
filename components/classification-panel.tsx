@@ -788,10 +788,12 @@ export function ClassificationPanel() {
             name: currentClass.name || code,
             code: currentClass.code || code,
             color: currentClass.color,
-            elements: currentClass.elements.map((el: SelectedElementInfo) => ({
-              modelID: el.modelID, // Important if Python script needs to filter by modelID from a global element list
-              expressID: el.expressID,
-            })),
+            elements: currentClass.elements
+              .filter((el: SelectedElementInfo) => el.modelID === modelToExport.modelID)
+              .map((el: SelectedElementInfo) => ({
+                modelID: el.modelID,
+                expressID: el.expressID,
+              })),
           };
         }
       }
