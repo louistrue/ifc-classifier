@@ -67,6 +67,8 @@ import {
   ImperativePanelHandle,
 } from "react-resizable-panels";
 import { useTranslation } from "react-i18next";
+import useIsMobile from "@/lib/hooks/useIsMobile";
+import MobileNav from "@/components/layout/MobileNav";
 // import { EffectComposer, Outline } from "@react-three/postprocessing"; // Comment out post-processing imports
 
 // Define the layer for outlines
@@ -1051,6 +1053,19 @@ function ViewerContent() {
   // Use state to track panel collapsed status for proper icon rendering
   const [leftPanelCollapsed, setLeftPanelCollapsed] = useState(false);
   const [rightPanelCollapsed, setRightPanelCollapsed] = useState(false);
+  const isMobile = useIsMobile();
+
+  useEffect(() => {
+    if (!ifcEngineReady) return;
+    if (isMobile) {
+      leftPanelRef.current?.collapse();
+      rightPanelRef.current?.collapse();
+    } else {
+      leftPanelRef.current?.expand();
+      rightPanelRef.current?.expand();
+    }
+  }, [isMobile, ifcEngineReady]);
+
 
   // Reset search progress when search is cleared
   useEffect(() => {
@@ -1794,53 +1809,57 @@ function ViewerContent() {
           marginTop: "4rem",
         }}
       >
-        {/* Left sidebar */}
-        <Panel
-          id="left-sidebar"
-          ref={leftPanelRef}
-          defaultSize={25}
-          minSize={15}
-          maxSize={40}
-          collapsible
-          className="bg-transparent pointer-events-auto" // MODIFIED: Panel itself is transparent
-        >
-          {/* Inner div has the gradient */}
-          <div className="h-full flex flex-col shadow-lg bg-gradient-to-r from-[hsl(var(--card))]">
-            <div className="p-2 border-b flex justify-between items-center shrink-0">
-              <h3 className="text-sm font-semibold px-2">{t('modelExplorer')}</h3>
-              <FileUpload key={`file-upload-sidebar-${settingsVersion}`} isAdding={true} />
-            </div>
-
-            {/* Vertical panel group for model tree and properties */}
-            <PanelGroup direction="vertical" className="flex-grow">
-              <Panel id="spatial-tree" defaultSize={70} minSize={30}>
-                <div className="h-full overflow-y-auto">
-                  <SpatialTreePanel />
+        {!isMobile && (
+          <>
+            {/* Left sidebar */}
+            <Panel
+              id="left-sidebar"
+              ref={leftPanelRef}
+              defaultSize={25}
+              minSize={15}
+              maxSize={40}
+              collapsible
+              className="bg-transparent pointer-events-auto"
+            >
+              {/* Inner div has the gradient */}
+              <div className="h-full flex flex-col shadow-lg bg-gradient-to-r from-[hsl(var(--card))]">
+                <div className="p-2 border-b flex justify-between items-center shrink-0">
+                  <h3 className="text-sm font-semibold px-2">{t('modelExplorer')}</h3>
+                  <FileUpload key={`file-upload-sidebar-${settingsVersion}`} isAdding={true} />
                 </div>
-              </Panel>
 
-              <ResizeHandleVertical />
+                {/* Vertical panel group for model tree and properties */}
+                <PanelGroup direction="vertical" className="flex-grow">
+                  <Panel id="spatial-tree" defaultSize={70} minSize={30}>
+                    <div className="h-full overflow-y-auto">
+                      <SpatialTreePanel />
+                    </div>
+                  </Panel>
 
-              <Panel id="properties-panel" defaultSize={30} minSize={20}>
-                <div className="h-full flex flex-col">
-                  <div className="p-1 border-b">
-                    <h3 className="text-sm font-semibold px-2">{t('properties')}</h3>
-                  </div>
-                  <div className="p-2 overflow-y-auto flex-grow">
-                    <ModelInfo />
-                  </div>
-                </div>
-              </Panel>
-            </PanelGroup>
-          </div>
-        </Panel>
+                  <ResizeHandleVertical />
 
-        <ResizeHandleHorizontal
-          onToggle={handleToggleLeftPanel}
-          collapsed={leftPanelCollapsed}
-          isLeftSide={true}
-          className="pointer-events-auto"
-        />
+                  <Panel id="properties-panel" defaultSize={30} minSize={20}>
+                    <div className="h-full flex flex-col">
+                      <div className="p-1 border-b">
+                        <h3 className="text-sm font-semibold px-2">{t('properties')}</h3>
+                      </div>
+                      <div className="p-2 overflow-y-auto flex-grow">
+                        <ModelInfo />
+                      </div>
+                    </div>
+                  </Panel>
+                </PanelGroup>
+              </div>
+            </Panel>
+
+            <ResizeHandleHorizontal
+              onToggle={handleToggleLeftPanel}
+              collapsed={leftPanelCollapsed}
+              isLeftSide={true}
+              className="pointer-events-auto"
+            />
+          </>
+        )}
 
         {/* Main content area - Canvas is NO LONGER here */}
         <Panel
@@ -2006,26 +2025,33 @@ function ViewerContent() {
           </div>
         </Panel>
 
-        <ResizeHandleHorizontal
-          onToggle={handleToggleRightPanel}
-          collapsed={rightPanelCollapsed}
-          isLeftSide={false}
-          className="pointer-events-auto"
-        />
+        {!isMobile && (
+          <>
+            <ResizeHandleHorizontal
+              onToggle={handleToggleRightPanel}
+              collapsed={rightPanelCollapsed}
+              isLeftSide={false}
+              className="pointer-events-auto"
+            />
 
-        {/* Right sidebar */}
-        <Panel
-          id="right-sidebar"
-          ref={rightPanelRef}
-          defaultSize={25}
-          minSize={15}
-          maxSize={40}
-          collapsible
-          className="bg-transparent pointer-events-auto"
-        >
-          <ResponsiveTabs onSettingsChanged={handleSettingsChanged} />
-        </Panel>
+            {/* Right sidebar */}
+            <Panel
+              id="right-sidebar"
+              ref={rightPanelRef}
+              defaultSize={25}
+              minSize={15}
+              maxSize={40}
+              collapsible
+              className="bg-transparent pointer-events-auto"
+            >
+              <ResponsiveTabs onSettingsChanged={handleSettingsChanged} />
+            </Panel>
+          </>
+        )}
       </PanelGroup>
+      {isMobile && (
+        <MobileNav onSettingsChanged={handleSettingsChanged} />
+      )}
     </div>
   );
 }
