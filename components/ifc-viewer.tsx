@@ -18,6 +18,7 @@ import { IFCModel } from "@/components/ifc-model";
 import { ClassificationPanel } from "@/components/classification-panel";
 import { RulePanel } from "@/components/rule-panel";
 import { SettingsPanel } from "@/components/settings-panel";
+import MobileTabs from "@/components/mobile-tabs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -1802,7 +1803,7 @@ function ViewerContent() {
           minSize={15}
           maxSize={40}
           collapsible
-          className="bg-transparent pointer-events-auto" // MODIFIED: Panel itself is transparent
+          className="hidden bg-transparent pointer-events-auto md:block" // hide on mobile
         >
           {/* Inner div has the gradient */}
           <div className="h-full flex flex-col shadow-lg bg-gradient-to-r from-[hsl(var(--card))]">
@@ -1839,7 +1840,7 @@ function ViewerContent() {
           onToggle={handleToggleLeftPanel}
           collapsed={leftPanelCollapsed}
           isLeftSide={true}
-          className="pointer-events-auto"
+          className="hidden pointer-events-auto md:block"
         />
 
         {/* Main content area - Canvas is NO LONGER here */}
@@ -2010,7 +2011,7 @@ function ViewerContent() {
           onToggle={handleToggleRightPanel}
           collapsed={rightPanelCollapsed}
           isLeftSide={false}
-          className="pointer-events-auto"
+          className="hidden pointer-events-auto md:block"
         />
 
         {/* Right sidebar */}
@@ -2021,11 +2022,12 @@ function ViewerContent() {
           minSize={15}
           maxSize={40}
           collapsible
-          className="bg-transparent pointer-events-auto"
+          className="hidden bg-transparent pointer-events-auto md:block"
         >
           <ResponsiveTabs onSettingsChanged={handleSettingsChanged} />
         </Panel>
       </PanelGroup>
+      <MobileTabs onSettingsChanged={handleSettingsChanged} />
     </div>
   );
 }
