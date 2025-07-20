@@ -306,8 +306,8 @@ function ViewToolbar({
   };
 
   return (
-    <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-20 pointer-events-auto">
-      <div className="flex items-center gap-1 p-2 bg-background/95 backdrop-blur-md border border-border rounded-xl shadow-2xl">
+    <div className="absolute bottom-28 sm:bottom-[7.5rem] md:bottom-6 lg:bottom-4 left-1/2 transform -translate-x-1/2 z-20 pointer-events-auto">
+      <div className="flex items-center gap-1 p-2 bg-background/98 backdrop-blur-md border border-border/50 rounded-xl shadow-2xl">
         {/* Camera Controls Group */}
         <div className="flex items-center gap-1 px-1">
           <Button
