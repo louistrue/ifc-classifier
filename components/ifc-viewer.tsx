@@ -67,6 +67,8 @@ import {
   ImperativePanelHandle,
 } from "react-resizable-panels";
 import { useTranslation } from "react-i18next";
+import MobileTabs from "@/components/layout/MobileTabs";
+import useMediaQuery from "@/hooks/use-media-query";
 // import { EffectComposer, Outline } from "@react-three/postprocessing"; // Comment out post-processing imports
 
 // Define the layer for outlines
@@ -934,6 +936,7 @@ function ViewerContent() {
     clearSelection,
   } = useIFCContext();
   const { t } = useTranslation();
+  const isMobile = useMediaQuery("(max-width: 768px)");
   const [ifcEngineReady, setIfcEngineReady] = useState(false);
   const [webGLContextLost, setWebGLContextLost] = useState(false);
   const [canvasSearch, setCanvasSearch] = useState("");
@@ -1690,6 +1693,155 @@ function ViewerContent() {
     );
   }
 
+  const mainOverlays = (
+    <div className="relative h-full bg-transparent pointer-events-none">
+      {/* Search Bar - Top Right */}
+      {ifcEngineReady && !webGLContextLost && (
+        <div className="absolute top-4 right-4 z-20 pointer-events-auto">
+          <div className="flex items-center gap-2 p-1 bg-background/80 backdrop-blur-sm border border-border rounded-lg shadow-lg">
+            <TooltipProvider delayDuration={300}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Input
+                    value={canvasSearch}
+                    onFocus={() => setIsSearchFocused(true)}
+                    onBlur={() => setIsSearchFocused(false)}
+                    onChange={(e) => {
+                      const newSearch = e.target.value;
+                      setCanvasSearch(newSearch);
+                      if (newSearch.trim() === "") {
+                        setConfirmedSearch("");
+
+                        // Reset view when search term is cleared
+                        if (searchHiddenRef.current.length > 0) {
+                          showElements(searchHiddenRef.current);
+                          searchHiddenRef.current = [];
+                        }
+                        setSearchProgress({ active: false, percent: 0, status: '' });
+                        setIsSearchRunning(false);
+                      }
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleSearchSubmit(canvasSearch);
+                      }
+                    }}
+                    placeholder={isSearchFocused ? t('modelViewer.searchCanvasPlaceholder') : 'Search...'}
+                    className={`h-8 text-xs transition-all duration-300 ease-in-out rounded-md ${isSearchFocused ? 'w-48 px-3' : 'w-24 px-2 text-[11px]'}`}
+                  />
+                </TooltipTrigger>
+                <TooltipContent
+                  side="bottom"
+                  align="end"
+                  className="max-w-xs p-3 bg-popover text-popover-foreground shadow-md rounded-md z-50 flex flex-col gap-1"
+                >
+                  <p className="font-medium">{`Filter elements by properties`}</p>
+                  <p className="text-xs text-muted-foreground">
+                    Supports wildcard <code className="p-0.5 bg-muted rounded-sm">*</code> and regular expressions (regex).
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Learn more about <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Regular_expressions" target="_blank" rel="noopener noreferrer" className="underline hover:text-primary">regex</a> or test on <a href="https://regex101.com/" target="_blank" rel="noopener noreferrer" className="underline hover:text-primary">regex101.com</a>.
+                  </p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+            {isSearchRunning ? (
+              <Button
+                variant="ghost"
+                onClick={handleCancelSearch}
+                title="Cancel search"
+                className="transition-all duration-300 ease-in-out flex items-center justify-center rounded-md h-8 w-8"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M18 6L6 18"></path>
+                  <path d="M6 6l12 12"></path>
+                </svg>
+              </Button>
+            ) : (
+              <Button
+                variant="ghost"
+                onClick={() => handleSearchSubmit(canvasSearch)}
+                title={t('modelViewer.search')}
+                className={`transition-all duration-300 ease-in-out flex items-center justify-center rounded-md ${isSearchFocused ? 'h-8 w-8' : 'h-7 w-7 p-0.5'}`}
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className={`transition-all duration-300 ease-in-out ${isSearchFocused ? 'scale-100' : 'scale-[0.80]'}`}
+                >
+                  <circle cx="11" cy="11" r="8"></circle>
+                  <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                </svg>
+              </Button>
+            )}
+          </div>
+
+          {/* Search Progress Indicator */}
+          {searchProgress.active && (
+            <div className="mt-2 p-2 bg-background/95 backdrop-blur-sm border border-border rounded-lg shadow-lg text-xs w-full">
+              <div className="mb-1 flex justify-between font-medium">
+                <span>{searchProgress.status}</span>
+                <span>{searchProgress.percent}%</span>
+              </div>
+              <div className="w-full bg-muted rounded-full h-2 overflow-hidden">
+                <div
+                  className="bg-primary h-full transition-all duration-300 ease-in-out"
+                  style={{ width: `${searchProgress.percent}%` }}
+                ></div>
+              </div>
+            </div>
+          )}
+
+          {/* Show status message even after search is complete */}
+          {!searchProgress.active && searchProgress.status && (
+            <div className="mt-2 p-2 bg-background/95 backdrop-blur-sm border border-border rounded-lg shadow-lg text-xs w-full">
+              <div className="text-center font-medium">{searchProgress.status}</div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* FileUpload prompt when no models (will show over global canvas) */}
+      {loadedModels.length === 0 &&
+        ifcEngineReady &&
+        !SKIP_IFC_INITIALIZATION_FOR_TEST && (
+          <div className="absolute inset-0 flex items-center justify-center bg-background/50 backdrop-blur-sm z-10 pointer-events-auto">
+            <FileUpload key={`file-upload-main-${settingsVersion}`} isAdding={false} />
+          </div>
+        )}
+      {/* ViewToolbar (will show over global canvas) */}
+      {ifcEngineReady && !webGLContextLost && (
+        <ViewToolbar
+          onZoomExtents={handleZoomExtents}
+          onZoomSelected={handleZoomSelected}
+          isElementSelected={selectedElements.length > 0}
+          onUnhideAll={customUnhideAllElements}
+          onUnhideLast={customUnhideLastElement}
+          onSelectAllVisible={handleSelectAllVisible}
+        />
+      )}
+      <SelectionListOverlay />
+    </div>
+  );
+
   return (
     <div className="flex h-full w-full relative overflow-hidden"
       style={{ isolation: 'isolate' }}
@@ -1783,249 +1935,107 @@ function ViewerContent() {
       </div>
 
       {/* PanelGroup on top, z-index 1 */}
-      <PanelGroup
-        direction="horizontal"
-        autoSaveId="ifc-viewer-layout"
-        style={{
-          zIndex: 1,
-          position: "relative",
-          pointerEvents: "none",
-          height: "calc(100% - 4rem)",
-          marginTop: "4rem",
-        }}
-      >
-        {/* Left sidebar */}
-        <Panel
-          id="left-sidebar"
-          ref={leftPanelRef}
-          defaultSize={25}
-          minSize={15}
-          maxSize={40}
-          collapsible
-          className="bg-transparent pointer-events-auto" // MODIFIED: Panel itself is transparent
-        >
-          {/* Inner div has the gradient */}
-          <div className="h-full flex flex-col shadow-lg bg-gradient-to-r from-[hsl(var(--card))]">
-            <div className="p-2 border-b flex justify-between items-center shrink-0">
-              <h3 className="text-sm font-semibold px-2">{t('modelExplorer')}</h3>
-              <FileUpload key={`file-upload-sidebar-${settingsVersion}`} isAdding={true} />
-            </div>
-
-            {/* Vertical panel group for model tree and properties */}
-            <PanelGroup direction="vertical" className="flex-grow">
-              <Panel id="spatial-tree" defaultSize={70} minSize={30}>
-                <div className="h-full overflow-y-auto">
-                  <SpatialTreePanel />
-                </div>
-              </Panel>
-
-              <ResizeHandleVertical />
-
-              <Panel id="properties-panel" defaultSize={30} minSize={20}>
-                <div className="h-full flex flex-col">
-                  <div className="p-1 border-b">
-                    <h3 className="text-sm font-semibold px-2">{t('properties')}</h3>
-                  </div>
-                  <div className="p-2 overflow-y-auto flex-grow">
-                    <ModelInfo />
-                  </div>
-                </div>
-              </Panel>
-            </PanelGroup>
+      {isMobile ? (
+        <>
+          <div
+            style={{
+              zIndex: 1,
+              position: 'relative',
+              pointerEvents: 'none',
+              height: 'calc(100% - 4rem)',
+              marginTop: '4rem',
+              width: '100%',
+            }}
+          >
+            {mainOverlays}
           </div>
-        </Panel>
-
-        <ResizeHandleHorizontal
-          onToggle={handleToggleLeftPanel}
-          collapsed={leftPanelCollapsed}
-          isLeftSide={true}
-          className="pointer-events-auto"
-        />
-
-        {/* Main content area - Canvas is NO LONGER here */}
-        <Panel
-          id="main-content"
-          defaultSize={50}
-          className="bg-transparent pointer-events-none"
+          <MobileTabs onSettingsChanged={handleSettingsChanged} />
+        </>
+      ) : (
+        <PanelGroup
+          direction="horizontal"
+          autoSaveId="ifc-viewer-layout"
+          style={{
+            zIndex: 1,
+            position: 'relative',
+            pointerEvents: 'none',
+            height: 'calc(100% - 4rem)',
+            marginTop: '4rem',
+          }}
         >
-          <div className="relative h-full bg-transparent pointer-events-none">
-            {/* Search Bar - Top Right */}
-            {ifcEngineReady && !webGLContextLost && (
-              <div className="absolute top-4 right-4 z-20 pointer-events-auto">
-                <div className="flex items-center gap-2 p-1 bg-background/80 backdrop-blur-sm border border-border rounded-lg shadow-lg">
-                  <TooltipProvider delayDuration={300}>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Input
-                          value={canvasSearch}
-                          onFocus={() => setIsSearchFocused(true)}
-                          onBlur={() => setIsSearchFocused(false)}
-                          onChange={(e) => {
-                            const newSearch = e.target.value;
-                            setCanvasSearch(newSearch);
-                            if (newSearch.trim() === "") {
-                              setConfirmedSearch("");
-
-                              // Reset view when search term is cleared
-                              if (searchHiddenRef.current.length > 0) {
-                                showElements(searchHiddenRef.current);
-                                searchHiddenRef.current = [];
-                              }
-                              setSearchProgress({ active: false, percent: 0, status: '' });
-                              setIsSearchRunning(false);
-                            }
-                          }}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter') {
-                              e.preventDefault();
-                              handleSearchSubmit(canvasSearch);
-                            }
-                          }}
-                          placeholder={isSearchFocused ? t('modelViewer.searchCanvasPlaceholder') : "Search..."}
-                          className={`h-8 text-xs transition-all duration-300 ease-in-out rounded-md ${isSearchFocused
-                            ? 'w-48 px-3'
-                            : 'w-24 px-2 text-[11px]'
-                            }`}
-                        />
-                      </TooltipTrigger>
-                      <TooltipContent
-                        side="bottom"
-                        align="end"
-                        className="max-w-xs p-3 bg-popover text-popover-foreground shadow-md rounded-md z-50 flex flex-col gap-1"
-                      >
-                        <p className="font-medium">
-                          Filter elements by properties
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          Supports wildcard <code className="p-0.5 bg-muted rounded-sm">*</code> and regular expressions (regex).
-                        </p>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          Learn more about <a href="https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Regular_expressions" target="_blank" rel="noopener noreferrer" className="underline hover:text-primary">regex</a> or test on <a href="https://regex101.com/" target="_blank" rel="noopener noreferrer" className="underline hover:text-primary">regex101.com</a>.
-                        </p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                  {isSearchRunning ? (
-                    <Button
-                      variant="ghost"
-                      onClick={handleCancelSearch}
-                      title="Cancel search"
-                      className="transition-all duration-300 ease-in-out flex items-center justify-center rounded-md h-8 w-8"
-                    >
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="16"
-                        height="16"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      >
-                        <path d="M18 6L6 18"></path>
-                        <path d="M6 6l12 12"></path>
-                      </svg>
-                    </Button>
-                  ) : (
-                    <Button
-                      variant="ghost"
-                      onClick={() => handleSearchSubmit(canvasSearch)}
-                      title={t('modelViewer.search')}
-                      className={`transition-all duration-300 ease-in-out flex items-center justify-center rounded-md ${isSearchFocused ? 'h-8 w-8' : 'h-7 w-7 p-0.5' // Adjusted padding for collapsed state
-                        }`}
-                    >
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="16" // Base width
-                        height="16" // Base height
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        className={`transition-all duration-300 ease-in-out ${ // Apply scale transform
-                          isSearchFocused ? 'scale-100' : 'scale-[0.80]' // Scale down when collapsed
-                          }`}
-                      >
-                        <circle cx="11" cy="11" r="8"></circle>
-                        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-                      </svg>
-                    </Button>
-                  )}
-                </div>
-
-                {/* Search Progress Indicator */}
-                {searchProgress.active && (
-                  <div className="mt-2 p-2 bg-background/95 backdrop-blur-sm border border-border rounded-lg shadow-lg text-xs w-full">
-                    <div className="mb-1 flex justify-between font-medium">
-                      <span>{searchProgress.status}</span>
-                      <span>{searchProgress.percent}%</span>
-                    </div>
-                    <div className="w-full bg-muted rounded-full h-2 overflow-hidden">
-                      <div
-                        className="bg-primary h-full transition-all duration-300 ease-in-out"
-                        style={{ width: `${searchProgress.percent}%` }}
-                      ></div>
-                    </div>
-                  </div>
-                )}
-
-                {/* Show status message even after search is complete */}
-                {!searchProgress.active && searchProgress.status && (
-                  <div className="mt-2 p-2 bg-background/95 backdrop-blur-sm border border-border rounded-lg shadow-lg text-xs w-full">
-                    <div className="text-center font-medium">
-                      {searchProgress.status}
-                    </div>
-                  </div>
-                )}
+          {/* Left sidebar */}
+          <Panel
+            id="left-sidebar"
+            ref={leftPanelRef}
+            defaultSize={25}
+            minSize={15}
+            maxSize={40}
+            collapsible
+            className="bg-transparent pointer-events-auto"
+          >
+            <div className="h-full flex flex-col shadow-lg bg-gradient-to-r from-[hsl(var(--card))]">
+              <div className="p-2 border-b flex justify-between items-center shrink-0">
+                <h3 className="text-sm font-semibold px-2">{t('modelExplorer')}</h3>
+                <FileUpload key={`file-upload-sidebar-${settingsVersion}`} isAdding={true} />
               </div>
-            )}
 
-            {/* FileUpload prompt when no models (will show over global canvas) */}
-            {loadedModels.length === 0 &&
-              ifcEngineReady &&
-              !SKIP_IFC_INITIALIZATION_FOR_TEST && (
-                <div className="absolute inset-0 flex items-center justify-center bg-background/50 backdrop-blur-sm z-10 pointer-events-auto">
-                  <FileUpload key={`file-upload-main-${settingsVersion}`} isAdding={false} />
-                </div>
-              )}
-            {/* ViewToolbar (will show over global canvas) */}
-            {ifcEngineReady && !webGLContextLost && (
-              <ViewToolbar
-                onZoomExtents={handleZoomExtents}
-                onZoomSelected={handleZoomSelected}
-                isElementSelected={selectedElements.length > 0}
-                onUnhideAll={customUnhideAllElements}
-                onUnhideLast={customUnhideLastElement}
-                onSelectAllVisible={handleSelectAllVisible}
-              />
-            )}
-            <SelectionListOverlay />
-          </div>
-        </Panel>
+              <PanelGroup direction="vertical" className="flex-grow">
+                <Panel id="spatial-tree" defaultSize={70} minSize={30}>
+                  <div className="h-full overflow-y-auto">
+                    <SpatialTreePanel />
+                  </div>
+                </Panel>
 
-        <ResizeHandleHorizontal
-          onToggle={handleToggleRightPanel}
-          collapsed={rightPanelCollapsed}
-          isLeftSide={false}
-          className="pointer-events-auto"
-        />
+                <ResizeHandleVertical />
 
-        {/* Right sidebar */}
-        <Panel
-          id="right-sidebar"
-          ref={rightPanelRef}
-          defaultSize={25}
-          minSize={15}
-          maxSize={40}
-          collapsible
-          className="bg-transparent pointer-events-auto"
-        >
-          <ResponsiveTabs onSettingsChanged={handleSettingsChanged} />
-        </Panel>
-      </PanelGroup>
+                <Panel id="properties-panel" defaultSize={30} minSize={20}>
+                  <div className="h-full flex flex-col">
+                    <div className="p-1 border-b">
+                      <h3 className="text-sm font-semibold px-2">{t('properties')}</h3>
+                    </div>
+                    <div className="p-2 overflow-y-auto flex-grow">
+                      <ModelInfo />
+                    </div>
+                  </div>
+                </Panel>
+              </PanelGroup>
+            </div>
+          </Panel>
+
+          <ResizeHandleHorizontal
+            onToggle={handleToggleLeftPanel}
+            collapsed={leftPanelCollapsed}
+            isLeftSide={true}
+            className="pointer-events-auto"
+          />
+
+          {/* Main content area */}
+          <Panel id="main-content" defaultSize={50} className="bg-transparent pointer-events-none">
+            {mainOverlays}
+          </Panel>
+
+          <ResizeHandleHorizontal
+            onToggle={handleToggleRightPanel}
+            collapsed={rightPanelCollapsed}
+            isLeftSide={false}
+            className="pointer-events-auto"
+          />
+
+          {/* Right sidebar */}
+          <Panel
+            id="right-sidebar"
+            ref={rightPanelRef}
+            defaultSize={25}
+            minSize={15}
+            maxSize={40}
+            collapsible
+            className="bg-transparent pointer-events-auto"
+          >
+            <ResponsiveTabs onSettingsChanged={handleSettingsChanged} />
+          </Panel>
+        </PanelGroup>
+      )}
+
     </div>
   );
 }
