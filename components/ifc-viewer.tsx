@@ -67,6 +67,8 @@ import {
   ImperativePanelHandle,
 } from "react-resizable-panels";
 import { useTranslation } from "react-i18next";
+import MobileNav from "@/components/layout/MobileNav";
+import useMediaQuery from "@/lib/use-media-query";
 // import { EffectComposer, Outline } from "@react-three/postprocessing"; // Comment out post-processing imports
 
 // Define the layer for outlines
@@ -270,6 +272,7 @@ interface ViewToolbarProps {
   onUnhideAll: () => void;
   onUnhideLast: () => void;
   onSelectAllVisible: () => void;
+  shiftForBottomNav?: boolean;
 }
 
 function ViewToolbar({
@@ -279,6 +282,7 @@ function ViewToolbar({
   onUnhideAll,
   onUnhideLast,
   onSelectAllVisible,
+  shiftForBottomNav = false,
 }: ViewToolbarProps) {
   const {
     selectedElements,
@@ -305,7 +309,12 @@ function ViewToolbar({
   };
 
   return (
-    <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-20 pointer-events-auto">
+    <div
+      className={cn(
+        "absolute left-1/2 transform -translate-x-1/2 z-20 pointer-events-auto",
+        shiftForBottomNav ? "bottom-16" : "bottom-4"
+      )}
+    >
       <div className="flex items-center gap-1 p-2 bg-background/95 backdrop-blur-md border border-border rounded-xl shadow-2xl">
         {/* Camera Controls Group */}
         <div className="flex items-center gap-1 px-1">
@@ -934,6 +943,7 @@ function ViewerContent() {
     clearSelection,
   } = useIFCContext();
   const { t } = useTranslation();
+  const isMobile = useMediaQuery("(max-width: 640px)");
   const [ifcEngineReady, setIfcEngineReady] = useState(false);
   const [webGLContextLost, setWebGLContextLost] = useState(false);
   const [canvasSearch, setCanvasSearch] = useState("");
@@ -1802,7 +1812,7 @@ function ViewerContent() {
           minSize={15}
           maxSize={40}
           collapsible
-          className="bg-transparent pointer-events-auto" // MODIFIED: Panel itself is transparent
+          className="bg-transparent pointer-events-auto hidden sm:block" // MODIFIED: hide on mobile
         >
           {/* Inner div has the gradient */}
           <div className="h-full flex flex-col shadow-lg bg-gradient-to-r from-[hsl(var(--card))]">
@@ -1839,7 +1849,7 @@ function ViewerContent() {
           onToggle={handleToggleLeftPanel}
           collapsed={leftPanelCollapsed}
           isLeftSide={true}
-          className="pointer-events-auto"
+          className="pointer-events-auto hidden sm:flex"
         />
 
         {/* Main content area - Canvas is NO LONGER here */}
@@ -2000,6 +2010,7 @@ function ViewerContent() {
                 onUnhideAll={customUnhideAllElements}
                 onUnhideLast={customUnhideLastElement}
                 onSelectAllVisible={handleSelectAllVisible}
+                shiftForBottomNav={isMobile}
               />
             )}
             <SelectionListOverlay />
@@ -2010,7 +2021,7 @@ function ViewerContent() {
           onToggle={handleToggleRightPanel}
           collapsed={rightPanelCollapsed}
           isLeftSide={false}
-          className="pointer-events-auto"
+          className="pointer-events-auto hidden sm:flex"
         />
 
         {/* Right sidebar */}
@@ -2021,11 +2032,12 @@ function ViewerContent() {
           minSize={15}
           maxSize={40}
           collapsible
-          className="bg-transparent pointer-events-auto"
+          className="bg-transparent pointer-events-auto hidden sm:block"
         >
           <ResponsiveTabs onSettingsChanged={handleSettingsChanged} />
         </Panel>
       </PanelGroup>
+      {isMobile && <MobileNav onSettingsChanged={handleSettingsChanged} />}
     </div>
   );
 }
