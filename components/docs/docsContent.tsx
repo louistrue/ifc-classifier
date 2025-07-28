@@ -10,14 +10,56 @@ import workflow from "@/docs/workflow";
 import { Language } from "@/lib/i18n";
 import { translations } from "@/lib/i18n";
 
-export const getDocSections = (lang: Language) => [
-  { id: "general", title: translations[lang].doc_welcome_title, icon: <Home className="h-5 w-5" />, content: welcome[lang] },
-  { id: "getting-started", title: translations[lang].doc_getting_started_title, icon: <Zap className="h-5 w-5" />, content: gettingStarted[lang] },
-  { id: "ui", title: translations[lang].doc_ui_title, icon: <LayoutDashboard className="h-5 w-5" />, content: ui[lang] },
-  { id: "classifications", title: translations[lang].doc_classifications_title, icon: <Tags className="h-5 w-5 flex-shrink-0" />, content: classifications[lang] },
-  { id: "rules", title: translations[lang].doc_rules_title, icon: <ChevronsRight className="h-5 w-5" />, content: rules[lang] },
-  { id: "settings", title: translations[lang].doc_settings_title, icon: <Cog className="h-5 w-5" />, content: settings[lang] },
-  { id: "workflow", title: translations[lang].doc_workflow_title, icon: <Info className="h-5 w-5" />, content: workflow[lang] },
-] as const;
+export interface DocSection {
+  id: string;
+  title: string;
+  icon: React.ReactNode;
+  content: string;
+  videoUrl?: string;
+}
+export const getDocSections = (lang: Language): DocSection[] => [
+  {
+    id: "general",
+    title: translations[lang].doc_welcome_title,
+    icon: <Home className="h-5 w-5" />,
+    content: welcome[lang],
+    videoUrl: "https://www.youtube.com/embed/VUEGCefgqkY?si=0FFKAZ14qd518raN",
+  },
+  {
+    id: "getting-started",
+    title: translations[lang].doc_getting_started_title,
+    icon: <Zap className="h-5 w-5" />,
+    content: gettingStarted[lang],
+  },
+  {
+    id: "ui",
+    title: translations[lang].doc_ui_title,
+    icon: <LayoutDashboard className="h-5 w-5" />,
+    content: ui[lang],
+  },
+  {
+    id: "classifications",
+    title: translations[lang].doc_classifications_title,
+    icon: <Tags className="h-5 w-5 flex-shrink-0" />,
+    content: classifications[lang],
+  },
+  {
+    id: "rules",
+    title: translations[lang].doc_rules_title,
+    icon: <ChevronsRight className="h-5 w-5" />,
+    content: rules[lang],
+  },
+  {
+    id: "settings",
+    title: translations[lang].doc_settings_title,
+    icon: <Cog className="h-5 w-5" />,
+    content: settings[lang],
+  },
+  {
+    id: "workflow",
+    title: translations[lang].doc_workflow_title,
+    icon: <Info className="h-5 w-5" />,
+    content: workflow[lang],
+  },
+];
 
-export type DocSection = ReturnType<typeof getDocSections>[number];
