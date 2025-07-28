@@ -18,6 +18,12 @@ Assigning classification codes in IFC shouldn't slow you down—it should just w
 
 Try it out on your own models and let us know how it works for you!
 
+### Video Walkthrough
+
+<div style="position:relative;padding-bottom:56.25%;height:0;overflow:hidden">
+  <iframe src="https://www.youtube.com/embed/VUEGCefgqkY?si=0FFKAZ14qd518raN" title="IFC Classifier walkthrough" allowfullscreen style="position:absolute;top:0;left:0;width:100%;height:100%"></iframe>
+</div>
+
 ## Privacy & Security
 
 **Your IFC data never leaves your device.** The application processes all files locally in your browser using [**WebAssembly**](https://webassembly.org/) technology:
@@ -49,6 +55,12 @@ Die Zuordnung von Klassifizierungscodes zu IFC-Elementen soll dich nicht ausbrem
   - **Im Browser** und vollständig Open Source
 
 Probiere es mit eigenen Modellen aus und gib uns Feedback!
+
+### Video Walkthrough
+
+<div style="position:relative;padding-bottom:56.25%;height:0;overflow:hidden">
+  <iframe src="https://www.youtube.com/embed/VUEGCefgqkY?si=0FFKAZ14qd518raN" title="IFC Classifier walkthrough" allowfullscreen style="position:absolute;top:0;left:0;width:100%;height:100%"></iframe>
+</div>
 
 ## Datenschutz & Sicherheit
 
@@ -82,6 +94,12 @@ L'attribution de codes de classification dans IFC ne devrait pas vous ralentir�
 
 Essayez-le sur vos propres modèles et dites-nous comment cela fonctionne pour vous !
 
+### Video Walkthrough
+
+<div style="position:relative;padding-bottom:56.25%;height:0;overflow:hidden">
+  <iframe src="https://www.youtube.com/embed/VUEGCefgqkY?si=0FFKAZ14qd518raN" title="IFC Classifier walkthrough" allowfullscreen style="position:absolute;top:0;left:0;width:100%;height:100%"></iframe>
+</div>
+
 ## Confidentialité et sécurité
 
 **Vos données IFC ne quittent jamais votre appareil.** L'application traite tous les fichiers localement dans votre navigateur en utilisant la technologie [**WebAssembly**](https://webassembly.org/) :
@@ -113,6 +131,12 @@ L'assegnazione di codici di classificazione in IFC non dovrebbe rallentarti—do
   - **Basato su browser** e completamente open source
 
 Provalo sui tuoi modelli e facci sapere come funziona per te!
+
+### Video Walkthrough
+
+<div style="position:relative;padding-bottom:56.25%;height:0;overflow:hidden">
+  <iframe src="https://www.youtube.com/embed/VUEGCefgqkY?si=0FFKAZ14qd518raN" title="IFC Classifier walkthrough" allowfullscreen style="position:absolute;top:0;left:0;width:100%;height:100%"></iframe>
+</div>
 
 ## Privacy e sicurezza
 

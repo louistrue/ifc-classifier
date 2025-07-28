@@ -5,6 +5,7 @@ import { X, ChevronLeft, ChevronRight, ExternalLink } from "lucide-react";
 import { getDocSections } from "./docsContent";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import rehypeRaw from "rehype-raw";
 import { useI18n } from "@/context/i18n-context";
 
 interface DocumentationModalProps {
@@ -140,6 +141,7 @@ const DocumentationModal: React.FC<DocumentationModalProps> = ({ onClose }) => {
                 <div className="prose prose-sm sm:prose-base dark:prose-invert max-w-none text-foreground/90 prose-headings:text-primary prose-a:text-primary prose-strong:text-primary/90 prose-code:bg-muted prose-code:p-1 prose-code:rounded prose-code:text-primary prose-code:before:content-none prose-code:after:content-none prose-p:leading-relaxed prose-li:leading-relaxed">
                   <ReactMarkdown
                     remarkPlugins={[remarkGfm]}
+                    rehypePlugins={[rehypeRaw]}
                     components={{
                       a: ({ node, ...props }) => (
                         <a {...props} target="_blank" rel="noopener noreferrer" className="inline-flex items-center">
