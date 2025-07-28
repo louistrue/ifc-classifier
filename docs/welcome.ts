@@ -30,7 +30,13 @@ Try it out on your own models and let us know how it works for you!
 
 ## Project Status
 
-This application is still in development. Your feedback and contributions are welcome to help improve its functionality.`,
+This application is still in development. Your feedback and contributions are welcome to help improve its functionality.
+
+## Video Guide
+
+<div style="position:relative;padding-bottom:56.25%;height:0;overflow:hidden;border-radius:0.5rem;">
+  <iframe src="https://www.youtube.com/embed/VUEGCefgqkY?si=0FFKAZ14qd518raN" title="IfcClassifier walkthrough" style="position:absolute;top:0;left:0;width:100%;height:100%;" allowfullscreen></iframe>
+</div>`,
   de: `# IFC Classifier
 
 IfcClassifier hilft dir, standardisierte Klassifizierungen direkt im Browser auf IFC-Modelle anzuwenden. Das Projekt ist quelloffen unter der AGPL v3 Lizenz und befindet sich noch in Entwicklung.
@@ -62,7 +68,13 @@ Probiere es mit eigenen Modellen aus und gib uns Feedback!
 
 ## Projektstatus
 
-Diese Anwendung befindet sich noch in Entwicklung. Feedback und Beiträge sind willkommen.`,
+Diese Anwendung befindet sich noch in Entwicklung. Feedback und Beiträge sind willkommen.
+
+## Video-Anleitung
+
+<div style="position:relative;padding-bottom:56.25%;height:0;overflow:hidden;border-radius:0.5rem;">
+  <iframe src="https://www.youtube.com/embed/VUEGCefgqkY?si=0FFKAZ14qd518raN" title="IfcClassifier walkthrough" style="position:absolute;top:0;left:0;width:100%;height:100%;" allowfullscreen></iframe>
+</div>`,
   fr: `# IFC Classifier
 
 IfcClassifier vous aide à appliquer des classifications standardisées aux modèles IFC directement dans votre navigateur. Le projet est open source sous licence AGPL v3 et est encore en cours de développement.
@@ -94,7 +106,13 @@ Essayez-le sur vos propres modèles et dites-nous comment cela fonctionne pour v
 
 ## Statut du projet
 
-Cette application est encore en développement. Vos commentaires et contributions sont les bienvenus pour aider à améliorer ses fonctionnalités.`,
+Cette application est encore en développement. Vos commentaires et contributions sont les bienvenus pour aider à améliorer ses fonctionnalités.
+
+## Guide vidéo
+
+<div style="position:relative;padding-bottom:56.25%;height:0;overflow:hidden;border-radius:0.5rem;">
+  <iframe src="https://www.youtube.com/embed/VUEGCefgqkY?si=0FFKAZ14qd518raN" title="IfcClassifier walkthrough" style="position:absolute;top:0;left:0;width:100%;height:100%;" allowfullscreen></iframe>
+</div>`,
   it: `# IFC Classifier
 
 IfcClassifier ti aiuta ad applicare classificazioni standardizzate ai modelli IFC direttamente nel tuo browser. Il progetto è open source sotto licenza AGPL v3 ed è ancora in fase di sviluppo.
@@ -126,6 +144,12 @@ Provalo sui tuoi modelli e facci sapere come funziona per te!
 
 ## Stato del progetto
 
-Questa applicazione è ancora in sviluppo. I tuoi feedback e contributi sono benvenuti per aiutare a migliorarne le funzionalità.`
+Questa applicazione è ancora in sviluppo. I tuoi feedback e contributi sono benvenuti per aiutare a migliorarne le funzionalità.
+
+## Guida video
+
+<div style="position:relative;padding-bottom:56.25%;height:0;overflow:hidden;border-radius:0.5rem;">
+  <iframe src="https://www.youtube.com/embed/VUEGCefgqkY?si=0FFKAZ14qd518raN" title="IfcClassifier walkthrough" style="position:absolute;top:0;left:0;width:100%;height:100%;" allowfullscreen></iframe>
+</div>`
 };
 export default content;
