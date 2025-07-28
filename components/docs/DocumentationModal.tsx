@@ -151,6 +151,19 @@ const DocumentationModal: React.FC<DocumentationModalProps> = ({ onClose }) => {
                   >
                     {currentSection.content}
                   </ReactMarkdown>
+                  {currentSection.videoUrl && (
+                    <div className="mt-4">
+                      <iframe
+                        className="w-full rounded-lg"
+                        style={{ aspectRatio: "16/9" }}
+                        src={currentSection.videoUrl}
+                        title="Video tutorial"
+                        frameBorder="0"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                        allowFullScreen
+                      />
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
