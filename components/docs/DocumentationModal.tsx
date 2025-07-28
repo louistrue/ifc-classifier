@@ -138,19 +138,71 @@ const DocumentationModal: React.FC<DocumentationModalProps> = ({ onClose }) => {
                 </p>
 
                 <div className="prose prose-sm sm:prose-base dark:prose-invert max-w-none text-foreground/90 prose-headings:text-primary prose-a:text-primary prose-strong:text-primary/90 prose-code:bg-muted prose-code:p-1 prose-code:rounded prose-code:text-primary prose-code:before:content-none prose-code:after:content-none prose-p:leading-relaxed prose-li:leading-relaxed">
-                  <ReactMarkdown
-                    remarkPlugins={[remarkGfm]}
-                    components={{
-                      a: ({ node, ...props }) => (
-                        <a {...props} target="_blank" rel="noopener noreferrer" className="inline-flex items-center">
-                          {props.children}
-                          <ExternalLink className="ml-1 h-3 w-3 opacity-70" />
-                        </a>
-                      ),
-                    }}
-                  >
-                    {currentSection.content}
-                  </ReactMarkdown>
+                  {(() => {
+                    const placeholder = "{{VIDEO}}";
+                    if (currentSection.videoUrl && currentSection.content.includes(placeholder)) {
+                      const [before, after] = currentSection.content.split(placeholder);
+                      return (
+                        <>
+                          <ReactMarkdown
+                            remarkPlugins={[remarkGfm]}
+                            components={{
+                              a: ({ node, ...props }) => (
+                                <a {...props} target="_blank" rel="noopener noreferrer" className="inline-flex items-center">
+                                  {props.children}
+                                  <ExternalLink className="ml-1 h-3 w-3 opacity-70" />
+                                </a>
+                              ),
+                            }}
+                          >
+                            {before}
+                          </ReactMarkdown>
+                          <div className="mt-6 w-full">
+                            <div className="relative w-full" style={{ paddingBottom: "56.25%" }}>
+                              <iframe
+                                src={currentSection.videoUrl}
+                                title="Video walkthrough"
+                                className="absolute top-0 left-0 w-full h-full rounded-md"
+                                frameBorder="0"
+                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                allowFullScreen
+                              />
+                            </div>
+                          </div>
+                          {after && (
+                            <ReactMarkdown
+                              remarkPlugins={[remarkGfm]}
+                              components={{
+                                a: ({ node, ...props }) => (
+                                  <a {...props} target="_blank" rel="noopener noreferrer" className="inline-flex items-center">
+                                    {props.children}
+                                    <ExternalLink className="ml-1 h-3 w-3 opacity-70" />
+                                  </a>
+                                ),
+                              }}
+                            >
+                              {after}
+                            </ReactMarkdown>
+                          )}
+                        </>
+                      );
+                    }
+                    return (
+                      <ReactMarkdown
+                        remarkPlugins={[remarkGfm]}
+                        components={{
+                          a: ({ node, ...props }) => (
+                            <a {...props} target="_blank" rel="noopener noreferrer" className="inline-flex items-center">
+                              {props.children}
+                              <ExternalLink className="ml-1 h-3 w-3 opacity-70" />
+                            </a>
+                          ),
+                        }}
+                      >
+                        {currentSection.content}
+                      </ReactMarkdown>
+                    );
+                  })()}
                 </div>
               </div>
             </div>

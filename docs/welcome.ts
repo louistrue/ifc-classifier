@@ -18,6 +18,12 @@ Assigning classification codes in IFC shouldn't slow you down—it should just w
 
 Try it out on your own models and let us know how it works for you!
 
+### Video Walkthrough
+
+Watch the quick-start video for an overview.
+
+{{VIDEO}}
+
 ## Privacy & Security
 
 **Your IFC data never leaves your device.** The application processes all files locally in your browser using [**WebAssembly**](https://webassembly.org/) technology:
@@ -49,6 +55,12 @@ Die Zuordnung von Klassifizierungscodes zu IFC-Elementen soll dich nicht ausbrem
   - **Im Browser** und vollständig Open Source
 
 Probiere es mit eigenen Modellen aus und gib uns Feedback!
+
+### Video-Überblick
+
+Schau dir das kurze Einführungsvideo an.
+
+{{VIDEO}}
 
 ## Datenschutz & Sicherheit
 
@@ -82,6 +94,12 @@ L'attribution de codes de classification dans IFC ne devrait pas vous ralentir�
 
 Essayez-le sur vos propres modèles et dites-nous comment cela fonctionne pour vous !
 
+### Présentation vidéo
+
+Regardez la courte vidéo d'introduction.
+
+{{VIDEO}}
+
 ## Confidentialité et sécurité
 
 **Vos données IFC ne quittent jamais votre appareil.** L'application traite tous les fichiers localement dans votre navigateur en utilisant la technologie [**WebAssembly**](https://webassembly.org/) :
@@ -113,6 +131,12 @@ L'assegnazione di codici di classificazione in IFC non dovrebbe rallentarti—do
   - **Basato su browser** e completamente open source
 
 Provalo sui tuoi modelli e facci sapere come funziona per te!
+
+### Video introduttivo
+
+Guarda il breve video introduttivo.
+
+{{VIDEO}}
 
 ## Privacy e sicurezza
 
