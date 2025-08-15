@@ -18,7 +18,9 @@ async function extractPropertyValueRecursive(
   processedCache: Map<number, any>,
   recursionPath: Set<number>
 ) {
-  if (!propertyEntity || !propertyEntity.Name?.value) return;
+  if (!propertyEntity || !propertyEntity.Name?.value) {
+    return;
+  }
   const propExpressID = propertyEntity.expressID;
   if (propExpressID !== undefined) {
     if (recursionPath.has(propExpressID)) {
@@ -104,6 +106,7 @@ async function extractPropertyValueRecursive(
     } else if (propertyEntity.NominalValue === null) {
       extractedValue = `(${ifcApi.GetNameFromTypeCode(propertyEntity.type as number)})`;
     }
+
     targetObject[fullPropName] = extractedValue;
   }
 
@@ -162,6 +165,8 @@ export async function getAllElementProperties(
   const elementDataFromServer = await ifcApi.GetLine(modelID, expressID, true);
   const elementType = ifcApi.GetNameFromTypeCode(elementDataFromServer.type);
 
+
+
   const psetsData: Record<string, Record<string, any>> = {};
   psetsData["Element Attributes"] = {};
   for (const key in elementDataFromServer) {
@@ -178,22 +183,30 @@ export async function getAllElementProperties(
     targetPSetData: Record<string, any>,
     name: string
   ) => {
-    if (psetEntity.HasProperties && Array.isArray(psetEntity.HasProperties)) {
+    // Check both HasProperties (for IFCPROPERTYSET) and direct properties
+    const properties = psetEntity.HasProperties || [];
+
+
+    if (Array.isArray(properties) && properties.length > 0) {
       const processedCache = new Map<number, any>();
       const recursionPath = new Set<number>();
-      for (const propRefOrObject of psetEntity.HasProperties) {
+
+      for (const propRefOrObject of properties) {
         let propToProcess = null;
+
+        // Handle reference to property (by ID)
         if (propRefOrObject?.value !== undefined && typeof propRefOrObject.value === "number") {
           try {
             propToProcess = await ifcApi.GetLine(modelID, propRefOrObject.value, true);
-          } catch {
+          } catch (e) {
             continue;
           }
-        } else if (propRefOrObject?.expressID !== undefined && propRefOrObject.Name?.value) {
-          propToProcess = propRefOrObject;
-        } else {
-          continue;
         }
+        // Handle embedded property object
+        else if (propRefOrObject && typeof propRefOrObject === 'object') {
+          propToProcess = propRefOrObject;
+        }
+
         if (propToProcess) {
           await extractPropertyValueRecursive(
             ifcApi,
@@ -207,15 +220,106 @@ export async function getAllElementProperties(
         }
       }
     }
+
+    // If no properties were found through HasProperties, try to extract direct attributes
+    if (Object.keys(targetPSetData).length === 0) {
+      // Extract any direct properties from the pset entity itself
+      for (const key in psetEntity) {
+        if (key !== 'expressID' && key !== 'type' && key !== 'Name' && key !== 'Description' && key !== 'HasProperties') {
+          const value = psetEntity[key];
+          if (value !== null && value !== undefined) {
+            if (value.value !== undefined) {
+              targetPSetData[key] = value.value;
+            } else if (typeof value !== 'object') {
+              targetPSetData[key] = value;
+            }
+          }
+        }
+      }
+    }
+
   };
 
   const instancePsets = await ifcApi.properties.getPropertySets(modelID, expressID, true, false);
+
+
   if (instancePsets && instancePsets.length > 0) {
     for (const pset of instancePsets) {
-      if (pset && pset.Name?.value && ifcApi.GetNameFromTypeCode(pset.type) === "IFCPROPERTYSET") {
-        const psetName = pset.Name.value;
-        if (!psetsData[psetName]) psetsData[psetName] = {};
-        await processApiPset(pset, psetsData[psetName], psetName);
+      if (pset && pset.Name?.value) {
+        const psetType = ifcApi.GetNameFromTypeCode(pset.type);
+
+
+        // Process both property sets and element quantities
+        if (psetType === "IFCPROPERTYSET" || psetType === "IFCELEMENTQUANTITY") {
+          const psetName = pset.Name.value;
+          if (!psetsData[psetName]) psetsData[psetName] = {};
+
+          // For IfcElementQuantity, properties are in Quantities instead of HasProperties
+          if (psetType === "IFCELEMENTQUANTITY") {
+            // Process quantities
+            if (pset.Quantities && Array.isArray(pset.Quantities)) {
+              for (const quantityRef of pset.Quantities) {
+                let quantity = null;
+                if (quantityRef?.value !== undefined && typeof quantityRef.value === "number") {
+                  try {
+                    quantity = await ifcApi.GetLine(modelID, quantityRef.value, true);
+                  } catch {
+                    continue;
+                  }
+                } else if (quantityRef?.Name?.value) {
+                  quantity = quantityRef;
+                }
+
+                if (quantity && quantity.Name?.value) {
+                  const quantityName = quantity.Name.value;
+                  // Extract the value based on quantity type with units
+                  const quantityType = ifcApi.GetNameFromTypeCode(quantity.type);
+
+                  if (quantity.LengthValue?.value !== undefined) {
+                    psetsData[psetName][quantityName] = {
+                      value: quantity.LengthValue.value,
+                      unit: quantity.Unit?.value || "m"
+                    };
+                  } else if (quantity.AreaValue?.value !== undefined) {
+                    psetsData[psetName][quantityName] = {
+                      value: quantity.AreaValue.value,
+                      unit: quantity.Unit?.value || "m²"
+                    };
+                  } else if (quantity.VolumeValue?.value !== undefined) {
+                    psetsData[psetName][quantityName] = {
+                      value: quantity.VolumeValue.value,
+                      unit: quantity.Unit?.value || "m³"
+                    };
+                  } else if (quantity.CountValue?.value !== undefined) {
+                    psetsData[psetName][quantityName] = quantity.CountValue.value;
+                  } else if (quantity.WeightValue?.value !== undefined) {
+                    psetsData[psetName][quantityName] = {
+                      value: quantity.WeightValue.value,
+                      unit: quantity.Unit?.value || "kg"
+                    };
+                  } else if (quantity.TimeValue?.value !== undefined) {
+                    psetsData[psetName][quantityName] = {
+                      value: quantity.TimeValue.value,
+                      unit: quantity.Unit?.value || "s"
+                    };
+                  } else {
+                    // Fallback for other quantity types
+                    const valueKeys = ['Value', 'NominalValue'];
+                    for (const key of valueKeys) {
+                      if (quantity[key]?.value !== undefined) {
+                        psetsData[psetName][quantityName] = quantity[key].value;
+                        break;
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          } else if (psetType === "IFCPROPERTYSET") {
+            // Regular property set processing for IFCPROPERTYSET
+            await processApiPset(pset, psetsData[psetName], psetName);
+          }
+        }
       }
     }
   }
@@ -248,7 +352,8 @@ export async function getAllElementProperties(
           if (propDefEntity) {
             const propDefEntityType = ifcApi.GetNameFromTypeCode(propDefEntity.type);
             const propDefInstanceName = propDefEntity.Name?.value;
-            if (propDefEntityType === "IFCPROPERTYSET") {
+            // Process both property sets and element quantities
+            if (propDefEntityType === "IFCPROPERTYSET" || propDefEntityType === "IFCELEMENTQUANTITY") {
               const psetName = propDefInstanceName || "Unnamed PSet";
               const finalPsetName = `${psetName} (from Type: ${typeObjectName})`;
               if (!psetsData[finalPsetName]) psetsData[finalPsetName] = {};
@@ -357,11 +462,15 @@ export async function getAllElementProperties(
     }
   }
 
-  return {
+  const result = {
     modelID,
     expressID,
     ifcType: elementType,
     attributes: elementDataFromServer,
     propertySets: psetsData,
   };
+
+
+
+  return result;
 }

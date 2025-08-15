@@ -21,25 +21,20 @@ export declare const LINE_END = 9;
 export declare const INTEGER = 10;
 /**
  * Settings for the IFCLoader
- * @property {boolean} OPTIMIZE_PROFILES - If true, the model will return all circular and rectangular profiles as a single geometry.
  * @property {boolean} COORDINATE_TO_ORIGIN - If true, the model will be translated to the origin.
  * @property {number} CIRCLE_SEGMENTS - Number of segments for circles.
  * @property {number} MEMORY_LIMIT - The amount of memory to be reserved for storing IFC data in memory
  * @property {number} TAPE_SIZE - Size of the tape for the loader.
+ * @property {number} LINEWRITER_BUFFER - The number of lines to write to memory at a time when writing an IFC file.
  */
 export interface LoaderSettings {
-    OPTIMIZE_PROFILES?: boolean;
     COORDINATE_TO_ORIGIN?: boolean;
-    USE_FAST_BOOLS?: boolean;
-    CIRCLE_SEGMENTS_LOW?: number;
-    CIRCLE_SEGMENTS_MEDIUM?: number;
-    CIRCLE_SEGMENTS_HIGH?: number;
     CIRCLE_SEGMENTS?: number;
-    BOOL_ABORT_THRESHOLD?: number;
     MEMORY_LIMIT?: number;
     TAPE_SIZE?: number;
+    LINEWRITER_BUFFER?: number;
 }
-export interface Vector<T> {
+export interface Vector<T> extends Iterable<T> {
     get(index: number): T;
     size(): number;
 }
@@ -62,32 +57,51 @@ export interface PlacedGeometry {
 export interface FlatMesh {
     geometries: Vector<PlacedGeometry>;
     expressID: number;
+    delete(): void;
 }
-export interface point {
+export interface Point {
     x: number;
     y: number;
+    z?: number;
 }
-export interface curve {
-    curves: Array<point>;
+export interface Curve {
+    points: Array<Point>;
+    userData: Array<string>;
+    arcSegments: Array<number>;
 }
-export interface IfcCrossSection {
-    curves: Array<curve>;
+export interface SweptDiskSolid {
+    profile: Profile;
+    axis: Array<Curve>;
+    profileRadius: number;
 }
-export interface IfcAlignmentSegment {
-    curves: Array<curve>;
+export interface Profile {
+    curve: Curve;
+    holes: Array<Curve>;
+    profiles: Array<Profile>;
+    isConvex: boolean;
+    isComposite: boolean;
 }
-export interface IfcAlignment {
+export interface CrossSection {
+    curves: Array<Curve>;
+    expressID: Array<number>;
+}
+export interface AlignmentSegment {
+    curves: Array<Curve>;
+}
+export interface Alignment {
     FlatCoordinationMatrix: Array<number>;
-    Horizontal: IfcAlignmentSegment;
-    Vertical: IfcAlignmentSegment;
+    Horizontal: AlignmentSegment;
+    Vertical: AlignmentSegment;
 }
 export interface IfcGeometry {
     GetVertexData(): number;
     GetVertexDataSize(): number;
     GetIndexData(): number;
     GetIndexDataSize(): number;
+    GetSweptDiskSolid(): SweptDiskSolid;
+    delete(): void;
 }
-export interface ifcType {
+export interface IfcType {
     typeID: number;
     typeName: string;
 }
@@ -99,6 +113,8 @@ export interface NewIfcModel {
     organizations?: string[];
     authorization?: string;
 }
+export type ModelLoadCallback = (offset: number, size: number) => Uint8Array;
+export type ModelSaveCallback = (data: Uint8Array) => void;
 /** @ignore */
 export declare function ms(): number;
 export type LocateFileHandlerFn = (path: string, prefix: string) => string;
@@ -122,7 +138,7 @@ export declare class IfcAPI {
      * @param customLocateFileHandler An optional locateFile function that let's
      * you override the path from which the wasm module is loaded.
      */
-    Init(customLocateFileHandler?: LocateFileHandlerFn): Promise<void>;
+    Init(customLocateFileHandler?: LocateFileHandlerFn, forceSingleThread?: boolean): Promise<void>;
     /**
     * Opens a set of models and returns model IDs
     * @param dataSets Array of Buffers containing IFC data (bytes)
@@ -145,7 +161,7 @@ export declare class IfcAPI {
      * @param settings Settings for loading the model @see LoaderSettings
      * @returns ModelID or -1 if model fails to open
     */
-    OpenModelFromCallback(callback: (offset: number, size: number) => Uint8Array, settings?: LoaderSettings): number;
+    OpenModelFromCallback(callback: ModelLoadCallback, settings?: LoaderSettings): number;
     /**
      * Fetches the ifc schema version of a given model
      * @param modelID Model ID
@@ -165,13 +181,11 @@ export declare class IfcAPI {
      */
     SaveModel(modelID: number): Uint8Array;
     /**
-     * Export a model to IFC
-     * @param modelID model ID
-     * @returns blob with mimetype application/x-step containing the model data
-     *
-     * @deprecated Use SaveModel instead - will be removed in next version
+     * Saves a model to a Buffer
+     * @param modelID Model ID
+     * @returns Buffer containing the model data
      */
-    ExportFileAsIFC(modelID: number): Uint8Array;
+    SaveModelToCallback(modelID: number, callback: ModelSaveCallback): void;
     /**
     * Retrieves the geometry of an element
     * @param modelID Model handle retrieved by OpenModel
@@ -192,7 +206,7 @@ export declare class IfcAPI {
      * @param modelID Model handle retrieved by OpenModel
      * @returns Array of objects containing typeID and typeName
      */
-    GetAllTypesOfModel(modelID: number): ifcType[];
+    GetAllTypesOfModel(modelID: number): IfcType[];
     /**
      * Gets the ifc line data for a given express ID
      * @param modelID Model handle retrieved by OpenModel
@@ -210,13 +224,6 @@ export declare class IfcAPI {
      * @returns The next unused expressID starting from the value provided
      */
     GetNextExpressID(modelID: number, expressID: number): number;
-    /**
-     * Returns the list of errors generated by the parser and clears it
-     * @param modelID Model handle retrieved by OpenModel
-     * @returns Vector containing the list of errors
-     * @deprecated Log level will not directly effect the logging of errors
-     */
-    GetAndClearErrors(_: number): Vector<any>;
     /**
      * Creates a new ifc entity
      * @param modelID Model handle retrieved by OpenModel
@@ -275,30 +282,13 @@ export declare class IfcAPI {
      * @param lineObject line object to write
      */
     WriteLine<Type extends IfcLineObject>(modelID: number, lineObject: Type): void;
-    /**
-     * Recursively flattens a line object
-     * @param modelID Model handle retrieved by OpenModel
-     * @param line line object to flatten
-     */
+    /** @ignore */
     FlattenLine(modelID: number, line: any): void;
-    /**
-     * Gets all parameters contained in a line of model
-     * @param modelID Model handle retrieved by OpenModel
-     * @param expressID ID of the line to retrieve
-     * @returns An object containing the ID, type and arguments of the line
-     */
+    /** @ignore */
     GetRawLineData(modelID: number, expressID: number): RawLineData;
-    /**
-     * Writes a line in the model
-     * @param modelID Model handle retrieved by OpenModel
-     * @param data RawLineData containing the ID, type and arguments of the line
-     */
+    /** @ignore */
     WriteRawLineData(modelID: number, data: RawLineData): void;
-    /**
-    * Writes lines in the model
-    * @param modelID Model handle retrieved by OpenModel
-    * @param an array of  RawLineData containing the ID, type and arguments of the line
-    */
+    /** @ignore */
     WriteRawLinesData(modelID: number, data: Array<RawLineData>): void;
     /**
      * Get all line IDs of a specific ifc type
@@ -313,25 +303,25 @@ export declare class IfcAPI {
      * @param modelID model ID
      * @returns vector of all line IDs
      */
-    GetAllLines(modelID: Number): Vector<number>;
+    GetAllLines(modelID: number): Vector<number>;
     /**
      * Returns all crossSections in 2D contained in IFCSECTIONEDSOLID, IFCSECTIONEDSURFACE, IFCSECTIONEDSOLIDHORIZONTAL (IFC4x3 or superior)
      * @param modelID model ID
      * @returns Lists with the cross sections curves as sets of points
      */
-    GetAllCrossSections2D(modelID: Number): any;
+    GetAllCrossSections2D(modelID: number): Array<CrossSection>;
     /**
      * Returns all crossSections in 3D contained in IFCSECTIONEDSOLID, IFCSECTIONEDSURFACE, IFCSECTIONEDSOLIDHORIZONTAL (IFC4x3 or superior)
      * @param modelID model ID
      * @returns Lists with the cross sections curves as sets of points
      */
-    GetAllCrossSections3D(modelID: Number): any;
+    GetAllCrossSections3D(modelID: number): Array<CrossSection>;
     /**
      * Returns all alignments contained in the IFC model (IFC4x3 or superior)
      * @param modelID model ID
      * @returns Lists with horizontal and vertical curves as sets of points
      */
-    GetAllAlignments(modelID: Number): any;
+    GetAllAlignments(modelID: number): any;
     /**
      * Set the transformation matrix
      * @param modelID model ID
@@ -349,29 +339,33 @@ export declare class IfcAPI {
     getSubArray(heap: any, startPtr: number, sizeBytes: number): any;
     /**
      * Closes a model and frees all related memory
-     * @param modelID Model handle retrieved by OpenModel, model must not be closed
+     * @param modelID Model handle retrieved by OpenModel, model must be closed after use
     */
     CloseModel(modelID: number): void;
+    /**
+     * Closes all models and frees all related memory. Please note that after calling this you must call Init() again to ensure web-ifc is in a working state.
+    */
+    Dispose(): void;
     /**
      * Streams meshes of a model with specific express id
      * @param modelID Model handle retrieved by OpenModel
      * @param expressIDs expressIDs of elements to stream
      * @param meshCallback callback function that is called for each mesh
      */
-    StreamMeshes(modelID: number, expressIDs: Array<number>, meshCallback: (mesh: FlatMesh) => void): void;
+    StreamMeshes(modelID: number, expressIDs: Array<number>, meshCallback: (mesh: FlatMesh, index: number, total: number) => void): void;
     /**
      * Streams all meshes of a model
      * @param modelID Model handle retrieved by OpenModel
      * @param meshCallback callback function that is called for each mesh
      */
-    StreamAllMeshes(modelID: number, meshCallback: (mesh: FlatMesh) => void): void;
+    StreamAllMeshes(modelID: number, meshCallback: (mesh: FlatMesh, index: number, total: number) => void): void;
     /**
      * Streams all meshes of a model with a specific ifc type
      * @param modelID Model handle retrieved by OpenModel
      * @param types types of elements to stream
      * @param meshCallback callback function that is called for each mesh
      */
-    StreamAllMeshesWithTypes(modelID: number, types: Array<number>, meshCallback: (mesh: FlatMesh) => void): void;
+    StreamAllMeshesWithTypes(modelID: number, types: Array<number>, meshCallback: (mesh: FlatMesh, index: number, total: number) => void): void;
     /**
      * Checks if a specific model ID is open or closed
      * @param modelID Model handle retrieved by OpenModel
@@ -392,29 +386,21 @@ export declare class IfcAPI {
     */
     GetFlatMesh(modelID: number, expressID: number): FlatMesh;
     /**
-         * Returns the maximum ExpressID value in the IFC file, ex.- #9999999
-         * @param modelID Model handle retrieved by OpenModel
-         * @returns Express numerical value
-         */
+    * Returns the maximum ExpressID value in the IFC file, ex.- #9999999
+    * @param modelID Model handle retrieved by OpenModel
+    * @returns Express numerical value
+    */
     GetMaxExpressID(modelID: number): number;
     /**
-         * Returns the maximum ExpressID value in the IFC file after incrementing the maximum ExpressID by the increment size, ex.- #9999999
-         * @param modelID Model handle retrieved by OpenModel
-         * @param incrementSize The value to add to the max ExpressID for the new max ExpressID
-         * @returns ExpressID numerical value
-         * @deprecated Use SaveModel instead - will be removed in next version
-         */
-    IncrementMaxExpressID(modelID: number, incrementSize: number): any;
-    /**
-         * Returns the type of a given ifc entity in the fiule.
-         * @param modelID Model handle retrieved by OpenModel
-         * @param expressID Line Number
-         * @returns IFC Type Code
-         */
+    * Returns the type of a given ifc entity in the fiule.
+    * @param modelID Model handle retrieved by OpenModel
+    * @param expressID Line Number
+    * @returns IFC Type Code
+    */
     GetLineType(modelID: number, expressID: number): any;
     /**
-         * Returns the version number of web-ifc
-         * @returns The current version number as a string
+    * Returns the version number of web-ifc
+    * @returns The current version number as a string
     */
     GetVersion(): any;
     /**
@@ -431,11 +417,7 @@ export declare class IfcAPI {
      * @returns globalID string value
      */
     GetGuidFromExpressId(modelID: number, expressID: number): string | number | undefined;
-    /**
-     * Creates a map between element ExpressIDs and GlobalIDs.
-     * Each element has two entries, (ExpressID -> GlobalID) and (GlobalID -> ExpressID).
-     * @param modelID Model handle retrieved by OpenModel
-     */
+    /** @ignore */
     CreateIfcGuidToExpressIdMapping(modelID: number): void;
     /**
      * Sets the path to the wasm file
@@ -448,4 +430,21 @@ export declare class IfcAPI {
      * @param level Log level to set
      */
     SetLogLevel(level: LogLevel): void;
+    /**
+     * Encodes test using IFC Encoding
+     * @text the text to encode
+     * @returns the text encoded
+     */
+    EncodeText(text: string): any;
+    /**
+    * Decodes test using IFC Encoding
+    * @text the text to decode
+    * @returns the text decoded
+    */
+    DecodeText(text: string): any;
+    /**
+    * Resets the Cached IFC Data - useful when changing the geometry of a model
+    * @param modelID Model handle retrieved by OpenModel
+    */
+    ResetCache(modelID: number): any;
 }
