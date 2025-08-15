@@ -23,11 +23,11 @@ UI components are placed in the `components/` folder. Key files include `ifc-vie
 
 ## IFC Parsing with web-ifc
 
-Browser-side parsing is handled by the `web-ifc` engine. The viewer initializes an `IfcAPI` instance and loads the WebAssembly modules from "/wasm/web-ifc".
+Browser-side parsing is handled by the `web-ifc` engine. The viewer initializes an `IfcAPI` instance and loads the WebAssembly modules from the CDN.
 
 ```ts
 const ifcAPIInstance = new IfcAPI();
-ifcAPIInstance.SetWasmPath("/wasm/web-ifc/", true);
+ifcAPIInstance.SetWasmPath("https://cdn.jsdelivr.net/npm/web-ifc@0.0.68/", true);
 await ifcAPIInstance.Init();
 ```
 
@@ -59,6 +59,5 @@ A Python script running inside Pyodide uses IfcOpenShell to open the model, atta
 - `components/` – React components including the viewer and panels
 - `context/` – shared React context for model state
 - `services/` – functions for importing/exporting classifications and IFC files
-- `public/wasm/web-ifc/` – WebAssembly files for the `web-ifc` engine
 
 Together these pieces form a purely client-side application that reads, visualizes, classifies and exports IFC models without server dependencies.

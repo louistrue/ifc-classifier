@@ -100,6 +100,8 @@ function GlobalInteractionHandler() {
     loadedModels,
     userHiddenElements,
     clearSelection,
+    // new: rule progress from context
+    ruleProgress,
   } = useIFCContext();
 
   const mouseDownPos = useRef<{ x: number; y: number } | null>(null);
@@ -295,10 +297,10 @@ function ViewToolbar({
     if (selectedElements.length) {
       // Store the elements to hide before clearing selection
       const elementsToHide = [...selectedElements];
-      
+
       // Clear the selection first to remove highlights
       clearSelection();
-      
+
       // Then hide the elements - they will disappear immediately
       // since they're no longer selected
       elementsToHide.forEach((el) => toggleUserHideElement(el));
@@ -437,7 +439,7 @@ function SelectionListOverlay() {
   // Fetch names for display elements
   useEffect(() => {
     if (displayElements.length === 0) return;
-    
+
     let mounted = true;
     Promise.all(
       displayElements.map((el) =>
@@ -933,7 +935,104 @@ function ViewerContent() {
     getElementPropertiesCached,
     addIFCModel,
     clearSelection,
+    ruleProgress,
+    showAllClassificationColors,
+    toggleShowAllClassificationColors,
   } = useIFCContext();
+
+  const [completionMessage, setCompletionMessage] = useState<{
+    show: boolean;
+    message: string;
+    matches: number;
+  }>({ show: false, message: "", matches: 0 });
+
+  const consoleRef = useRef<HTMLDivElement>(null);
+  const [consolePosition, setConsolePosition] = useState({ x: 20, y: 20 }); // Position from bottom-right
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+
+  // Handle rule completion and show completion message
+  useEffect(() => {
+    if (!ruleProgress.active && ruleProgress.percent === 100 && ruleProgress.status) {
+      // Extract match count from status message
+      const matchCount = ruleProgress.status.match(/Found (\d+) matches/) ||
+        ruleProgress.status.match(/(\d+) matches/);
+      const matches = matchCount ? parseInt(matchCount[1]) : 0;
+
+      // Auto-switch to Colors mode if matches were found and not already in Colors mode
+      if (matches > 0 && !showAllClassificationColors) {
+        clearSelection(); // Clear any existing selections
+        toggleShowAllClassificationColors(); // Enable Colors mode
+      }
+
+      // Show completion message after a brief delay
+      setTimeout(() => {
+        setCompletionMessage({
+          show: true,
+          message: matches > 0 ?
+            `Successfully processed rules and found ${matches} matching elements! Switched to Colors mode to show results.` :
+            "Rule processing completed. No new matches found.",
+          matches
+        });
+
+        // Auto-hide completion message after 5 seconds (longer to read the Colors mode message)
+        setTimeout(() => {
+          setCompletionMessage(prev => ({ ...prev, show: false }));
+        }, 5000);
+      }, 500);
+    }
+  }, [ruleProgress.active, ruleProgress.percent, ruleProgress.status, showAllClassificationColors, toggleShowAllClassificationColors, clearSelection]);
+
+  // Auto-scroll console to bottom when new logs are added
+  useEffect(() => {
+    if (consoleRef.current && ruleProgress.logs.length > 0) {
+      // Use smooth scrolling for a more polished feel
+      consoleRef.current.scrollTo({
+        top: consoleRef.current.scrollHeight,
+        behavior: 'smooth'
+      });
+    }
+  }, [ruleProgress.logs]);
+
+  // Drag handlers for console
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    setIsDragging(true);
+    setDragStart({ x: e.clientX, y: e.clientY });
+    setDragOffset({ x: 0, y: 0 });
+  }, []);
+
+  const handleMouseMove = useCallback((e: MouseEvent) => {
+    if (!isDragging) return;
+
+    const deltaX = e.clientX - dragStart.x;
+    const deltaY = e.clientY - dragStart.y;
+    setDragOffset({ x: deltaX, y: deltaY });
+  }, [isDragging, dragStart]);
+
+  const handleMouseUp = useCallback(() => {
+    if (!isDragging) return;
+
+    setConsolePosition(prev => ({
+      x: Math.max(10, prev.x - dragOffset.x), // Prevent going too far left
+      y: Math.max(10, prev.y - dragOffset.y)  // Prevent going too far up
+    }));
+    setIsDragging(false);
+    setDragOffset({ x: 0, y: 0 });
+  }, [isDragging, dragOffset]);
+
+  // Add global mouse event listeners for dragging
+  useEffect(() => {
+    if (isDragging) {
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+      return () => {
+        document.removeEventListener('mousemove', handleMouseMove);
+        document.removeEventListener('mouseup', handleMouseUp);
+      };
+    }
+  }, [isDragging, handleMouseMove, handleMouseUp]);
+
   const { t } = useTranslation();
   const [ifcEngineReady, setIfcEngineReady] = useState(false);
   const [webGLContextLost, setWebGLContextLost] = useState(false);
@@ -987,44 +1086,44 @@ function ViewerContent() {
 
   const handleSelectAllVisible = useCallback(() => {
     console.log("ViewerContent: handleSelectAllVisible called");
-    
+
     if (!scene.current) return;
-    
+
     const visibleElements: SelectedElementInfo[] = [];
-    
+
     // Traverse the scene to find all visible IFC elements
     scene.current.traverse((object) => {
       if (object instanceof THREE.Mesh &&
-          object.userData &&
-          object.userData.expressID !== undefined &&
-          object.userData.modelID !== undefined &&
-          object.visible) {
-        
+        object.userData &&
+        object.userData.expressID !== undefined &&
+        object.userData.modelID !== undefined &&
+        object.visible) {
+
         const elementInfo: SelectedElementInfo = {
           modelID: object.userData.modelID,
           expressID: object.userData.expressID
         };
-        
+
         // Check if this element is not in userHiddenElements
         const isUserHidden = userHiddenElements.some(
-          hidden => hidden.modelID === elementInfo.modelID && 
-                   hidden.expressID === elementInfo.expressID
+          hidden => hidden.modelID === elementInfo.modelID &&
+            hidden.expressID === elementInfo.expressID
         );
-        
+
         if (!isUserHidden) {
           // Check if already in the list (avoid duplicates)
           const alreadyAdded = visibleElements.some(
-            el => el.modelID === elementInfo.modelID && 
-                  el.expressID === elementInfo.expressID
+            el => el.modelID === elementInfo.modelID &&
+              el.expressID === elementInfo.expressID
           );
-          
+
           if (!alreadyAdded) {
             visibleElements.push(elementInfo);
           }
         }
       }
     });
-    
+
     console.log(`Selecting ${visibleElements.length} visible elements`);
     selectElements(visibleElements);
   }, [scene, userHiddenElements, selectElements]);
@@ -1561,10 +1660,10 @@ function ViewerContent() {
             event.preventDefault();
             // Store the elements to hide before clearing selection
             const elementsToHide = [...selectedElements];
-            
+
             // Clear the selection first to remove highlights
             clearSelection();
-            
+
             // Then hide the elements - they will disappear immediately
             // since they're no longer selected
             elementsToHide.forEach((el) => toggleUserHideElement(el));
@@ -2004,6 +2103,71 @@ function ViewerContent() {
               />
             )}
             <SelectionListOverlay />
+
+            {/* Rule Processing Console */}
+            {ruleProgress?.active && (
+              <div
+                className="pointer-events-none absolute z-50 w-[min(400px,45vw)]"
+                style={{
+                  bottom: `${consolePosition.y + dragOffset.y}px`,
+                  right: `${consolePosition.x + dragOffset.x}px`,
+                  transform: isDragging ? 'scale(1.02)' : 'scale(1)',
+                  transition: isDragging ? 'none' : 'transform 0.2s ease-out'
+                }}
+              >
+                <div className="pointer-events-auto rounded-xl border border-border bg-background/95 backdrop-blur-md shadow-xl overflow-hidden animate-in slide-in-from-bottom-2 duration-300">
+                  <div
+                    className={`flex items-center justify-between px-3 py-2 bg-muted/60 cursor-move select-none ${isDragging ? 'bg-muted/80' : ''}`}
+                    onMouseDown={handleMouseDown}
+                  >
+                    <div className="flex items-center gap-2 text-xs font-medium">
+                      <div className="flex items-center gap-1">
+                        <span className="inline-flex h-2.5 w-2.5 rounded-full bg-primary animate-pulse"></span>
+                        <svg className="w-3 h-3 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+                        </svg>
+                      </div>
+                      <span>Processing Rules</span>
+                    </div>
+                    <div className="text-xs tabular-nums text-muted-foreground">{ruleProgress.percent}%</div>
+                  </div>
+
+                  {/* Console Output */}
+                  <div className="px-3 py-2">
+                    <div
+                      ref={consoleRef}
+                      className="font-mono text-[10px] leading-4 bg-black/90 text-green-400 border border-border rounded-md p-3 h-40 overflow-auto"
+                    >
+                      {ruleProgress.logs.length === 0 ? (
+                        <div className="text-green-400/60">Initializing...</div>
+                      ) : (
+                        ruleProgress.logs.map((line, idx) => (
+                          <div key={idx} className="animate-in fade-in duration-100" style={{ animationDelay: `${idx * 20}ms` }}>
+                            {line}
+                          </div>
+                        ))
+                      )}
+                      {ruleProgress.active && (
+                        <div className="inline-block w-2 h-3 bg-green-400 animate-pulse ml-1">|</div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Progress Bar */}
+                  <div className="px-3 pb-3">
+                    <div className="w-full bg-muted rounded-full h-1.5 overflow-hidden">
+                      <div
+                        className="bg-primary h-full transition-all duration-300 ease-out"
+                        style={{ width: `${ruleProgress.percent}%` }}
+                      />
+                    </div>
+                    <div className="text-xs text-muted-foreground mt-1 text-center">
+                      {ruleProgress.status}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </Panel>
 
@@ -2028,6 +2192,41 @@ function ViewerContent() {
         </Panel>
       </PanelGroup>
       <MobileTabs onSettingsChanged={handleSettingsChanged} />
+
+
+
+      {/* Completion Message */}
+      {completionMessage.show && (
+        <div className="pointer-events-none absolute bottom-4 right-4 z-50 w-[min(400px,90vw)]">
+          <div className="pointer-events-auto rounded-xl border border-green-500/20 bg-green-50/95 dark:bg-green-950/95 backdrop-blur-md shadow-xl overflow-hidden animate-in slide-in-from-bottom-2 duration-500">
+            <div className="flex items-center gap-3 px-4 py-3">
+              <div className="flex-shrink-0">
+                <div className="w-8 h-8 rounded-full bg-green-500 flex items-center justify-center">
+                  <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+              </div>
+              <div className="flex-1">
+                <h3 className="text-sm font-medium text-green-800 dark:text-green-200">
+                  Rules Processing Complete
+                </h3>
+                <p className="text-xs text-green-600 dark:text-green-300 mt-1">
+                  {completionMessage.message}
+                </p>
+              </div>
+              <button
+                onClick={() => setCompletionMessage(prev => ({ ...prev, show: false }))}
+                className="flex-shrink-0 text-green-500 hover:text-green-600 transition-colors"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

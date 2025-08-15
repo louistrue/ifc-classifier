@@ -479,6 +479,9 @@ export function ModelInfo() {
 
     if (propertySets) {
       for (const [psetName, props] of Object.entries(propertySets)) {
+        // Skip "Element Attributes" as it's shown in Basic Information section
+        if (psetName === "Element Attributes") continue;
+
         const filtered: Record<string, any> = {};
         if (props && typeof props === "object") {
           for (const [k, v] of Object.entries(props)) {

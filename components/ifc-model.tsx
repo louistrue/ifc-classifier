@@ -20,6 +20,20 @@ import {
   IFCRELCONTAINEDINSPATIALSTRUCTURE,
   IFCRELDEFINESBYPROPERTIES,
   IFCRELASSOCIATESMATERIAL,
+  IFCWALL,
+  IFCWALLSTANDARDCASE,
+  IFCDOOR,
+  IFCWINDOW,
+  IFCSLAB,
+  IFCCOLUMN,
+  IFCBEAM,
+  IFCSTAIR,
+  IFCROOF,
+  IFCCOVERING,
+  IFCRAILING,
+  IFCPLATE,
+  IFCMEMBER,
+  IFCCURTAINWALL,
   Properties,
 } from "web-ifc"; // Import IfcAPI type and constants
 
@@ -98,60 +112,162 @@ async function buildSpatialTree(
 
   // 2. Contained elements (IfcRelContainedInSpatialStructure)
   // Only for spatial structure elements like Storey, Space, Building, Site
+  console.log(`[buildSpatialTree] Processing element: ${element.type} (ID: ${elementID})`);
+
   if (
     element.type === "IFCBUILDINGSTOREY" ||
     element.type === "IFCSPACE" ||
     element.type === "IFCBASICELEMENT" ||
     element.type === "IFCBUILDING" ||
-    element.type === "IFCSITE"
+    element.type === "IFCSITE" ||
+    element.type === "IFCPROJECT"  // Also check project level
   ) {
     const relContainedIDs = await ifcApi.GetLineIDsWithType(
       modelID,
       IFCRELCONTAINEDINSPATIALSTRUCTURE
     );
+
+    console.log(`[buildSpatialTree] Found ${relContainedIDs.size()} IFCRELCONTAINEDINSPATIALSTRUCTURE relationships`);
+
+    let foundRelationships = 0;
     for (let i = 0; i < relContainedIDs.size(); i++) {
       const relContID = relContainedIDs.get(i);
-      const relCont = await ifcApi.GetLine(modelID, relContID, false);
-      if (relCont.RelatingStructure?.value === elementID) {
+      const relCont = await ifcApi.GetLine(modelID, relContID, true); // Use true to get full objects
+
+      // Debug: Log the relationship structure
+      if (i === 0) {
+        console.log(`[buildSpatialTree] Sample relationship structure:`, {
+          RelatingStructure: relCont.RelatingStructure,
+          RelatedElements: relCont.RelatedElements ? `Array(${relCont.RelatedElements.length})` : 'undefined'
+        });
+      }
+
+      // Check if this relationship relates to our current element
+      const relatingId = relCont.RelatingStructure?.value || relCont.RelatingStructure;
+      if (relatingId === elementID) {
+        foundRelationships++;
         const relatedElements = relCont.RelatedElements;
+
+        console.log(`[buildSpatialTree] Found relationship for ${element.type} with ${relatedElements?.length || 0} related elements`);
+
         if (relatedElements && Array.isArray(relatedElements)) {
           for (const relatedElement of relatedElements) {
-            // These are typically non-spatial elements (walls, slabs, etc.) or could be spaces in storeys
-            // We treat them as children but might not recurse further for their spatial decomposition unless they are IfcSpatialElement themselves
+            const childExpressID = relatedElement.value || relatedElement;
+
+            // Get the full element data
             const childData = await getElementData(
               ifcApi,
               modelID,
-              relatedElement.value
+              childExpressID
             );
+
+            console.log(`[buildSpatialTree] Child element: ${childData.type} (ID: ${childExpressID})`);
+
             if (childData.type) {
-              // If it's a spatial element like IFCSPACE, recurse fully
+              // Always add the element to the tree, regardless of type
+              const childNode: SpatialStructureNode = {
+                expressID: childExpressID,
+                type: childData.type,
+                Name: childData.Name,
+                GlobalId: childData.GlobalId,
+                children: [],
+                ...childData,
+              };
+
+              // If it's a spatial element, recurse to get its children
               if (
                 childData.type === "IFCSPACE" ||
                 childData.type.includes("SPATIAL")
               ) {
-                const childNode = await buildSpatialTree(
+                const recursiveNode = await buildSpatialTree(
                   ifcApi,
                   modelID,
-                  relatedElement.value,
+                  childExpressID,
                   element.type
                 );
-                if (childNode) node.children.push(childNode);
-              } else {
-                // For other elements, create a simpler node without further spatial children search
-                node.children.push({
-                  expressID: relatedElement.value,
-                  type: childData.type,
-                  Name: childData.Name,
-                  GlobalId: childData.GlobalId,
-                  children: [],
-                  ...childData,
-                });
+                if (recursiveNode) {
+                  childNode.children = recursiveNode.children;
+                }
+              }
+
+              node.children.push(childNode);
+
+              // Debug log to see what we're adding
+              if (childData.type.includes("WALL") || childData.type.includes("DOOR") ||
+                childData.type.includes("WINDOW") || childData.type.includes("SLAB")) {
+                console.log(`[buildSpatialTree] ✓ Added building element to spatial tree: ${childData.type} (ID: ${childExpressID})`);
               }
             }
           }
         }
       }
     }
+
+    console.log(`[buildSpatialTree] Found ${foundRelationships} relationships for ${element.type} (ID: ${elementID})`);
+  }
+
+  // Also get all building elements directly if this is a building storey
+  // This handles cases where the new web-ifc version might structure things differently
+  if (element.type === "IFCBUILDINGSTOREY") {
+    console.log(`[buildSpatialTree] Fallback: Directly querying for building elements in building storey`);
+
+    // Get common building element types directly
+    const elementTypes = [
+      IFCWALL, IFCWALLSTANDARDCASE, IFCDOOR, IFCWINDOW, IFCSLAB,
+      IFCCOLUMN, IFCBEAM, IFCSTAIR, IFCROOF, IFCCOVERING, IFCRAILING,
+      IFCPLATE, IFCMEMBER, IFCCURTAINWALL
+    ];
+
+    const elementTypeNames = [
+      'IFCWALL', 'IFCWALLSTANDARDCASE', 'IFCDOOR', 'IFCWINDOW', 'IFCSLAB',
+      'IFCCOLUMN', 'IFCBEAM', 'IFCSTAIR', 'IFCROOF', 'IFCCOVERING', 'IFCRAILING',
+      'IFCPLATE', 'IFCMEMBER', 'IFCCURTAINWALL'
+    ];
+
+    let totalElementsAdded = 0;
+
+    for (let typeIdx = 0; typeIdx < elementTypes.length; typeIdx++) {
+      const elementType = elementTypes[typeIdx];
+      const typeName = elementTypeNames[typeIdx];
+
+      try {
+        const elementIDs = await ifcApi.GetLineIDsWithType(modelID, elementType);
+
+        if (elementIDs.size() > 0) {
+          console.log(`[buildSpatialTree] Found ${elementIDs.size()} elements of type ${typeName}`);
+        }
+
+        for (let i = 0; i < elementIDs.size(); i++) {
+          const elemID = elementIDs.get(i);
+
+          // Check if this element is already in our children
+          const alreadyAdded = node.children.some(child => child.expressID === elemID);
+
+          if (!alreadyAdded) {
+            const elemData = await getElementData(ifcApi, modelID, elemID);
+
+            if (elemData.type) {
+              node.children.push({
+                expressID: elemID,
+                type: elemData.type,
+                Name: elemData.Name,
+                GlobalId: elemData.GlobalId,
+                children: [],
+                ...elemData,
+              });
+
+              totalElementsAdded++;
+              console.log(`[buildSpatialTree] ✓ Fallback: Added ${elemData.type} (ID: ${elemID}) to building storey`);
+            }
+          }
+        }
+      } catch (e) {
+        console.log(`[buildSpatialTree] No ${typeName} elements found or error: ${e}`);
+        continue;
+      }
+    }
+
+    console.log(`[buildSpatialTree] Fallback: Added ${totalElementsAdded} building elements to building storey`);
   }
   return node;
 }
@@ -725,6 +841,7 @@ export function IFCModel({ modelData, outlineLayer }: IFCModelProps) {
           console.log(
             `IFCModel (${modelData.id}): Spatial structure extraction failed or empty.`
           );
+
         const allTypesResult = ifcApi.GetIfcEntityList(newIfcModelID);
         const allTypesArray: number[] = Array.isArray(allTypesResult)
           ? allTypesResult
@@ -889,36 +1006,36 @@ export function IFCModel({ modelData, outlineLayer }: IFCModelProps) {
                 targetMaterial = mesh.material; // Use existing material instance
               }
             }
-          if (!isCorrectMaterial) {
-            targetMaterial = new THREE.MeshStandardMaterial({
-              color: new THREE.Color(elementClassificationColor),
-              transparent: true,
-              opacity: 0.9,
-              side: THREE.DoubleSide,
-            });
-          }
-        } else {
-          let isCorrectMaterial = false;
-          if (mesh.material instanceof THREE.MeshStandardMaterial) {
-            if (
-              mesh.material.color.getHexString().toLowerCase() === "cccccc" &&
-              mesh.material.opacity === 0.1 &&
-              mesh.material.transparent
-            ) {
-              isCorrectMaterial = true;
-              targetMaterial = mesh.material;
+            if (!isCorrectMaterial) {
+              targetMaterial = new THREE.MeshStandardMaterial({
+                color: new THREE.Color(elementClassificationColor),
+                transparent: true,
+                opacity: 0.9,
+                side: THREE.DoubleSide,
+              });
+            }
+          } else {
+            let isCorrectMaterial = false;
+            if (mesh.material instanceof THREE.MeshStandardMaterial) {
+              if (
+                mesh.material.color.getHexString().toLowerCase() === "cccccc" &&
+                mesh.material.opacity === 0.1 &&
+                mesh.material.transparent
+              ) {
+                isCorrectMaterial = true;
+                targetMaterial = mesh.material;
+              }
+            }
+            if (!isCorrectMaterial) {
+              targetMaterial = new THREE.MeshStandardMaterial({
+                color: new THREE.Color("#cccccc"),
+                transparent: true,
+                opacity: 0.1,
+                side: THREE.DoubleSide,
+              });
             }
           }
-          if (!isCorrectMaterial) {
-            targetMaterial = new THREE.MeshStandardMaterial({
-              color: new THREE.Color("#cccccc"),
-              transparent: true,
-              opacity: 0.1,
-              side: THREE.DoubleSide,
-            });
-          }
         }
-      }
 
         // Step 2: Apply single highlighted classification effects
         if (highlightedClassificationCode) {

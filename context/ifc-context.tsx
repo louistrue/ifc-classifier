@@ -12,7 +12,9 @@ import React, {
 } from "react";
 import type { IfcAPI } from "web-ifc"; // Import IfcAPI type
 import { Properties } from "web-ifc"; // Ensure Properties is imported
-import { getAllElementProperties, ParsedElementProperties } from "@/services/ifc-properties";
+import { getAllElementProperties, ParsedElementProperties } from "@/services/ifc-properties-fixed";
+import { IFCElementExtractor } from "@/services/ifc-element-extractor";
+import { PropertyCache } from "@/services/property-cache";
 import { parseRulesFromExcel } from "@/services/rule-import-service";
 import { exportRulesToExcel } from "@/services/rule-export-service";
 import { exportClassificationsToExcel } from "@/services/classification-export-service";
@@ -142,6 +144,7 @@ interface IFCContextType {
   removeRule: (id: string) => void;
   updateRule: (rule: Rule) => void;
   previewRuleHighlight: (ruleId: string) => Promise<void>;
+  applyRulesManually: () => Promise<void>;
 
   exportClassificationsAsJson: () => string;
   importClassificationsFromJson: (json: string) => void;
@@ -179,6 +182,16 @@ interface IFCContextType {
     psetName: string,
     propertyName: string,
   ) => Promise<void>;
+
+  // Rule application progress (for UX feedback)
+  ruleProgress: {
+    active: boolean;
+    percent: number;
+    status: string;
+    logs: string[];
+  };
+
+
 }
 
 const IFCContext = createContext<IFCContextType | undefined>(undefined);
@@ -220,6 +233,16 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
   const [baseCoordinationMatrix, setBaseCoordinationMatrix] = useState<
     number[] | null
   >(null);
+
+  // Rule application progress state (for UI feedback)
+  const [ruleProgress, setRuleProgress] = useState({
+    active: false,
+    percent: 0,
+    status: "",
+    logs: [] as string[],
+  });
+
+
 
   // Initialize classifications with a default entry
   const [classifications, setClassifications] = useState<Record<string, any>>({
@@ -344,7 +367,7 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
             // Get all property set types to find property sets in the model
             const psetTypeCode = ifcApiInternal.GetTypeCodeFromName("IFCPROPERTYSET");
             const psetIds = await ifcApiInternal.GetLineIDsWithType(model.modelID, psetTypeCode);
-            
+
             // Process each property set
             for (let i = 0; i < psetIds.size(); i++) {
               const psetId = psetIds.get(i);
@@ -365,22 +388,22 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
                 console.debug(`Skipping property set ${psetId}:`, e);
               }
             }
-            
+
             // Also check property sets that are related through IFCRELDEFINESBYPROPERTIES
             try {
               const relDefinesByPropsTypeCode = ifcApiInternal.GetTypeCodeFromName("IFCRELDEFINESBYPROPERTIES");
               const relIds = await ifcApiInternal.GetLineIDsWithType(model.modelID, relDefinesByPropsTypeCode);
-              
+
               const processedPsets = new Set<number>(); // To avoid processing the same pset multiple times
-              
+
               for (let i = 0; i < relIds.size(); i++) {
                 const relId = relIds.get(i);
                 try {
                   const rel = await ifcApiInternal.GetLine(model.modelID, relId, false);
-                  
+
                   if (rel.RelatingPropertyDefinition?.value && !processedPsets.has(rel.RelatingPropertyDefinition.value)) {
                     processedPsets.add(rel.RelatingPropertyDefinition.value);
-                    
+
                     try {
                       const pset = await ifcApiInternal.GetLine(model.modelID, rel.RelatingPropertyDefinition.value, true);
                       if (pset && pset.Name?.value && pset.HasProperties) {
@@ -412,17 +435,17 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
               "IFCRAILINGTYPE", "IFCSTAIRTYPE", "IFCRAMPTYPE", "IFCROOFTYPE",
               "IFCCURTAINWALLTYPE", "IFCBUILDINGTYPE", "IFCSPACETYPE"
             ];
-            
+
             for (const typeName of elementTypes) {
               try {
                 const typeCode = ifcApiInternal.GetTypeCodeFromName(typeName);
                 const typeIds = await ifcApiInternal.GetLineIDsWithType(model.modelID, typeCode);
-                
+
                 for (let i = 0; i < typeIds.size(); i++) {
                   const typeId = typeIds.get(i);
                   try {
                     const typeObj = await ifcApiInternal.GetLine(model.modelID, typeId, true);
-                    
+
                     // Add direct type properties
                     if (typeObj.Name?.value) allProps.add("Name");
                     if (typeObj.GlobalId?.value) allProps.add("GlobalId");
@@ -430,7 +453,7 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
                     if (typeObj.ObjectType?.value) allProps.add("ObjectType");
                     if (typeObj.Tag?.value) allProps.add("Tag");
                     if (typeObj.PredefinedType?.value) allProps.add("PredefinedType");
-                    
+
                     // Process property sets attached to types
                     if (typeObj.HasPropertySets && Array.isArray(typeObj.HasPropertySets)) {
                       for (const psetRef of typeObj.HasPropertySets) {
@@ -514,7 +537,7 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
         return false;
       }
 
-      let itemProps: any = null; // To store properties fetched for the element
+      let itemProps: ParsedElementProperties | null = null; // To store properties fetched for the element
 
       for (const condition of conditions) {
         let elementValue: any;
@@ -523,17 +546,17 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
         if (condition.property === "Ifc Class") {
           elementValue = elementNode.type;
         } else {
-          // Fetch all item properties once if not already fetched for this element
+          // Fetch all element properties once if not already fetched for this element
           if (itemProps === null && elementNode.expressID) {
             try {
-              itemProps = await api.properties.getItemProperties(
+              itemProps = await getAllElementProperties(
+                api,
                 modelID,
                 elementNode.expressID,
-                true,
               );
             } catch (e) {
               console.warn(
-                `Error fetching item properties for ${elementNode.expressID}:`,
+                `Error fetching element properties for ${elementNode.expressID}:`,
                 e,
               );
               return false; // If properties can't be fetched, condition can't be reliably checked
@@ -541,236 +564,94 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
           }
 
           if (!itemProps) {
-            // Should not happen if expressID is valid and getItemProperties was called
+            // Should not happen if expressID is valid and getAllElementProperties was called
             console.warn(
-              `No itemProps available for ${elementNode.expressID} to check ${condition.property}`,
+              `No properties available for ${elementNode.expressID} to check ${condition.property}`,
             );
             return false;
           }
 
           if (condition.property.includes(".")) {
-            // Handle PSet properties (e.g., "Pset_WallCommon.Reference")
+            // Handle PSet-like properties (e.g., "Pset_WallCommon.Reference", "Material.Density")
             const [psetName, propName] = condition.property.split(".");
             if (!psetName || !propName) {
               console.warn("Invalid Pset property format:", condition.property);
               return false;
             }
 
-            // Revised PSet lookup
-            let psetObject: any = undefined;
-            if (itemProps && itemProps[psetName]) {
-              psetObject = itemProps[psetName];
-            } else if (itemProps && Array.isArray(itemProps.PropertySets)) {
-              psetObject = itemProps.PropertySets.find(
-                (ps: any) => ps.Name?.value === psetName,
-              );
-            } else if (itemProps) {
-              for (const key in itemProps) {
+            const propertySets = itemProps.propertySets || {};
+
+            // 1) Direct match by exact PSet name
+            let candidate: any = propertySets[psetName]?.[propName];
+
+            // 2) If not found, try type-derived PSets (e.g., "Pset_WallCommon (from Type: …)")
+            if (candidate === undefined) {
+              for (const [groupName, groupProps] of Object.entries(propertySets)) {
                 if (
-                  Object.prototype.hasOwnProperty.call(itemProps, key) &&
-                  typeof itemProps[key] === "object" &&
-                  itemProps[key] !== null &&
-                  itemProps[key].Name?.value === psetName &&
-                  itemProps[key].HasProperties // Check if it looks like a PSet
+                  groupName === psetName ||
+                  groupName.startsWith(psetName + " (from Type:")
                 ) {
-                  psetObject = itemProps[key];
-                  break;
+                  const val = (groupProps as any)?.[propName];
+                  if (val !== undefined) {
+                    candidate = val;
+                    break;
+                  }
                 }
               }
             }
 
-            // 4. If PSet still not found, try fetching from Type Properties
-            if (!psetObject && elementNode.expressID) {
-              if (condition.property === "Pset_WallCommon.IsExternal") {
-                // Debug for this specific property
-                console.log(
-                  `[DEBUG RULE TRACE - Type Fetch] Element ID: ${elementNode.expressID}, PSet ${psetName} not in itemProps. Attempting type property fetch.`,
-                );
-              }
-              try {
-                // First try to get property sets directly for this element
-                const elementPsets = await api.properties.getPropertySets(
-                  modelID,
-                  elementNode.expressID,
-                  true, // recursive
-                  true  // include type properties
-                );
-                
-                if (elementPsets && elementPsets.length > 0) {
-                  for (const ps of elementPsets) {
-                    if (ps.Name?.value === psetName) {
-                      psetObject = ps;
-                      if (condition.property === "Pset_WallCommon.IsExternal") {
-                        console.log(
-                          `[DEBUG RULE TRACE - Direct PSets] Element ID: ${elementNode.expressID}, Found PSet ${psetName} via getPropertySets`
-                        );
-                      }
+            // 3) Support generic material groups (Material, LayerSet, MaterialList, etc.)
+            if (candidate === undefined) {
+              const lowerPset = psetName.toLowerCase();
+              const isMaterialGroup =
+                lowerPset === "material" ||
+                lowerPset === "layerset" ||
+                lowerPset === "materiallist" ||
+                lowerPset === "material properties" ||
+                lowerPset === "materialinfo";
+              if (isMaterialGroup) {
+                for (const [groupName, groupProps] of Object.entries(propertySets)) {
+                  const gLower = groupName.toLowerCase();
+                  if (
+                    gLower.startsWith("material") ||
+                    gLower.startsWith("layerset") ||
+                    gLower.startsWith("materiallist") ||
+                    gLower.startsWith("material properties") ||
+                    gLower.startsWith("materialinfo")
+                  ) {
+                    const val = (groupProps as any)?.[propName];
+                    if (val !== undefined) {
+                      candidate = val;
+                      console.log(`Found material property ${propName} in ${groupName}: ${val}`);
                       break;
                     }
                   }
                 }
-                
-                // If still not found, try type properties
-                if (!psetObject) {
-                  const typeObjects = await api.properties.getTypeProperties(
-                    modelID,
-                    elementNode.expressID,
-                    true,
-                  );
-                  for (const typeObj of typeObjects) {
-                    if (
-                      typeObj.HasPropertySets &&
-                      Array.isArray(typeObj.HasPropertySets)
-                    ) {
-                      const foundPsetInType = typeObj.HasPropertySets.find(
-                        (ps: any) => ps.Name?.value === psetName,
-                      );
-                      if (foundPsetInType) {
-                        psetObject = foundPsetInType;
-                        if (condition.property === "Pset_WallCommon.IsExternal") {
-                          console.log(
-                            `[DEBUG RULE TRACE - Type Fetch] Element ID: ${elementNode.expressID}, Found PSet ${psetName} in Type Object:`,
-                            psetObject
-                              ? JSON.parse(JSON.stringify(psetObject))
-                              : "undefined",
-                          );
-                        }
-                        break; // Found the PSet in a type object
-                      }
-                    }
-                  }
-                }
-                
-                // If STILL not found, try direct relationship query
-                if (!psetObject) {
-                  // Query for IFCRELDEFINESBYPROPERTIES relationships
-                  const relDefinesByPropsTypeCode = api.GetTypeCodeFromName("IFCRELDEFINESBYPROPERTIES");
-                  const relIds = await api.GetLineIDsWithType(modelID, relDefinesByPropsTypeCode);
-                  
-                  for (let i = 0; i < relIds.size(); i++) {
-                    const relId = relIds.get(i);
-                    try {
-                      const rel = await api.GetLine(modelID, relId, false);
-                      
-                      // Check if this relationship relates to our element
-                      if (rel.RelatedObjects && Array.isArray(rel.RelatedObjects)) {
-                        const isRelatedToElement = rel.RelatedObjects.some(
-                          (obj: any) => obj.value === elementNode.expressID
-                        );
-                        
-                        if (isRelatedToElement && rel.RelatingPropertyDefinition?.value) {
-                          // Get the property set
-                          const propDef = await api.GetLine(
-                            modelID, 
-                            rel.RelatingPropertyDefinition.value, 
-                            true
-                          );
-                          
-                          if (propDef && propDef.Name?.value === psetName) {
-                            psetObject = propDef;
-                            if (condition.property === "Pset_WallCommon.IsExternal") {
-                              console.log(
-                                `[DEBUG RULE TRACE - Direct Relationship] Element ID: ${elementNode.expressID}, Found PSet ${psetName} via relationship query`
-                              );
-                            }
-                            break;
-                          }
-                        }
-                      }
-                    } catch (e) {
-                      // Skip this relationship if there's an error
-                      continue;
-                    }
-                  }
-                }
-              } catch (e) {
-                console.warn(
-                  `[RULE ENGINE] Error fetching type properties for ${elementNode.expressID} while looking for PSet ${psetName}:`,
-                  e,
-                );
               }
             }
 
-            if (psetObject && psetObject.HasProperties) {
-              const targetProp = psetObject.HasProperties.find(
-                (p: any) => p.Name?.value === propName,
-              );
-              if (targetProp) {
-                elementValue =
-                  targetProp.NominalValue?.value !== undefined
-                    ? targetProp.NominalValue.value
-                    : targetProp.NominalValue;
+            if (candidate !== undefined) {
+              elementValue = candidate;
+              if (
+                typeof elementValue === "object" &&
+                elementValue !== null &&
+                ("value" in elementValue)
+              ) {
+                elementValue = (elementValue as any).value;
               }
-              // DEBUG LOGGING START
-              if (condition.property === "Pset_WallCommon.IsExternal") {
-                console.log(
-                  `[DEBUG RULE TRACE] Element ID: ${elementNode.expressID}, Property: ${condition.property}`,
-                );
-                console.log(
-                  `[DEBUG RULE TRACE] PSet Object (itemProps["${psetName}"]):`,
-                  psetObject
-                    ? JSON.parse(JSON.stringify(psetObject))
-                    : "undefined",
-                );
-                console.log(
-                  `[DEBUG RULE TRACE] Target Prop (${propName}):`,
-                  targetProp
-                    ? JSON.parse(JSON.stringify(targetProp))
-                    : "undefined",
-                );
-                console.log(
-                  `[DEBUG RULE TRACE] Raw elementValue:`,
-                  elementValue,
-                  `(type: ${typeof elementValue})`,
-                );
-              }
-              // DEBUG LOGGING END
-            } else {
-              // Fallback checks if PSet not directly under itemProps[psetName]
-              // ... (existing fallback logic) ...
-              // DEBUG LOGGING START for fallback path
-              if (condition.property === "Pset_WallCommon.IsExternal") {
-                console.log(
-                  `[DEBUG RULE TRACE - Fallback] Element ID: ${elementNode.expressID}, Property: ${condition.property}`,
-                );
-                console.log(
-                  `[DEBUG RULE TRACE - Fallback] itemProps keys:`,
-                  itemProps ? Object.keys(itemProps) : "itemProps undefined",
-                );
-                console.log(
-                  `[DEBUG RULE TRACE - Fallback] PSet Object for ${psetName} was not found directly or lacked HasProperties.`,
-                );
-                
-                // Log all available property sets for debugging
-                try {
-                  const allPsets = await api.properties.getPropertySets(
-                    modelID,
-                    elementNode.expressID,
-                    true,
-                    true
-                  );
-                  console.log(
-                    `[DEBUG RULE TRACE - Available PSets] Element ID: ${elementNode.expressID}, Available property sets:`,
-                    allPsets?.map((ps: any) => ps.Name?.value || 'Unnamed') || []
-                  );
-                } catch (e) {
-                  console.log(`[DEBUG RULE TRACE] Could not fetch property sets for debugging`);
-                }
-              }
-              // DEBUG LOGGING END for fallback path
             }
           } else {
             // Handle direct attributes (e.g., "Name", "GlobalId", "Description")
-            const directPropValue = itemProps[condition.property];
-            if (directPropValue !== undefined) {
-              if (directPropValue?.hasOwnProperty("value")) {
-                elementValue = directPropValue.value;
-              } else {
-                elementValue = directPropValue;
+            // First check the attributes from getAllElementProperties
+            const attributes = itemProps.attributes || itemProps.propertySets?.["Element Attributes"];
+            if (attributes && attributes[condition.property] !== undefined) {
+              elementValue = attributes[condition.property];
+              // Handle value objects
+              if (typeof elementValue === 'object' && elementValue !== null && 'value' in elementValue) {
+                elementValue = elementValue.value;
               }
             } else if (elementNode[condition.property]) {
-              // Fallback to spatial tree node properties if direct attribute not in itemProps
-              // (e.g. Name might be on spatial tree node itself)
+              // Fallback to spatial tree node properties
               const nodeProp = elementNode[condition.property];
               if (nodeProp?.hasOwnProperty("value")) {
                 elementValue = nodeProp.value;
@@ -782,12 +663,18 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
         }
 
         // Existing normalization and comparison logic
+        // Normalize values for comparison
+        // For IFC Class, both should already be uppercase, for others use lowercase
         const normElementValue =
-          typeof elementValue === "string"
-            ? elementValue.toLowerCase()
-            : elementValue;
+          condition.property === "Ifc Class"
+            ? (typeof elementValue === "string" ? elementValue.toUpperCase() : elementValue)
+            : (typeof elementValue === "string" ? elementValue.toLowerCase() : elementValue);
         const normRuleValue =
-          typeof ruleValue === "string" ? ruleValue.toLowerCase() : ruleValue;
+          condition.property === "Ifc Class"
+            ? (typeof ruleValue === "string" ? ruleValue.toUpperCase() : ruleValue)
+            : (typeof ruleValue === "string" ? ruleValue.toLowerCase() : ruleValue);
+
+
         let conditionMet = false;
 
         const convertToBoolean = (val: any): boolean | undefined => {
@@ -806,24 +693,7 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
         const valFromElement = convertToBoolean(normElementValue);
         const valFromRule = convertToBoolean(normRuleValue); // normRuleValue is effectively always string from UI
 
-        // DEBUG LOGGING START (after value processing, before switch)
-        if (condition.property === "Pset_WallCommon.IsExternal") {
-          console.log(
-            `[DEBUG RULE TRACE] normElementValue:`,
-            normElementValue,
-            `(type: ${typeof normElementValue})`,
-          );
-          console.log(
-            `[DEBUG RULE TRACE] valFromElement (boolean):`,
-            valFromElement,
-          );
-          console.log(
-            `[DEBUG RULE TRACE] normRuleValue (user input):`,
-            normRuleValue,
-          );
-          console.log(`[DEBUG RULE TRACE] valFromRule (boolean):`, valFromRule);
-        }
-        // DEBUG LOGGING END
+
 
         switch (condition.operator) {
           case "equals":
@@ -845,14 +715,7 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
               // Both undefined as booleans, e.g. "dog" === "cat"
               conditionMet = normElementValue === normRuleValue;
             }
-            // DEBUG LOGGING START (inside switch, after conditionMet is set)
-            if (condition.property === "Pset_WallCommon.IsExternal") {
-              console.log(
-                `[DEBUG RULE TRACE] Final conditionMet for ${condition.operator}:`,
-                conditionMet,
-              );
-            }
-            // DEBUG LOGGING END
+
             break;
           case "notEquals":
             if (valFromElement !== undefined && valFromRule !== undefined) {
@@ -873,28 +736,14 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
               // Both undefined as booleans, e.g. "dog" !== "cat"
               conditionMet = normElementValue !== normRuleValue;
             }
-            // DEBUG LOGGING START (inside switch, after conditionMet is set)
-            if (condition.property === "Pset_WallCommon.IsExternal") {
-              console.log(
-                `[DEBUG RULE TRACE] Final conditionMet for ${condition.operator}:`,
-                conditionMet,
-              );
-            }
-            // DEBUG LOGGING END
+
             break;
           case "contains":
             conditionMet =
               typeof normElementValue === "string" &&
               typeof normRuleValue === "string" &&
               normElementValue.includes(normRuleValue);
-            // DEBUG LOGGING START (inside switch, after conditionMet is set)
-            if (condition.property === "Pset_WallCommon.IsExternal") {
-              console.log(
-                `[DEBUG RULE TRACE] Final conditionMet for ${condition.operator}:`,
-                conditionMet,
-              );
-            }
-            // DEBUG LOGGING END
+
             break;
           case "greaterThan":
             {
@@ -932,6 +781,11 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
     },
     [],
   );
+
+  // Helper function to yield control back to the main thread
+  const yieldToMainThread = () => {
+    return new Promise(resolve => setTimeout(resolve, 0));
+  };
 
   const applyAllActiveRules = useCallback(async () => {
     if (!ifcApiInternal) {
@@ -978,6 +832,19 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
     }
 
     console.log("IFCContext: Applying all active rules...");
+    setRuleProgress({
+      active: true,
+      percent: 0,
+      status: "Initializing rule engine...",
+      logs: [
+        "Starting rule processing...",
+        "Loading rule engine...",
+        "Preparing element data..."
+      ]
+    });
+
+    // Yield to allow UI to update with initial progress
+    await yieldToMainThread();
 
     // If no models are fully ready (have modelID and spatialTree),
     // just ensure all classification elements are empty and then return.
@@ -1029,64 +896,276 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
         currentClassificationsForProcessing[rule.classificationCode],
     );
 
-    for (const model of loadedModels) {
-      if (model.modelID == null || !model.spatialTree) continue;
-      const allModelElements = getAllElementsFromSpatialTreeNodesRecursive(
-        model.spatialTree ? [model.spatialTree] : [],
-      );
+    // Minimal logging for performance
+    console.log(`IFCContext: Applying ${activeRules.length} rules to ${loadedModels.length} models`);
+    setRuleProgress((p) => ({
+      ...p,
+      status: `Processing ${activeRules.length} rule(s) on ${loadedModels.length} model(s)...`,
+      logs: [...p.logs, `Found ${activeRules.length} active rules to process`, `Processing ${loadedModels.length} model(s)...`]
+    }));
+
+    // Responsive batch rule processing function with progress updates
+    const processBatchRules = async (
+      activeRules: Rule[],
+      elementsByType: Map<string, Array<{ expressID: number; type: string; children: any[] }>>,
+      allModelElements: Array<{ expressID: number; type: string; children: any[] }>,
+      modelID: number,
+      ifcApiInternal: IfcAPI,
+      newElementsPerClassification: Record<string, SelectedElementInfo[]>
+    ) => {
+      // Group rules by their IFC Class conditions for batch processing
+      const rulesByType = new Map<string, Rule[]>();
+      const rulesWithoutTypeFilter: Rule[] = [];
+
       for (const rule of activeRules) {
         if (!newElementsPerClassification[rule.classificationCode]) {
-          // This should not happen if initialized above, but as a safeguard
           newElementsPerClassification[rule.classificationCode] = [];
         }
+
+        const ifcClassConditions = rule.conditions.filter(c => c.property === "Ifc Class");
+
+        if (ifcClassConditions.length === 0) {
+          rulesWithoutTypeFilter.push(rule);
+        } else {
+          for (const condition of ifcClassConditions) {
+            const targetType = String(condition.value).toUpperCase();
+            if (!rulesByType.has(targetType)) {
+              rulesByType.set(targetType, []);
+            }
+            rulesByType.get(targetType)!.push(rule);
+          }
+        }
+      }
+
+      // Process rules with type filters (FAST PATH)
+      let processedRuleTypes = 0;
+      const totalRuleTypes = rulesByType.size;
+
+      for (const [targetType, rules] of Array.from(rulesByType.entries())) {
+        const candidateElements = elementsByType.get(targetType) || [];
+
+        // Update progress for this rule type
+        setRuleProgress((p) => ({
+          ...p,
+          status: `Processing ${targetType.replace('IFC', 'Ifc')} elements (${candidateElements.length} found)...`,
+        }));
+
+        // Yield to allow UI update
+        await yieldToMainThread();
+
+        for (const rule of rules) {
+          let processedElements = 0;
+          for (const elementNode of candidateElements) {
+            try {
+              // Log processing activity for streaming console
+              if (processedElements % 25 === 0 && processedElements > 0) {
+                setRuleProgress((p) => {
+                  if (!p.active) return p;
+                  const newLogs = [...p.logs, `Processing ${targetType.replace('IFC', 'Ifc')} elements... (${processedElements}/${candidateElements.length})`];
+                  return {
+                    ...p,
+                    logs: newLogs.length > 100 ? newLogs.slice(-80) : newLogs,
+                  };
+                });
+              }
+
+              // For simple IFC Class only rules, skip expensive property fetching
+              const hasOnlyIfcClassConditions = rule.conditions.every((c: RuleCondition) => c.property === "Ifc Class");
+
+              let matches = false;
+              if (hasOnlyIfcClassConditions) {
+                // SUPER FAST: Direct type matching without property fetching
+                matches = rule.conditions.every((condition: RuleCondition) => {
+                  if (condition.property === "Ifc Class") {
+                    const elementType = elementNode.type.toUpperCase();
+                    const ruleType = String(condition.value).toUpperCase();
+
+                    if (condition.operator === "equals") {
+                      return elementType === ruleType;
+                    } else if (condition.operator === "contains") {
+                      return elementType.includes(ruleType);
+                    }
+                  }
+                  return false;
+                });
+              } else {
+                // SLOWER PATH: Need to fetch properties
+                matches = await matchesAllConditionsCallback(
+                  elementNode,
+                  rule.conditions,
+                  rule.matchType ?? "all",
+                  modelID,
+                  ifcApiInternal,
+                );
+              }
+
+              if (matches) {
+                const elementInfo: SelectedElementInfo = {
+                  modelID: modelID,
+                  expressID: elementNode.expressID,
+                };
+
+                // Quick duplicate check
+                const existing = newElementsPerClassification[rule.classificationCode];
+                if (!existing.some(el => el.expressID === elementInfo.expressID)) {
+                  existing.push(elementInfo);
+                }
+
+                // Stream log feed for UI console (more frequent updates)
+                setRuleProgress((p) => {
+                  if (!p.active) return p;
+                  // Log every 10th match to show streaming activity
+                  if (elementNode.expressID % 10 === 0) {
+                    const newLogs = [...p.logs, `✓ ${targetType.replace('IFC', 'Ifc')} → ${rule.classificationCode} (#${elementNode.expressID})`];
+                    return {
+                      ...p,
+                      logs: newLogs.length > 100 ? newLogs.slice(-80) : newLogs,
+                    };
+                  }
+                  return p;
+                });
+              }
+            } catch (error) {
+              // Silent error handling for performance
+            }
+
+            processedElements++;
+            // Yield every 50 elements to keep UI responsive
+            if (processedElements % 50 === 0) {
+              await yieldToMainThread();
+            }
+          }
+        }
+      }
+
+      // Process rules without type filters (slower path)
+      for (const rule of rulesWithoutTypeFilter) {
+        setRuleProgress((p) => ({
+          ...p,
+          status: `Processing rule "${rule.name}" on all elements...`,
+        }));
+
+        await yieldToMainThread();
+
+        let processedElements = 0;
         for (const elementNode of allModelElements) {
-          if (elementNode.expressID === undefined) continue;
           try {
             const matches = await matchesAllConditionsCallback(
               elementNode,
               rule.conditions,
               rule.matchType ?? "all",
-              model.modelID,
+              modelID,
               ifcApiInternal,
             );
+
             if (matches) {
               const elementInfo: SelectedElementInfo = {
-                modelID: model.modelID,
+                modelID: modelID,
                 expressID: elementNode.expressID,
               };
-              // Ensure no duplicates
-              if (
-                !newElementsPerClassification[rule.classificationCode].some(
-                  (el) =>
-                    el.modelID === elementInfo.modelID &&
-                    el.expressID === elementInfo.expressID,
-                )
-              ) {
-                newElementsPerClassification[rule.classificationCode].push(
-                  elementInfo,
-                );
+
+              const existing = newElementsPerClassification[rule.classificationCode];
+              if (!existing.some(el => el.expressID === elementInfo.expressID)) {
+                existing.push(elementInfo);
               }
             }
           } catch (error) {
-            console.error(
-              "IFCContext: Error processing element " +
-              elementNode.expressID +
-              " for rule " +
-              rule.name +
-              ":",
-              error,
-            );
+            // Silent error handling for performance
+          }
+
+          processedElements++;
+          // Yield every 25 elements for slower path to keep UI responsive
+          if (processedElements % 25 === 0) {
+            await yieldToMainThread();
           }
         }
       }
+    };
+
+    let processedModels = 0;
+    const totalModels = loadedModels.filter((m) => m.modelID != null).length || 1;
+
+    for (const model of loadedModels) {
+      if (model.modelID == null) continue;
+
+      // Update progress for model processing
+      setRuleProgress((p) => ({
+        ...p,
+        status: `Loading model ${processedModels + 1}/${totalModels}...`,
+        percent: Math.round((processedModels / totalModels) * 90), // Reserve 10% for final processing
+        logs: [...p.logs, `Loading model ${processedModels + 1}/${totalModels}...`]
+      }));
+
+      await yieldToMainThread();
+
+      // OPTIMIZED: Get ALL elements with minimal logging
+      const allIfcElements = IFCElementExtractor.getAllElements(ifcApiInternal, model.modelID);
+
+      // Convert to the expected format (optimized)
+      const allModelElements = allIfcElements.map(element => ({
+        expressID: element.expressID,
+        type: element.type,
+        children: [] // Not needed for rule matching
+      }));
+
+      // Log element count
+      setRuleProgress((p) => ({
+        ...p,
+        logs: [...p.logs, `Found ${allModelElements.length} elements in model ${processedModels + 1}`]
+      }));
+
+      // Group elements by type for faster rule matching
+      const elementsByType = new Map<string, typeof allModelElements>();
+      for (const element of allModelElements) {
+        const typeUpper = element.type.toUpperCase();
+        if (!elementsByType.has(typeUpper)) {
+          elementsByType.set(typeUpper, []);
+        }
+        elementsByType.get(typeUpper)!.push(element);
+      }
+
+      // ULTRA-FAST: Batch process rules with smart filtering
+      await processBatchRules(
+        activeRules,
+        elementsByType,
+        allModelElements,
+        model.modelID,
+        ifcApiInternal,
+        newElementsPerClassification
+      );
+
+      processedModels += 1;
+      const percent = Math.round((processedModels / totalModels) * 90); // Reserve 10% for final processing
+      setRuleProgress((p) => ({
+        active: true,
+        percent,
+        status: `Completed model ${processedModels}/${totalModels}...`,
+        logs: p.logs.length > 150 ? p.logs.slice(-120) : p.logs,
+      }));
+
+      // Yield after each model
+      await yieldToMainThread();
     }
+
+    // Final progress update
+    setRuleProgress((p) => ({
+      ...p,
+      percent: 95,
+      status: "Finalizing results...",
+    }));
+
+    await yieldToMainThread();
 
     // Update classifications state with new elements, only if changed
     setClassifications((prevClassifications) => {
       const updatedClassifications = { ...prevClassifications };
       let changed = false;
+      let totalMatches = 0;
+
       for (const code of Object.keys(updatedClassifications)) {
         const newElements = newElementsPerClassification[code] || [];
+        totalMatches += newElements.length;
+
         if (
           JSON.stringify(updatedClassifications[code].elements || []) !==
           JSON.stringify(newElements)
@@ -1098,14 +1177,27 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
           changed = true;
         }
       }
+
       if (changed) {
         console.log(
           "IFCContext: Finished applying all active rules. Classifications updated.",
         );
+        setRuleProgress({
+          active: false,
+          percent: 100,
+          status: `Complete! Found ${totalMatches} matches`,
+          logs: []
+        });
       } else {
         console.log(
           "IFCContext: Finished applying all active rules. No changes to classifications elements.",
         );
+        setRuleProgress({
+          active: false,
+          percent: 100,
+          status: "Complete! No new matches found",
+          logs: []
+        });
       }
       return updatedClassifications;
     });
@@ -1117,10 +1209,6 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
     matchesAllConditionsCallback,
   ]);
 
-  const classificationCodesKey = useMemo(
-    () => Object.keys(classifications).sort().join(","),
-    [classifications],
-  );
   const rulesKey = useMemo(
     () =>
       JSON.stringify(
@@ -1140,12 +1228,23 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
     [loadedModels],
   );
 
+  // Only trigger rule application when rules or models change, not when classifications change
   useEffect(() => {
-    console.log(
-      "Main effect for applyAllActiveRules triggered by changes in models, rules, or classification codes.",
-    );
-    applyAllActiveRules();
-  }, [modelsReadyKey, rulesKey, classificationCodesKey, applyAllActiveRules]);
+    // Only apply rules automatically if there are active rules
+    const hasActiveRules = rules.some(rule => rule.active);
+    if (hasActiveRules) {
+      console.log(
+        "Main effect for applyAllActiveRules triggered by changes in models or rules.",
+      );
+      applyAllActiveRules();
+    } else {
+      console.log(
+        "No active rules found, skipping automatic rule application.",
+      );
+      // Clear any existing rule progress if no active rules
+      setRuleProgress({ active: false, percent: 0, status: "", logs: [] });
+    }
+  }, [modelsReadyKey, rulesKey, applyAllActiveRules, rules]);
 
   const previewRuleHighlight = useCallback(
     async (ruleId: string) => {
@@ -1553,7 +1652,7 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
         return modelMap.get(expressID)!;
       }
       try {
-        const props = await getAllElementProperties(ifcApiInternal, modelID, expressID);
+        const props = await PropertyCache.getProperties(ifcApiInternal, modelID, expressID);
         if (!modelMap) {
           modelMap = new Map();
           elementPropsCache.current.set(modelID, modelMap);
@@ -1955,6 +2054,13 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
     setRules([]);
   }, [setRules]);
 
+  const applyRulesManually = useCallback(async () => {
+    console.log("IFCContext: Manual rule application triggered");
+    await applyAllActiveRules();
+  }, [applyAllActiveRules]);
+
+
+
   const toggleUserHideElement = useCallback(
     (elementToToggle: SelectedElementInfo) => {
       console.log(
@@ -2174,6 +2280,7 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
         importRulesFromJson,
         importRulesFromExcel,
         removeAllRules,
+        applyRulesManually,
         toggleUserHideElement,
         hideElements,
         showElements,
@@ -2183,6 +2290,7 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
         mapClassificationsFromModel,
         naturalIfcClassNames,
         getNaturalIfcClassName,
+        ruleProgress,
       }}
     >
       {children}
