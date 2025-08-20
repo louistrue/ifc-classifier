@@ -47,6 +47,29 @@ ifcApi.CloseModel(modelID);
 
 ```
 
+## ⚠️ Important: Lifecycle Management
+
+### CloseModel() vs Dispose()
+
+- **CloseModel(modelID)**: Closes a specific model and frees its memory. The IfcAPI instance remains usable for other operations.
+- **Dispose()**: **Completely shuts down the WASM module** and closes all models. The IfcAPI instance becomes unusable until you call Init() again.
+
+```JavaScript
+// ✅ Correct: Close individual models
+ifcApi.CloseModel(modelID);
+
+// ⚠️ Warning: Dispose() shuts down the entire WASM module
+ifcApi.Dispose();
+// After Dispose(), you MUST call Init() again before using the API
+await ifcApi.Init();
+
+// 🔄 Alternative: Create a new instance instead of reinitializing
+const newIfcApi = new WebIFC.IfcAPI();
+await newIfcApi.Init();
+```
+
+**Migration Tip**: If you're currently using `Dispose()` to clean up individual models, switch to `CloseModel(modelID)` for better performance and avoid unnecessary reinitialization.
+
 See [examples](https://github.com/ThatOpen/engine_web-ifc/tree/main/examples/usage) for more details on how to use web-ifc.
 
 ## Current Build

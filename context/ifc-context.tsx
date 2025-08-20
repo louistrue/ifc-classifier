@@ -12,13 +12,22 @@ import React, {
 } from "react";
 import type { IfcAPI } from "web-ifc"; // Import IfcAPI type
 import { Properties } from "web-ifc"; // Ensure Properties is imported
-import { getAllElementProperties, ParsedElementProperties } from "@/services/ifc-properties-fixed";
+import { getAllElementProperties, ParsedElementProperties } from "@/services/ifc-properties";
 import { IFCElementExtractor } from "@/services/ifc-element-extractor";
 import { PropertyCache } from "@/services/property-cache";
 import { parseRulesFromExcel } from "@/services/rule-import-service";
 import { exportRulesToExcel } from "@/services/rule-export-service";
 import { exportClassificationsToExcel } from "@/services/classification-export-service";
 import { parseClassificationsFromExcel } from "@/services/classification-import-service";
+
+// Define interfaces for progress tracking
+export interface RuleProgress {
+  active: boolean;
+  percent: number;
+  status: string;
+  logs: string[];
+  matchCount: number;
+}
 
 // Define types for Rules
 export interface RuleCondition {
@@ -184,12 +193,7 @@ interface IFCContextType {
   ) => Promise<void>;
 
   // Rule application progress (for UX feedback)
-  ruleProgress: {
-    active: boolean;
-    percent: number;
-    status: string;
-    logs: string[];
-  };
+  ruleProgress: RuleProgress;
 
 
 }
@@ -235,11 +239,12 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
   >(null);
 
   // Rule application progress state (for UI feedback)
-  const [ruleProgress, setRuleProgress] = useState({
+  const [ruleProgress, setRuleProgress] = useState<RuleProgress>({
     active: false,
     percent: 0,
     status: "",
-    logs: [] as string[],
+    logs: [],
+    matchCount: 0,
   });
 
 
@@ -840,7 +845,8 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
         "Starting rule processing...",
         "Loading rule engine...",
         "Preparing element data..."
-      ]
+      ],
+      matchCount: 0
     });
 
     // Yield to allow UI to update with initial progress
@@ -1141,6 +1147,7 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
         percent,
         status: `Completed model ${processedModels}/${totalModels}...`,
         logs: p.logs.length > 150 ? p.logs.slice(-120) : p.logs,
+        matchCount: p.matchCount,
       }));
 
       // Yield after each model
@@ -1186,7 +1193,8 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
           active: false,
           percent: 100,
           status: `Complete! Found ${totalMatches} matches`,
-          logs: []
+          logs: [],
+          matchCount: totalMatches
         });
       } else {
         console.log(
@@ -1196,7 +1204,8 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
           active: false,
           percent: 100,
           status: "Complete! No new matches found",
-          logs: []
+          logs: [],
+          matchCount: 0
         });
       }
       return updatedClassifications;
@@ -1242,7 +1251,7 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
         "No active rules found, skipping automatic rule application.",
       );
       // Clear any existing rule progress if no active rules
-      setRuleProgress({ active: false, percent: 0, status: "", logs: [] });
+      setRuleProgress({ active: false, percent: 0, status: "", logs: [], matchCount: 0 });
     }
   }, [modelsReadyKey, rulesKey, applyAllActiveRules, rules]);
 
@@ -1380,6 +1389,8 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
       name: string,
       fileId?: string,
     ): Promise<number | null> => {
+      // Clear all element caches when replacing models
+      IFCElementExtractor.clearCache();
       setLoadedModels([commonLoadLogic(url, name, fileId)]);
       return null;
     },
@@ -1393,6 +1404,8 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
           if (m.id === id && m.modelID !== null && ifcApiInternal) {
             try {
               ifcApiInternal.CloseModel(m.modelID);
+              // Clear element cache for this model to prevent stale data
+              IFCElementExtractor.clearCache(m.modelID);
             } catch (e) {
               console.error("Error closing model:", e);
             }

@@ -55,6 +55,7 @@ import {
   LoadedModelData,
   SelectedElementInfo,
   SpatialStructureNode,
+  type RuleProgress,
 } from "@/context/ifc-context";
 import { IFCContextProvider } from "@/context/ifc-context";
 import { IfcAPI, Properties } from "web-ifc";
@@ -938,6 +939,7 @@ function ViewerContent() {
     ruleProgress,
     showAllClassificationColors,
     toggleShowAllClassificationColors,
+    isolateUnclassified,
   } = useIFCContext();
 
   const [completionMessage, setCompletionMessage] = useState<{
@@ -945,6 +947,9 @@ function ViewerContent() {
     message: string;
     matches: number;
   }>({ show: false, message: "", matches: 0 });
+
+  // Track the last processed rule status to prevent duplicate completion messages
+  const lastProcessedStatus = useRef<string>("");
 
   const consoleRef = useRef<HTMLDivElement>(null);
   const [consolePosition, setConsolePosition] = useState({ x: 20, y: 20 }); // Position from bottom-right
@@ -954,20 +959,39 @@ function ViewerContent() {
 
   // Handle rule completion and show completion message
   useEffect(() => {
+    let showTimeoutId: NodeJS.Timeout | null = null;
+    let hideTimeoutId: NodeJS.Timeout | null = null;
+
     if (!ruleProgress.active && ruleProgress.percent === 100 && ruleProgress.status) {
-      // Extract match count from status message
-      const matchCount = ruleProgress.status.match(/Found (\d+) matches/) ||
-        ruleProgress.status.match(/(\d+) matches/);
-      const matches = matchCount ? parseInt(matchCount[1]) : 0;
+      // Check if this is a new completion (prevent duplicate messages)
+      if (lastProcessedStatus.current === ruleProgress.status) {
+        return; // Already processed this completion
+      }
+
+      lastProcessedStatus.current = ruleProgress.status;
+
+      // Extract match count - prefer numeric field, fallback to regex with safe default
+      let matches = 0;
+      if (typeof ruleProgress.matchCount === 'number') {
+        matches = ruleProgress.matchCount;
+      } else {
+        // Fallback to regex extraction with safe default
+        const matchCount = ruleProgress.status.match(/Found (\d+) matches/) ||
+          ruleProgress.status.match(/(\d+) matches/);
+        matches = matchCount ? parseInt(matchCount[1], 10) : 0;
+      }
 
       // Auto-switch to Colors mode if matches were found and not already in Colors mode
+      // Use a timeout to avoid immediate re-triggering of this effect
       if (matches > 0 && !showAllClassificationColors) {
-        clearSelection(); // Clear any existing selections
-        toggleShowAllClassificationColors(); // Enable Colors mode
+        setTimeout(() => {
+          clearSelection(); // Clear any existing selections
+          toggleShowAllClassificationColors(); // Enable Colors mode
+        }, 100); // Small delay to prevent effect re-trigger
       }
 
       // Show completion message after a brief delay
-      setTimeout(() => {
+      showTimeoutId = setTimeout(() => {
         setCompletionMessage({
           show: true,
           message: matches > 0 ?
@@ -977,12 +1001,44 @@ function ViewerContent() {
         });
 
         // Auto-hide completion message after 5 seconds (longer to read the Colors mode message)
-        setTimeout(() => {
+        hideTimeoutId = setTimeout(() => {
           setCompletionMessage(prev => ({ ...prev, show: false }));
         }, 5000);
       }, 500);
     }
-  }, [ruleProgress.active, ruleProgress.percent, ruleProgress.status, showAllClassificationColors, toggleShowAllClassificationColors, clearSelection]);
+
+    // Cleanup function to clear timeouts
+    return () => {
+      if (showTimeoutId) {
+        clearTimeout(showTimeoutId);
+      }
+      if (hideTimeoutId) {
+        clearTimeout(hideTimeoutId);
+      }
+    };
+  }, [ruleProgress.active, ruleProgress.percent, ruleProgress.status, ruleProgress.matchCount]);
+
+  // Reset completion tracking when rules start processing
+  useEffect(() => {
+    if (ruleProgress.active) {
+      lastProcessedStatus.current = ""; // Reset when new rule processing starts
+      setCompletionMessage(prev => ({ ...prev, show: false })); // Hide any existing completion message
+    }
+  }, [ruleProgress.active]);
+
+  // Dismiss completion message when user manually changes coloring modes
+  // (but not when the auto-switch happens during rule completion)
+  useEffect(() => {
+    // Only dismiss if we have a completion message showing and rules are not currently processing
+    if (completionMessage.show && !ruleProgress.active && lastProcessedStatus.current) {
+      // Add a small delay to avoid dismissing during the auto-switch
+      const dismissTimeout = setTimeout(() => {
+        setCompletionMessage(prev => ({ ...prev, show: false }));
+      }, 1000); // 1 second delay to allow auto-switch to complete
+
+      return () => clearTimeout(dismissTimeout);
+    }
+  }, [showAllClassificationColors, isolateUnclassified, completionMessage.show, ruleProgress.active]);
 
   // Auto-scroll console to bottom when new logs are added
   useEffect(() => {
@@ -1014,8 +1070,8 @@ function ViewerContent() {
     if (!isDragging) return;
 
     setConsolePosition(prev => ({
-      x: Math.max(10, prev.x - dragOffset.x), // Prevent going too far left
-      y: Math.max(10, prev.y - dragOffset.y)  // Prevent going too far up
+      x: Math.max(10, prev.x + dragOffset.x), // distance from right edge
+      y: Math.max(10, prev.y + dragOffset.y)  // distance from bottom edge
     }));
     setIsDragging(false);
     setDragOffset({ x: 0, y: 0 });
@@ -2109,8 +2165,8 @@ function ViewerContent() {
               <div
                 className="pointer-events-none absolute z-50 w-[min(400px,45vw)]"
                 style={{
-                  bottom: `${consolePosition.y + dragOffset.y}px`,
-                  right: `${consolePosition.x + dragOffset.x}px`,
+                  bottom: `${Math.max(10, consolePosition.y - dragOffset.y)}px`,
+                  right: `${Math.max(10, consolePosition.x - dragOffset.x)}px`,
                   transform: isDragging ? 'scale(1.02)' : 'scale(1)',
                   transition: isDragging ? 'none' : 'transform 0.2s ease-out'
                 }}

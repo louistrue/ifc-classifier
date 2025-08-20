@@ -27,11 +27,26 @@ Browser-side parsing is handled by the `web-ifc` engine. The viewer initializes 
 
 ```ts
 const ifcAPIInstance = new IfcAPI();
-ifcAPIInstance.SetWasmPath("https://cdn.jsdelivr.net/npm/web-ifc@0.0.68/", true);
+ifcAPIInstance.SetWasmPath("https://cdn.jsdelivr.net/npm/web-ifc@0.0.70/", true);
 await ifcAPIInstance.Init();
 ```
 
 Once initialised, `web-ifc` provides low-level functions such as `GetLine` and `GetLineIDsWithType` to read element data from the loaded model. Geometry is rendered with Three.js via React Three Fiber.
+
+### Memory Management and Lifecycle
+
+The IFC Classifier uses proper memory management patterns to avoid leaks and ensure optimal performance:
+
+```ts
+// ✅ Proper model cleanup - closes individual models
+ifcApi.CloseModel(modelID);
+
+// ⚠️ Complete shutdown - only use when fully done with the API
+ifcApi.Dispose(); // Shuts down entire WASM module
+await ifcApi.Init(); // Required before further use
+```
+
+**Important**: `Dispose()` completely shuts down the WASM module and renders the IfcAPI instance unusable until `Init()` is called again. Use `CloseModel(modelID)` for closing individual models without affecting the API instance. This pattern is used throughout the application to ensure efficient memory usage when switching between models or cleaning up resources.
 
 ## IFC Export with IfcOpenShell
 
