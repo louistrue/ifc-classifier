@@ -32,6 +32,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
+import { SimpleProgress } from "@/components/ui/simple-progress";
 import {
   Layers,
   Filter,
@@ -959,8 +960,8 @@ function ViewerContent() {
 
   // Handle rule completion and show completion message
   useEffect(() => {
-    let showTimeoutId: NodeJS.Timeout | null = null;
-    let hideTimeoutId: NodeJS.Timeout | null = null;
+    let showTimeoutId: ReturnType<typeof setTimeout> | null = null;
+    let hideTimeoutId: ReturnType<typeof setTimeout> | null = null;
 
     if (!ruleProgress.active && ruleProgress.percent === 100 && ruleProgress.status) {
       // Check if this is a new completion (prevent duplicate messages)
@@ -1070,8 +1071,8 @@ function ViewerContent() {
     if (!isDragging) return;
 
     setConsolePosition(prev => ({
-      x: Math.max(10, prev.x + dragOffset.x), // distance from right edge
-      y: Math.max(10, prev.y + dragOffset.y)  // distance from bottom edge
+      x: Math.max(10, prev.x - dragOffset.x), // distance from right edge
+      y: Math.max(10, prev.y - dragOffset.y)  // distance from bottom edge
     }));
     setIsDragging(false);
     setDragOffset({ x: 0, y: 0 });
@@ -2172,55 +2173,12 @@ function ViewerContent() {
                 }}
               >
                 <div className="pointer-events-auto rounded-xl border border-border bg-background/95 backdrop-blur-md shadow-xl overflow-hidden animate-in slide-in-from-bottom-2 duration-300">
-                  <div
-                    className={`flex items-center justify-between px-3 py-2 bg-muted/60 cursor-move select-none ${isDragging ? 'bg-muted/80' : ''}`}
-                    onMouseDown={handleMouseDown}
-                  >
-                    <div className="flex items-center gap-2 text-xs font-medium">
-                      <div className="flex items-center gap-1">
-                        <span className="inline-flex h-2.5 w-2.5 rounded-full bg-primary animate-pulse"></span>
-                        <svg className="w-3 h-3 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
-                        </svg>
-                      </div>
-                      <span>Processing Rules</span>
-                    </div>
-                    <div className="text-xs tabular-nums text-muted-foreground">{ruleProgress.percent}%</div>
-                  </div>
-
-                  {/* Console Output */}
-                  <div className="px-3 py-2">
-                    <div
-                      ref={consoleRef}
-                      className="font-mono text-[10px] leading-4 bg-black/90 text-green-400 border border-border rounded-md p-3 h-40 overflow-auto"
-                    >
-                      {ruleProgress.logs.length === 0 ? (
-                        <div className="text-green-400/60">Initializing...</div>
-                      ) : (
-                        ruleProgress.logs.map((line, idx) => (
-                          <div key={idx} className="animate-in fade-in duration-100" style={{ animationDelay: `${idx * 20}ms` }}>
-                            {line}
-                          </div>
-                        ))
-                      )}
-                      {ruleProgress.active && (
-                        <div className="inline-block w-2 h-3 bg-green-400 animate-pulse ml-1">|</div>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Progress Bar */}
-                  <div className="px-3 pb-3">
-                    <div className="w-full bg-muted rounded-full h-1.5 overflow-hidden">
-                      <div
-                        className="bg-primary h-full transition-all duration-300 ease-out"
-                        style={{ width: `${ruleProgress.percent}%` }}
-                      />
-                    </div>
-                    <div className="text-xs text-muted-foreground mt-1 text-center">
-                      {ruleProgress.status}
-                    </div>
-                  </div>
+                  <SimpleProgress
+                    percent={ruleProgress.percent}
+                    status={ruleProgress.status}
+                    matchCount={ruleProgress.matchCount}
+                    active={ruleProgress.active}
+                  />
                 </div>
               </div>
             )}

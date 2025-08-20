@@ -12,12 +12,31 @@ export interface IFCElement {
 export class IFCElementExtractor {
     // Cache for extracted elements to avoid re-processing
     // Store a small snapshot (max express ID) to detect model edits and avoid stale data.
-    private static elementCache = new Map<number, { elements: IFCElement[]; snapshot?: number }>();
+    private static elementCache = new Map<string, { elements: IFCElement[]; snapshot?: number }>();
+    private static apiIds = new WeakMap<IfcAPI, number>();
+    private static nextApiId = 1;
+
+    /**
+     * Get stable ID for IfcAPI instance
+     */
+    private static getApiId(ifcApi: IfcAPI): number {
+        if (!this.apiIds.has(ifcApi)) {
+            this.apiIds.set(ifcApi, this.nextApiId++);
+        }
+        return this.apiIds.get(ifcApi)!;
+    }
+
+    /**
+     * Get cache key that includes API identity
+     */
+    private static getCacheKey(ifcApi: IfcAPI, modelID: number): string {
+        return `${this.getApiId(ifcApi)}-${modelID}`;
+    }
 
     /**
      * Get all elements from the model - OPTIMIZED FOR SPEED
      */
-    static getAllElements(ifcApi: IfcAPI, modelID: number): IFCElement[] {
+    static getAllElements(ifcApi: IfcAPI, modelID: number, onProgress?: (percent: number, message: string) => void): IFCElement[] {
         // Check cache first (compare snapshot to detect edits)
         let currentSnapshot: number | undefined;
         try {
@@ -28,15 +47,16 @@ export class IFCElementExtractor {
             // If we can't get the snapshot, we'll invalidate the cache to be safe
             currentSnapshot = undefined;
         }
-        if (this.elementCache.has(modelID)) {
-            const cached = this.elementCache.get(modelID)!;
+        const cacheKey = this.getCacheKey(ifcApi, modelID);
+        if (this.elementCache.has(cacheKey)) {
+            const cached = this.elementCache.get(cacheKey)!;
             if (currentSnapshot !== undefined && cached.snapshot === currentSnapshot) {
                 console.log(`[IFCElementExtractor] Cache hit for model ${modelID} (${cached.elements.length} elements)`);
                 return cached.elements;
             }
             // stale or no snapshot — invalidate and continue to recompute
             console.log(`[IFCElementExtractor] Cache invalidated for model ${modelID} (snapshot mismatch: ${cached.snapshot} vs ${currentSnapshot})`);
-            this.elementCache.delete(modelID);
+            this.elementCache.delete(cacheKey);
         }
 
         const allElements: IFCElement[] = [];
@@ -48,6 +68,11 @@ export class IFCElementExtractor {
             const totalLines = allLines.size();
 
             console.log(`[IFCElementExtractor] Processing ${totalLines} lines from model ${modelID}`);
+
+            // Report initial progress
+            if (onProgress) {
+                onProgress(0, `Loading ${totalLines} elements...`);
+            }
 
             // Add memory safeguard - warn about large models
             if (totalLines > 100000) {
@@ -85,9 +110,16 @@ export class IFCElementExtractor {
                     }
                 }
 
-                // Progress logging for very large models
-                if (totalLines > 50000 && processedCount % 10000 === 0) {
-                    console.log(`[IFCElementExtractor] Progress: ${processedCount}/${totalLines} (${Math.round(processedCount / totalLines * 100)}%)`);
+                // Progress reporting for large models
+                if (processedCount % 5000 === 0 || processedCount === totalLines) {
+                    const percent = Math.round((processedCount / totalLines) * 100);
+                    if (onProgress) {
+                        onProgress(percent * 0.8, `${processedCount}/${totalLines}`); // Scale to 80% since rule processing is 20%
+                    }
+                    // Only log to console for very large models
+                    if (totalLines > 50000 && processedCount % 10000 === 0) {
+                        console.log(`[IFCElementExtractor] Progress: ${processedCount}/${totalLines} (${percent}%)`);
+                    }
                 }
             }
 
@@ -166,7 +198,7 @@ export class IFCElementExtractor {
             finalSnapshot = undefined;
         }
 
-        this.elementCache.set(modelID, {
+        this.elementCache.set(cacheKey, {
             elements: allElements,
             snapshot: finalSnapshot
         });
@@ -278,12 +310,39 @@ export class IFCElementExtractor {
     }
 
     /**
-     * Clear cache for a specific model or all models
+     * Clear cache for a specific model or all models, optionally scoped to specific IfcAPI instance
      * @param modelID Optional model ID to clear. If not provided, clears all cached models.
+     * @param ifcApi Optional IfcAPI instance to scope the clearing to.
      */
-    static clearCache(modelID?: number) {
-        if (modelID !== undefined) {
-            this.elementCache.delete(modelID);
+    static clearCache(modelID?: number, ifcApi?: IfcAPI) {
+        if (modelID !== undefined || ifcApi !== undefined) {
+            const keysToDelete: string[] = [];
+            const apiId = ifcApi ? this.getApiId(ifcApi) : null;
+
+            for (const key of Array.from(this.elementCache.keys())) {
+                let shouldDelete = false;
+
+                if (apiId !== null) {
+                    // If ifcApi is provided, only delete keys with matching API prefix
+                    const expectedPrefix = modelID !== undefined ? `${apiId}-${modelID}` : `${apiId}-`;
+                    shouldDelete = key.startsWith(expectedPrefix);
+                } else if (modelID !== undefined) {
+                    // If only modelID is provided, delete keys that match the model
+                    // This includes both prefixed and non-prefixed keys (for backward compatibility)
+                    shouldDelete = key.includes(`-${modelID}`) || key === modelID.toString();
+                } else {
+                    // If only ifcApi is provided, delete all keys with that API prefix
+                    shouldDelete = key.startsWith(`${apiId}-`);
+                }
+
+                if (shouldDelete) {
+                    keysToDelete.push(key);
+                }
+            }
+
+            for (const key of keysToDelete) {
+                this.elementCache.delete(key);
+            }
         } else {
             this.elementCache.clear();
         }
@@ -294,17 +353,17 @@ export class IFCElementExtractor {
      * @returns Object with cache size and model IDs
      */
     static getCacheStats() {
-        const modelIDs = Array.from(this.elementCache.keys());
+        const cacheKeys = Array.from(this.elementCache.keys());
         const totalElements = Array.from(this.elementCache.values())
             .reduce((sum, cached) => sum + cached.elements.length, 0);
 
         return {
             cachedModels: this.elementCache.size,
-            modelIDs,
+            cacheKeys,
             totalCachedElements: totalElements,
             estimatedMemoryMB: this.estimateCacheMemoryUsage(),
-            cacheEntries: Array.from(this.elementCache.entries()).map(([modelID, cached]) => ({
-                modelID,
+            cacheEntries: Array.from(this.elementCache.entries()).map(([cacheKey, cached]) => ({
+                cacheKey,
                 elementCount: cached.elements.length,
                 hasSnapshot: cached.snapshot !== undefined,
                 snapshot: cached.snapshot,

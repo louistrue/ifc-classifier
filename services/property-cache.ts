@@ -7,12 +7,25 @@ import { getAllElementProperties, ParsedElementProperties } from "./ifc-properti
 export class PropertyCache {
     private static cache = new Map<string, ParsedElementProperties>();
     private static pendingRequests = new Map<string, Promise<ParsedElementProperties>>();
+    private static apiIds = new WeakMap<IfcAPI, number>();
+    private static nextApiId = 1;
+
+    /**
+     * Get stable ID for IfcAPI instance
+     */
+    private static getApiId(ifcApi: IfcAPI): number {
+        if (!this.apiIds.has(ifcApi)) {
+            this.apiIds.set(ifcApi, this.nextApiId++);
+        }
+        return this.apiIds.get(ifcApi)!;
+    }
 
     /**
      * Get cached key for element
      */
-    private static getCacheKey(modelID: number, expressID: number): string {
-        return `${modelID}-${expressID}`;
+    private static getCacheKey(modelID: number, expressID: number, ifcApi?: IfcAPI): string {
+        const apiPrefix = ifcApi ? `${this.getApiId(ifcApi)}-` : '';
+        return `${apiPrefix}${modelID}-${expressID}`;
     }
 
     /**
@@ -23,7 +36,7 @@ export class PropertyCache {
         modelID: number,
         expressID: number
     ): Promise<ParsedElementProperties> {
-        const cacheKey = this.getCacheKey(modelID, expressID);
+        const cacheKey = this.getCacheKey(modelID, expressID, ifcApi);
 
         // Return cached result if available
         if (this.cache.has(cacheKey)) {
@@ -63,7 +76,7 @@ export class PropertyCache {
 
         // Check cache first
         for (const expressID of expressIDs) {
-            const cacheKey = this.getCacheKey(modelID, expressID);
+            const cacheKey = this.getCacheKey(modelID, expressID, ifcApi);
             if (this.cache.has(cacheKey)) {
                 results.set(expressID, this.cache.get(cacheKey)!);
             } else {
@@ -132,25 +145,64 @@ export class PropertyCache {
     }
 
     /**
-     * Clear cache for specific model or all models
+     * Clear cache for specific model or all models, optionally scoped to specific IfcAPI instance
      */
-    static clearCache(modelID?: number): void {
-        if (modelID !== undefined) {
+    static clearCache(modelID?: number, ifcApi?: IfcAPI): void {
+        if (modelID !== undefined || ifcApi !== undefined) {
             const keysToDelete: string[] = [];
+            const apiId = ifcApi ? this.getApiId(ifcApi) : null;
+
             for (const key of Array.from(this.cache.keys())) {
-                if (key.startsWith(`${modelID}-`)) {
+                let shouldDelete = false;
+
+                if (apiId !== null) {
+                    // If ifcApi is provided, only delete keys with matching API prefix
+                    const expectedPrefix = modelID !== undefined ? `${apiId}-${modelID}-` : `${apiId}-`;
+                    shouldDelete = key.startsWith(expectedPrefix);
+                } else if (modelID !== undefined) {
+                    // If only modelID is provided, delete keys that match the model
+                    // This includes both prefixed and non-prefixed keys
+                    shouldDelete = key.includes(`-${modelID}-`) || key.startsWith(`${modelID}-`);
+                } else {
+                    // If only ifcApi is provided, delete all keys with that API prefix
+                    shouldDelete = key.startsWith(`${apiId}-`);
+                }
+
+                if (shouldDelete) {
                     keysToDelete.push(key);
                 }
             }
+
             for (const key of keysToDelete) {
                 this.cache.delete(key);
             }
+
+            // Clear matching pending requests
+            const pendingKeysToDelete: string[] = [];
+            for (const key of Array.from(this.pendingRequests.keys())) {
+                let shouldDelete = false;
+
+                if (apiId !== null) {
+                    const expectedPrefix = modelID !== undefined ? `${apiId}-${modelID}-` : `${apiId}-`;
+                    shouldDelete = key.startsWith(expectedPrefix);
+                } else if (modelID !== undefined) {
+                    shouldDelete = key.includes(`-${modelID}-`) || key.startsWith(`${modelID}-`);
+                } else {
+                    shouldDelete = key.startsWith(`${apiId}-`);
+                }
+
+                if (shouldDelete) {
+                    pendingKeysToDelete.push(key);
+                }
+            }
+
+            for (const key of pendingKeysToDelete) {
+                this.pendingRequests.delete(key);
+            }
         } else {
             this.cache.clear();
+            this.pendingRequests.clear();
         }
-
-        // Clear pending requests too
-        this.pendingRequests.clear();
     }
 
     /**

@@ -74,16 +74,14 @@ self.onmessage = async function(e) {
       }
 
       const matches = [];
-      const logs = [];
       
       // Handle empty elements gracefully
       if (elements.length === 0) {
-        logs.push('No elements to process');
         self.postMessage({
           type: 'RULES_PROCESSED',
           payload: { 
             matches: [],
-            logs: ['No elements to process']
+            logs: []
           }
         });
         return;
@@ -91,25 +89,24 @@ self.onmessage = async function(e) {
 
       // Handle empty rules gracefully
       if (rules.length === 0) {
-        logs.push('No rules to apply');
         self.postMessage({
           type: 'RULES_PROCESSED',
           payload: { 
             matches: [],
-            logs: ['No rules to apply']
+            logs: []
           }
         });
         return;
       }
       
-      // Process in batches to allow progress updates
-      const BATCH_SIZE = Math.max(1, Math.min(100, Math.ceil(elements.length / 10))); // Adaptive batch size
+      // Process in very large batches for maximum performance
+      const BATCH_SIZE = Math.max(1000, Math.min(5000, Math.ceil(elements.length / 2))); // Much larger batches
       const totalElements = elements.length;
       const totalBatches = Math.ceil(totalElements / BATCH_SIZE);
       
       let processedElements = 0;
-      
-      logs.push('Starting rule processing: ' + totalElements + ' elements, ' + rules.length + ' rules, ' + totalBatches + ' batches');
+      let lastProgressUpdate = 0;
+      const PROGRESS_UPDATE_INTERVAL = 1000; // Update every 1000 elements minimum
     
     for (let batchIndex = 0; batchIndex < totalBatches; batchIndex++) {
       const startIdx = batchIndex * BATCH_SIZE;
@@ -160,11 +157,7 @@ self.onmessage = async function(e) {
                 elementID: element.expressID,
                 classificationCode: rule.classificationCode
               });
-              
-              // Add log entry for significant matches (throttled)
-              if (element.expressID % 50 === 0) {
-                logs.push('✓ ' + element.type.replace('IFC', 'Ifc') + ' → ' + rule.classificationCode + ' (#' + element.expressID + ')');
-              }
+              // NO LOGGING during processing for maximum performance
             }
           } catch (ruleError) {
             const errorMsg = ruleError instanceof Error ? ruleError.message : String(ruleError);
@@ -174,28 +167,34 @@ self.onmessage = async function(e) {
         processedElements++;
       }
       
-      // Send progress update
-      const progress = totalElements > 0 ? Math.round((processedElements / totalElements) * 100) : 100;
-      self.postMessage({
-        type: 'PROGRESS_UPDATE',
-        payload: {
-          progress,
-          status: 'Processing elements ' + processedElements + '/' + totalElements + '...',
-          logs: logs.slice(-50) // Keep only recent logs
+      // Send minimal progress update for maximum performance
+      if (processedElements - lastProgressUpdate >= PROGRESS_UPDATE_INTERVAL || batchIndex === totalBatches - 1) {
+        const progress = totalElements > 0 ? Math.round((processedElements / totalElements) * 100) : 100;
+        self.postMessage({
+          type: 'PROGRESS_UPDATE',
+          payload: {
+            progress,
+            status: processedElements + '/' + totalElements,
+            logs: [] // No logs for performance
+          }
+        });
+        lastProgressUpdate = processedElements;
+        
+        // Only yield on last batch or every 5th batch
+        if (batchIndex === totalBatches - 1 || batchIndex % 5 === 0) {
+          await new Promise(resolve => setTimeout(resolve, 0));
         }
-      });
-      
-      // Yield control back to main thread briefly
-      await new Promise(resolve => setTimeout(resolve, 0));
+      }
     }
     
-    logs.push('Processing complete: ' + matches.length + ' matches found from ' + processedElements + ' elements');
+    // Send final summary only
+    const summary = 'Complete: ' + matches.length + ' matches from ' + processedElements + ' elements';
     
     self.postMessage({
       type: 'RULES_PROCESSED',
       payload: { 
         matches,
-        logs: logs.slice(-100)
+        logs: [summary] // Only final summary
       }
     });
     
