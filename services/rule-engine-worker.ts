@@ -136,7 +136,7 @@ self.onmessage = async function(e) {
             
             let elementMatches = true;
             for (const condition of ifcClassConditions) {
-              if (!condition.value || !condition.operator) {
+              if (condition.value === null || condition.value === undefined || condition.operator === null || condition.operator === undefined) {
                 continue;
               }
 
@@ -167,15 +167,14 @@ self.onmessage = async function(e) {
         processedElements++;
       }
       
-      // Send minimal progress update for maximum performance
+      // Send minimal progress update for maximum performance (no logs to reduce payload size)
       if (processedElements - lastProgressUpdate >= PROGRESS_UPDATE_INTERVAL || batchIndex === totalBatches - 1) {
         const progress = totalElements > 0 ? Math.round((processedElements / totalElements) * 100) : 100;
         self.postMessage({
           type: 'PROGRESS_UPDATE',
           payload: {
             progress,
-            status: processedElements + '/' + totalElements,
-            logs: logs // Include accumulated logs
+            status: processedElements + '/' + totalElements
           }
         });
         lastProgressUpdate = processedElements;
@@ -228,7 +227,7 @@ self.onmessage = async function(e) {
           
           let elementMatches = true;
           for (const condition of ifcClassConditions) {
-            if (!condition.value || !condition.operator) continue;
+            if (condition.value === null || condition.value === undefined || condition.operator === null || condition.operator === undefined) continue;
 
             const elementType = String(element.type).toUpperCase();
             const ruleType = String(condition.value).toUpperCase();

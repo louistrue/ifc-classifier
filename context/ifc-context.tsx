@@ -1425,6 +1425,8 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
     ): Promise<number | null> => {
       // Clear all element caches when replacing models
       IFCElementExtractor.clearCache();
+      PropertyCache.clearCache();
+      elementPropsCache.current.clear();
       setLoadedModels([commonLoadLogic(url, name, fileId)]);
       return null;
     },
