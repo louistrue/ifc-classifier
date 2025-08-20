@@ -99,15 +99,22 @@ export class BufferedConsoleService {
      * Add multiple logs at once (more efficient)
      */
     addLogs(messages: string[]) {
+        // Capture state before adding messages
+        const prevRingBufferStart = this.ringBufferStart;
+        const prevTotal = prevRingBufferStart;
+        const previousOverflow = Math.max(0, prevTotal - this.maxBufferSize);
+
+        // Add messages to buffer
         for (const msg of messages) {
             const index = this.ringBufferStart % this.maxBufferSize;
             this.buffer[index] = msg;
             this.ringBufferStart++;
         }
 
-        if (this.ringBufferStart > this.maxBufferSize) {
-            this.droppedLogs += this.ringBufferStart - this.maxBufferSize;
-        }
+        // Calculate new overflow and increment droppedLogs by the difference
+        const newTotal = prevTotal + messages.length;
+        const newOverflow = Math.max(0, newTotal - this.maxBufferSize);
+        this.droppedLogs += (newOverflow - previousOverflow);
 
         this.scheduleUpdate();
     }

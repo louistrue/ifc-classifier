@@ -74,6 +74,7 @@ self.onmessage = async function(e) {
       }
 
       const matches = [];
+      const logs: string[] = [];
       
       // Handle empty elements gracefully
       if (elements.length === 0) {
@@ -81,7 +82,7 @@ self.onmessage = async function(e) {
           type: 'RULES_PROCESSED',
           payload: { 
             matches: [],
-            logs: []
+            logs: logs
           }
         });
         return;
@@ -93,7 +94,7 @@ self.onmessage = async function(e) {
           type: 'RULES_PROCESSED',
           payload: { 
             matches: [],
-            logs: []
+            logs: logs
           }
         });
         return;
@@ -175,7 +176,7 @@ self.onmessage = async function(e) {
           payload: {
             progress,
             status: processedElements + '/' + totalElements,
-            logs: [] // No logs for performance
+            logs: logs // Include accumulated logs
           }
         });
         lastProgressUpdate = processedElements;
@@ -189,12 +190,13 @@ self.onmessage = async function(e) {
     
     // Send final summary only
     const summary = 'Complete: ' + matches.length + ' matches from ' + processedElements + ' elements';
+    logs.push(summary); // Add summary to accumulated logs
     
     self.postMessage({
       type: 'RULES_PROCESSED',
       payload: { 
         matches,
-        logs: [summary] // Only final summary
+        logs: logs // Include all accumulated logs
       }
     });
     
