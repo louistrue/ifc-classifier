@@ -1125,10 +1125,10 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
         ifcApiInternal,
         model.modelID,
         (percent: number, message: string) => {
-          // Report element extraction progress (0-80% of this model's progress)
+          // IFCElementExtractor already reports 0-80% so no further scaling is applied
           const baseProgress = (processedModels / totalModels) * 90;
           const modelProgressRange = (1 / totalModels) * 90;
-          const currentProgress = baseProgress + (modelProgressRange * percent / 100 * 0.8);
+          const currentProgress = baseProgress + (modelProgressRange * percent / 100);
           bufferedConsole.current.updateProgress(
             `Loading: ${message}`,
             Math.round(currentProgress)

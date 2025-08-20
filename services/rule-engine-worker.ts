@@ -38,7 +38,6 @@ export interface WorkerResponse {
   };
 }
 
-// Enhanced worker script with comprehensive error handling and validation
 export const workerScript = `
 self.onmessage = async function(e) {
   try {
@@ -61,7 +60,7 @@ self.onmessage = async function(e) {
       // Validate PROCESS_RULES payload
       const { elements = [], rules = [], modelID } = payload;
       
-      if (!modelID || typeof modelID !== 'number') {
+      if (modelID == null || typeof modelID !== 'number') {
         throw new Error('Missing or invalid modelID in PROCESS_RULES payload');
       }
       
@@ -74,7 +73,7 @@ self.onmessage = async function(e) {
       }
 
       const matches = [];
-      const logs: string[] = [];
+      const logs = [];
       
       // Handle empty elements gracefully
       if (elements.length === 0) {
@@ -204,7 +203,7 @@ self.onmessage = async function(e) {
     // Handle batch processing message
     const { batchIndex = 0, totalBatches = 1, elements = [], rules = [], modelID } = payload;
     
-    if (!modelID || typeof modelID !== 'number') {
+    if (modelID == null || typeof modelID !== 'number') {
       throw new Error('Missing or invalid modelID in PROCESS_BATCH payload');
     }
     
