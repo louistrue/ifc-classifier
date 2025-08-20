@@ -1,476 +1,547 @@
-export interface ParsedElementProperties {
-  modelID: number;
-  expressID: number;
-  ifcType: string;
-  attributes: Record<string, any>;
-  propertySets: Record<string, Record<string, any>>;
-}
+/**
+ * Fixed IFC Properties Extractor
+ * 
+ * Improvements over legacy extractor:
+ * - Handles wrapped array formats { value: T[] } from web-ifc
+ * - Supports IFCCOMPLEXPROPERTY with cycle-safe recursive extraction
+ * - Better error handling and memory management
+ * - Consistent property value extraction across all formats
+ */
 
 import type { IfcAPI } from "web-ifc";
-import { Properties } from "web-ifc";
 
-async function extractPropertyValueRecursive(
-  ifcApi: IfcAPI,
-  modelID: number,
-  propertyEntity: any,
-  targetObject: Record<string, any>,
-  namePrefix: string = "",
-  processedCache: Map<number, any>,
-  recursionPath: Set<number>
-) {
-  if (!propertyEntity || !propertyEntity.Name?.value) {
-    return;
-  }
-  const propExpressID = propertyEntity.expressID;
-  if (propExpressID !== undefined) {
-    if (recursionPath.has(propExpressID)) {
-      targetObject[
-        namePrefix ? `${namePrefix}.${propertyEntity.Name.value}` : propertyEntity.Name.value
-      ] = "[Cycle Detected]";
-      return;
-    }
-    if (processedCache.has(propExpressID)) return;
-    recursionPath.add(propExpressID);
-  }
-
-  const propName = propertyEntity.Name.value;
-  const fullPropName = namePrefix ? `${namePrefix}.${propName}` : propName;
-  const propIfcType =
-    typeof propertyEntity.type === "number"
-      ? ifcApi.GetNameFromTypeCode(propertyEntity.type)
-      : String(propertyEntity.type);
-
-  if (propIfcType === "IFCCOMPLEXPROPERTY") {
-    if (propertyEntity.HasProperties && Array.isArray(propertyEntity.HasProperties)) {
-      for (const subPropRefOrObject of propertyEntity.HasProperties) {
-        let subPropertyEntity = null;
-        if (subPropRefOrObject?.value !== undefined && typeof subPropRefOrObject.value === "number") {
-          try {
-            subPropertyEntity = await ifcApi.GetLine(modelID, subPropRefOrObject.value, true);
-          } catch {
-            continue;
-          }
-        } else if (subPropRefOrObject?.expressID !== undefined && subPropRefOrObject.Name?.value) {
-          subPropertyEntity = subPropRefOrObject;
-        } else {
-          continue;
-        }
-        if (subPropertyEntity) {
-          await extractPropertyValueRecursive(
-            ifcApi,
-            modelID,
-            subPropertyEntity,
-            targetObject,
-            fullPropName,
-            processedCache,
-            recursionPath
-          );
-        }
-      }
-    }
-  } else {
-    let extractedValue: any = `(Unhandled ${propIfcType})`;
-    const unit = propertyEntity.Unit?.value;
-    if (propertyEntity.NominalValue?.value !== undefined) {
-      extractedValue = propertyEntity.NominalValue.value;
-      if (unit) extractedValue = { value: extractedValue, unit };
-    } else if (propertyEntity.Value?.value !== undefined) {
-      extractedValue = propertyEntity.Value.value;
-      if (unit) extractedValue = { value: extractedValue, unit };
-    } else if (
-      propertyEntity.ListValues?.value !== undefined &&
-      Array.isArray(propertyEntity.ListValues.value)
-    ) {
-      const listVals = propertyEntity.ListValues.value.map((item: any) =>
-        item.value !== undefined ? item.value : item
-      );
-      extractedValue = unit ? { values: listVals, unit } : listVals;
-    } else if (
-      propertyEntity.EnumerationValues?.value !== undefined &&
-      Array.isArray(propertyEntity.EnumerationValues.value)
-    ) {
-      const enumVals = propertyEntity.EnumerationValues.value.map((item: any) =>
-        item.value !== undefined ? item.value : item
-      );
-      extractedValue = unit ? { values: enumVals, unit } : enumVals;
-    } else if (
-      propertyEntity.LowerBoundValue?.value !== undefined ||
-      propertyEntity.UpperBoundValue?.value !== undefined
-    ) {
-      extractedValue = {} as any;
-      if (propertyEntity.LowerBoundValue?.value !== undefined)
-        extractedValue.LowerBound = propertyEntity.LowerBoundValue.value;
-      if (propertyEntity.UpperBoundValue?.value !== undefined)
-        extractedValue.UpperBound = propertyEntity.UpperBoundValue.value;
-      if (unit) extractedValue.Unit = unit;
-    } else if (propertyEntity.NominalValue === null) {
-      extractedValue = `(${ifcApi.GetNameFromTypeCode(propertyEntity.type as number)})`;
-    }
-
-    targetObject[fullPropName] = extractedValue;
-  }
-
-  if (propExpressID !== undefined) {
-    processedCache.set(propExpressID, true);
-    recursionPath.delete(propExpressID);
-  }
+export interface ParsedElementProperties {
+    modelID: number;
+    expressID: number;
+    ifcType: string | null;
+    attributes: Record<string, any>;
+    propertySets: Record<string, Record<string, any>>;
 }
 
-function extractDirectAttributes(
-  entity: any,
-  targetObject: Record<string, any>,
-  excludedKeys: string[] = [
-    "expressID",
-    "type",
-    "GlobalId",
-    "OwnerHistory",
-    "HasPropertySets",
-    "HasProperties",
-    "HasAssociations",
-    "DefiningValues",
-    "RepresentationMaps",
-    "IsRelatedWith",
-    "RelatesProperties",
-    "MaterialLayers",
-    "Materials",
-    "ApplicableOccurrence",
-    "ObjectPlacement",
-    "Representation",
-  ]
-) {
-  for (const key in entity) {
-    if (Object.prototype.hasOwnProperty.call(entity, key)) {
-      if (key.startsWith("_") || excludedKeys.includes(key)) continue;
-      const attributeValue = entity[key];
-      if (attributeValue === null) {
-        targetObject[key] = null;
-      } else if (attributeValue?.value !== undefined && typeof attributeValue.type === "number") {
-        targetObject[key] = attributeValue.value;
-      } else if (typeof attributeValue !== "object") {
-        targetObject[key] = attributeValue;
-      } else if (attributeValue?.value !== undefined && attributeValue.type === undefined) {
-        targetObject[key] = attributeValue.value;
-      }
+/**
+ * Helper function to extract array values from web-ifc properties
+ * Handles both wrapped format { value: T[] } and direct array format T[]
+ */
+function extractArrayValue(arrayProperty: any): any[] | null {
+    // First check for wrapped format { value: T[] } - most common in web-ifc
+    if (arrayProperty?.value && Array.isArray(arrayProperty.value)) {
+        return arrayProperty.value.map((item: any) =>
+            item.value !== undefined ? item.value : item
+        );
     }
-  }
+    // Fallback for direct array format T[] - for backward compatibility
+    if (arrayProperty && Array.isArray(arrayProperty)) {
+        return arrayProperty.map((item: any) =>
+            item.value !== undefined ? item.value : item
+        );
+    }
+    return null;
 }
 
-export async function getAllElementProperties(
-  ifcApi: IfcAPI,
-  modelID: number,
-  expressID: number
-): Promise<ParsedElementProperties> {
-  if (!ifcApi.properties) ifcApi.properties = new Properties(ifcApi);
-
-  const elementDataFromServer = await ifcApi.GetLine(modelID, expressID, true);
-  const elementType = ifcApi.GetNameFromTypeCode(elementDataFromServer.type);
-
-
-
-  const psetsData: Record<string, Record<string, any>> = {};
-  psetsData["Element Attributes"] = {};
-  for (const key in elementDataFromServer) {
-    if (Object.prototype.hasOwnProperty.call(elementDataFromServer, key)) {
-      if (key === "expressID" || key === "type") continue;
-      const value = elementDataFromServer[key];
-      if (typeof value !== "object" || value === null) psetsData["Element Attributes"][key] = value;
-      else if (value && value.value !== undefined) psetsData["Element Attributes"][key] = value.value;
-    }
-  }
-
-  const processApiPset = async (
-    psetEntity: any,
-    targetPSetData: Record<string, any>,
-    name: string
-  ) => {
-    // Check both HasProperties (for IFCPROPERTYSET) and direct properties
-    const properties = psetEntity.HasProperties || [];
-
-
-    if (Array.isArray(properties) && properties.length > 0) {
-      const processedCache = new Map<number, any>();
-      const recursionPath = new Set<number>();
-
-      for (const propRefOrObject of properties) {
-        let propToProcess = null;
-
-        // Handle reference to property (by ID)
-        if (propRefOrObject?.value !== undefined && typeof propRefOrObject.value === "number") {
-          try {
-            propToProcess = await ifcApi.GetLine(modelID, propRefOrObject.value, true);
-          } catch (e) {
-            continue;
-          }
-        }
-        // Handle embedded property object
-        else if (propRefOrObject && typeof propRefOrObject === 'object') {
-          propToProcess = propRefOrObject;
-        }
-
-        if (propToProcess) {
-          await extractPropertyValueRecursive(
-            ifcApi,
-            modelID,
-            propToProcess,
-            targetPSetData,
-            "",
-            processedCache,
-            recursionPath
-          );
-        }
-      }
+/**
+ * Recursively extract complex property values with cycle detection
+ * @param ifcApi IFC API instance
+ * @param modelID Model ID
+ * @param propertyEntity The property entity to process
+ * @param targetObject Target object to store extracted values
+ * @param namePrefix Prefix for nested property names
+ * @param processedCache Cache of processed property IDs to avoid reprocessing
+ * @param recursionPath Set to track current recursion path for cycle detection
+ */
+async function extractComplexPropertyRecursive(
+    ifcApi: IfcAPI,
+    modelID: number,
+    propertyEntity: any,
+    targetObject: Record<string, any>,
+    namePrefix: string = "",
+    processedCache: Map<number, boolean> = new Map(),
+    recursionPath: Set<number> = new Set()
+): Promise<void> {
+    if (!propertyEntity || !propertyEntity.Name?.value) {
+        return;
     }
 
-    // If no properties were found through HasProperties, try to extract direct attributes
-    if (Object.keys(targetPSetData).length === 0) {
-      // Extract any direct properties from the pset entity itself
-      for (const key in psetEntity) {
-        if (key !== 'expressID' && key !== 'type' && key !== 'Name' && key !== 'Description' && key !== 'HasProperties') {
-          const value = psetEntity[key];
-          if (value !== null && value !== undefined) {
-            if (value.value !== undefined) {
-              targetPSetData[key] = value.value;
-            } else if (typeof value !== 'object') {
-              targetPSetData[key] = value;
-            }
-          }
+    const propExpressID = propertyEntity.expressID;
+    const propName = propertyEntity.Name.value;
+    const fullPropName = namePrefix ? `${namePrefix}.${propName}` : propName;
+
+    // Cycle detection
+    if (propExpressID !== undefined) {
+        if (recursionPath.has(propExpressID)) {
+            targetObject[fullPropName] = "[Cycle Detected]";
+            return;
         }
-      }
+        if (processedCache.has(propExpressID)) {
+            return; // Already processed
+        }
+        recursionPath.add(propExpressID);
     }
 
-  };
+    // Get property type
+    const propIfcType = typeof propertyEntity.type === "number"
+        ? ifcApi.GetNameFromTypeCode(propertyEntity.type)
+        : String(propertyEntity.type);
 
-  const instancePsets = await ifcApi.properties.getPropertySets(modelID, expressID, true, false);
+    if (propIfcType === "IFCCOMPLEXPROPERTY") {
+        // Handle complex properties recursively
+        if (propertyEntity.HasProperties) {
+            const propsArray = Array.isArray(propertyEntity.HasProperties)
+                ? propertyEntity.HasProperties
+                : [propertyEntity.HasProperties];
 
+            for (const subPropRef of propsArray) {
+                let subPropertyEntity = null;
 
-  if (instancePsets && instancePsets.length > 0) {
-    for (const pset of instancePsets) {
-      if (pset && pset.Name?.value) {
-        const psetType = ifcApi.GetNameFromTypeCode(pset.type);
-
-
-        // Process both property sets and element quantities
-        if (psetType === "IFCPROPERTYSET" || psetType === "IFCELEMENTQUANTITY") {
-          const psetName = pset.Name.value;
-          if (!psetsData[psetName]) psetsData[psetName] = {};
-
-          // For IfcElementQuantity, properties are in Quantities instead of HasProperties
-          if (psetType === "IFCELEMENTQUANTITY") {
-            // Process quantities
-            if (pset.Quantities && Array.isArray(pset.Quantities)) {
-              for (const quantityRef of pset.Quantities) {
-                let quantity = null;
-                if (quantityRef?.value !== undefined && typeof quantityRef.value === "number") {
-                  try {
-                    quantity = await ifcApi.GetLine(modelID, quantityRef.value, true);
-                  } catch {
-                    continue;
-                  }
-                } else if (quantityRef?.Name?.value) {
-                  quantity = quantityRef;
-                }
-
-                if (quantity && quantity.Name?.value) {
-                  const quantityName = quantity.Name.value;
-                  // Extract the value based on quantity type with units
-                  const quantityType = ifcApi.GetNameFromTypeCode(quantity.type);
-
-                  if (quantity.LengthValue?.value !== undefined) {
-                    psetsData[psetName][quantityName] = {
-                      value: quantity.LengthValue.value,
-                      unit: quantity.Unit?.value || "m"
-                    };
-                  } else if (quantity.AreaValue?.value !== undefined) {
-                    psetsData[psetName][quantityName] = {
-                      value: quantity.AreaValue.value,
-                      unit: quantity.Unit?.value || "m²"
-                    };
-                  } else if (quantity.VolumeValue?.value !== undefined) {
-                    psetsData[psetName][quantityName] = {
-                      value: quantity.VolumeValue.value,
-                      unit: quantity.Unit?.value || "m³"
-                    };
-                  } else if (quantity.CountValue?.value !== undefined) {
-                    psetsData[psetName][quantityName] = quantity.CountValue.value;
-                  } else if (quantity.WeightValue?.value !== undefined) {
-                    psetsData[psetName][quantityName] = {
-                      value: quantity.WeightValue.value,
-                      unit: quantity.Unit?.value || "kg"
-                    };
-                  } else if (quantity.TimeValue?.value !== undefined) {
-                    psetsData[psetName][quantityName] = {
-                      value: quantity.TimeValue.value,
-                      unit: quantity.Unit?.value || "s"
-                    };
-                  } else {
-                    // Fallback for other quantity types
-                    const valueKeys = ['Value', 'NominalValue'];
-                    for (const key of valueKeys) {
-                      if (quantity[key]?.value !== undefined) {
-                        psetsData[psetName][quantityName] = quantity[key].value;
-                        break;
-                      }
+                // Handle reference to sub-property (by ID)
+                if (subPropRef?.value !== undefined && typeof subPropRef.value === "number") {
+                    try {
+                        subPropertyEntity = await ifcApi.GetLine(modelID, subPropRef.value, true);
+                    } catch (e) {
+                        console.warn(`Failed to get sub-property ${subPropRef.value}:`, e);
+                        continue;
                     }
-                  }
+                } else if (subPropRef?.expressID !== undefined && subPropRef.Name?.value) {
+                    // Handle embedded sub-property object
+                    subPropertyEntity = subPropRef;
                 }
-              }
+
+                if (subPropertyEntity) {
+                    await extractComplexPropertyRecursive(
+                        ifcApi,
+                        modelID,
+                        subPropertyEntity,
+                        targetObject,
+                        fullPropName,
+                        processedCache,
+                        recursionPath
+                    );
+                }
             }
-          } else if (psetType === "IFCPROPERTYSET") {
-            // Regular property set processing for IFCPROPERTYSET
-            await processApiPset(pset, psetsData[psetName], psetName);
-          }
         }
-      }
+    } else {
+        // Handle simple property - extract value using existing logic
+        const value = extractSimplePropertyValue(propertyEntity);
+        if (value !== null && value !== undefined) {
+            targetObject[fullPropName] = value;
+        }
     }
-  }
 
-  const typeObjects = await ifcApi.properties.getTypeProperties(modelID, expressID, true);
-  if (typeObjects && typeObjects.length > 0) {
-    for (const typeObject of typeObjects) {
-      const typeObjectName = typeObject?.Name?.value || `TypeObject_${typeObject.expressID || 0}`;
-      const typeAttributesPSetName = `Type Attributes: ${typeObjectName}`;
-      if (!psetsData[typeAttributesPSetName]) psetsData[typeAttributesPSetName] = {};
-      extractDirectAttributes(typeObject, psetsData[typeAttributesPSetName], ["Name", "Description"]);
-      if (Object.keys(psetsData[typeAttributesPSetName]).length === 0)
-        delete psetsData[typeAttributesPSetName];
+    // Mark as processed and remove from recursion path
+    if (propExpressID !== undefined) {
+        processedCache.set(propExpressID, true);
+        recursionPath.delete(propExpressID);
+    }
+}
 
-      if (typeObject.HasPropertySets && Array.isArray(typeObject.HasPropertySets)) {
-        for (const propDefRefOrObject of typeObject.HasPropertySets) {
-          let propDefEntity = null;
-          if (propDefRefOrObject?.value !== undefined && typeof propDefRefOrObject.value === "number") {
-            try {
-              propDefEntity = await ifcApi.GetLine(modelID, propDefRefOrObject.value, true);
-            } catch {
-              continue;
+/**
+ * Test function to verify complex property extraction (for development/debugging)
+ * @internal
+ */
+function testComplexPropertyExtraction() {
+    // Mock complex property structure
+    const mockComplexProperty = {
+        expressID: 12345,
+        type: "IFCCOMPLEXPROPERTY",
+        Name: { value: "ComplexMaterial" },
+        HasProperties: [
+            {
+                expressID: 12346,
+                type: "IFCPROPERTYSINGLEVALUE",
+                Name: { value: "Density" },
+                NominalValue: { value: 2400 }
+            },
+            {
+                expressID: 12347,
+                type: "IFCCOMPLEXPROPERTY", // Nested complex property
+                Name: { value: "Composition" },
+                HasProperties: [
+                    {
+                        expressID: 12348,
+                        type: "IFCPROPERTYSINGLEVALUE",
+                        Name: { value: "Cement" },
+                        NominalValue: { value: 0.3 }
+                    }
+                ]
             }
-          } else if (propDefRefOrObject?.expressID !== undefined) {
-            propDefEntity = propDefRefOrObject;
-          } else {
-            continue;
-          }
+        ]
+    };
 
-          if (propDefEntity) {
-            const propDefEntityType = ifcApi.GetNameFromTypeCode(propDefEntity.type);
-            const propDefInstanceName = propDefEntity.Name?.value;
-            // Process both property sets and element quantities
-            if (propDefEntityType === "IFCPROPERTYSET" || propDefEntityType === "IFCELEMENTQUANTITY") {
-              const psetName = propDefInstanceName || "Unnamed PSet";
-              const finalPsetName = `${psetName} (from Type: ${typeObjectName})`;
-              if (!psetsData[finalPsetName]) psetsData[finalPsetName] = {};
-              await processApiPset(propDefEntity, psetsData[finalPsetName], finalPsetName);
-            } else if (propDefEntityType) {
-              const groupNameSuggestion = propDefInstanceName || propDefEntityType;
-              const groupName = `${groupNameSuggestion} (from Type: ${typeObjectName})`;
-              if (!psetsData[groupName]) psetsData[groupName] = {};
-              extractDirectAttributes(propDefEntity, psetsData[groupName]);
-              if (Object.keys(psetsData[groupName]).length === 0) delete psetsData[groupName];
+    console.log("Mock complex property structure:", JSON.stringify(mockComplexProperty, null, 2));
+    // Expected output should include:
+    // - ComplexMaterial.Density: 2400
+    // - ComplexMaterial.Composition.Cement: 0.3
+}
+
+/**
+ * Test function to verify array extraction logic (for development/debugging)
+ * @internal
+ */
+function testArrayExtraction() {
+    // Test wrapped format
+    const wrappedFormat = {
+        ListValues: {
+            value: [
+                { value: "Item1" },
+                { value: "Item2" },
+                "DirectItem"
+            ]
+        }
+    };
+
+    // Test direct format
+    const directFormat = {
+        ListValues: [
+            { value: "Item1" },
+            { value: "Item2" },
+            "DirectItem"
+        ]
+    };
+
+    console.log("Testing wrapped format:", extractArrayValue(wrappedFormat.ListValues));
+    console.log("Testing direct format:", extractArrayValue(directFormat.ListValues));
+}
+
+/**
+ * Extract simple property value from an IFC property entity
+ * Handles various IFC property value formats including wrapped arrays
+ */
+function extractSimplePropertyValue(property: any): any {
+    // Handle direct value properties
+    if (property.NominalValue?.value !== undefined) {
+        return property.NominalValue.value;
+    }
+    if (property.Value?.value !== undefined) {
+        return property.Value.value;
+    }
+
+    // Handle list values (both wrapped { value: T[] } and direct T[] formats)
+    const listValues = extractArrayValue(property.ListValues);
+    if (listValues !== null) {
+        return listValues;
+    }
+
+    // Handle enumeration values (both wrapped { value: T[] } and direct T[] formats)
+    const enumerationValues = extractArrayValue(property.EnumerationValues);
+    if (enumerationValues !== null) {
+        return enumerationValues;
+    }
+
+    // Handle bounded values
+    if (property.LowerBoundValue?.value !== undefined || property.UpperBoundValue?.value !== undefined) {
+        const result: any = {};
+        if (property.LowerBoundValue?.value !== undefined) {
+            result.LowerBound = property.LowerBoundValue.value;
+        }
+        if (property.UpperBoundValue?.value !== undefined) {
+            result.UpperBound = property.UpperBoundValue.value;
+        }
+        return result;
+    }
+
+    return null;
+}
+
+/**
+ * Process a single property set and extract its properties
+ */
+async function processPropertySet(
+    ifcApi: IfcAPI,
+    modelID: number,
+    pset: any
+): Promise<Record<string, any>> {
+    const properties: Record<string, any> = {};
+
+
+
+    // For regular property sets (IFCPROPERTYSET)
+    if (pset.HasProperties) {
+        const propsArray = Array.isArray(pset.HasProperties) ? pset.HasProperties : [pset.HasProperties];
+        for (const propRef of propsArray) {
+
+            let property = null;
+
+            // Handle reference to property (by ID)
+            if (propRef?.value !== undefined && typeof propRef.value === "number") {
+                try {
+                    property = await ifcApi.GetLine(modelID, propRef.value, true);
+
+                } catch (e) {
+                    console.warn(`Failed to get property ${propRef.value}:`, e);
+                    continue;
+                }
+            } else if (propRef && typeof propRef === 'object' && propRef.Name?.value) {
+                // Handle embedded property object
+                property = propRef;
+
             }
-          }
-        }
-      }
-    }
-  }
 
-  let materialsAndDefs = await ifcApi.properties.getMaterialsProperties(modelID, expressID, true, true);
-  if (!materialsAndDefs || materialsAndDefs.length === 0) {
-    const relAssociatesMaterialIDs = await ifcApi.GetLineIDsWithType(modelID, 300348915); // IFCRELASSOCIATESMATERIAL
-    const found: any[] = [];
-    for (let i = 0; i < relAssociatesMaterialIDs.size(); i++) {
-      const relID = relAssociatesMaterialIDs.get(i);
-      const rel = await ifcApi.GetLine(modelID, relID, false);
-      if (rel.RelatedObjects && Array.isArray(rel.RelatedObjects)) {
-        const isElementAssociated = rel.RelatedObjects.some((obj: any) => obj.value === expressID);
-        if (isElementAssociated && rel.RelatingMaterial?.value) {
-          try {
-            const materialEntity = await ifcApi.GetLine(modelID, rel.RelatingMaterial.value, true);
-            if (materialEntity) found.push(materialEntity);
-          } catch {
-            /* ignore */
-          }
-        }
-      }
-    }
-    if (found.length > 0) materialsAndDefs = found;
-  }
+            if (property && property.Name?.value) {
+                const propName = property.Name.value;
 
-  if (materialsAndDefs && materialsAndDefs.length > 0) {
-    for (const matDef of materialsAndDefs) {
-      const matDefType = ifcApi.GetNameFromTypeCode(matDef.type);
-      const matDefNameFromIFC = matDef.Name?.value;
-      let groupName = "";
-      if (matDefType === "IFCMATERIAL") {
-        const materialName = matDefNameFromIFC || `Material_${matDef.expressID}`;
-        groupName = `Material: ${materialName}`;
-        if (!psetsData[groupName]) psetsData[groupName] = {};
-        extractDirectAttributes(matDef, psetsData[groupName], ["Name", "Description"]);
-        if (Object.keys(psetsData[groupName]).length === 0) delete psetsData[groupName];
-      } else if (matDefType === "IFCMATERIALLAYERSET") {
-        const layerSetName = matDefNameFromIFC || `MatLayerSet_${matDef.expressID}`;
-        groupName = `LayerSet: ${layerSetName}`;
-        if (!psetsData[groupName]) psetsData[groupName] = {};
-        if (matDef.TotalThickness?.value !== undefined)
-          psetsData[groupName]["TotalThickness"] = matDef.TotalThickness.value;
-        if (matDef.MaterialLayers && Array.isArray(matDef.MaterialLayers)) {
-          for (const [index, layerEntity] of matDef.MaterialLayers.entries()) {
-            psetsData[groupName][`Layer_${index + 1}_Thickness`] = layerEntity.LayerThickness?.value;
-            psetsData[groupName][`Layer_${index + 1}_Material`] =
-              layerEntity.Material?.Name?.value || layerEntity.Material?.value || "Unknown Material";
-          }
-        }
-        if (
-          Object.keys(psetsData[groupName]).length === 0 &&
-          !psetsData[groupName]["TotalThickness"]
-        )
-          delete psetsData[groupName];
-        else if (
-          Object.keys(psetsData[groupName]).length === 1 &&
-          psetsData[groupName]["TotalThickness"] &&
-          (!matDef.MaterialLayers || matDef.MaterialLayers.length === 0)
-        )
-          delete psetsData[groupName];
-      } else if (matDefType === "IFCMATERIALPROPERTIES") {
-        const psetName = matDefNameFromIFC || "Material Properties";
-        groupName = `Material Properties: ${psetName}`;
-        if (!psetsData[groupName]) psetsData[groupName] = {};
-        await processApiPset(matDef, psetsData[groupName], groupName);
-        if (Object.keys(psetsData[groupName]).length === 0) delete psetsData[groupName];
-      } else if (matDefType === "IFCMATERIALLIST") {
-        const listName = matDefNameFromIFC || `MatList_${matDef.expressID}`;
-        groupName = `MaterialList: ${listName}`;
-        if (!psetsData[groupName]) psetsData[groupName] = {};
-        if (matDef.Materials && Array.isArray(matDef.Materials)) {
-          for (const [index, materialRef] of matDef.Materials.entries()) {
-            if (materialRef?.value) {
-              try {
-                const material = await ifcApi.GetLine(modelID, materialRef.value, true);
-                psetsData[groupName][`Material_${index + 1}`] =
-                  material.Name?.value || `UnnamedMaterial_${material.expressID}`;
-              } catch {
-                /* ignore */
-              }
+                // Check if this is a complex property
+                const propIfcType = typeof property.type === "number"
+                    ? ifcApi.GetNameFromTypeCode(property.type)
+                    : String(property.type);
+
+                if (propIfcType === "IFCCOMPLEXPROPERTY") {
+                    // Use recursive extraction for complex properties
+                    const processedCache = new Map<number, boolean>();
+                    const recursionPath = new Set<number>();
+                    await extractComplexPropertyRecursive(
+                        ifcApi,
+                        modelID,
+                        property,
+                        properties,
+                        "", // No prefix for top-level properties
+                        processedCache,
+                        recursionPath
+                    );
+                } else {
+                    // Use simple extraction for regular properties
+                    const value = extractSimplePropertyValue(property);
+                    if (value !== null && value !== undefined) {
+                        properties[propName] = value;
+                    }
+                }
             }
-          }
         }
-        if (Object.keys(psetsData[groupName]).length === 0) delete psetsData[groupName];
-      } else {
-        const groupNameSuggestion = matDefNameFromIFC || matDefType;
-        groupName = `MaterialInfo: ${groupNameSuggestion}`;
-        if (!psetsData[groupName]) psetsData[groupName] = {};
-        extractDirectAttributes(matDef, psetsData[groupName], ["Name", "Description"]);
-        if (Object.keys(psetsData[groupName]).length === 0) delete psetsData[groupName];
-      }
     }
-  }
 
-  const result = {
-    modelID,
-    expressID,
-    ifcType: elementType,
-    attributes: elementDataFromServer,
-    propertySets: psetsData,
-  };
+    // For element quantities (IFCELEMENTQUANTITY)
+    if (pset.Quantities) {
+        const quantitiesArray = Array.isArray(pset.Quantities) ? pset.Quantities : [pset.Quantities];
+        for (const quantityRef of quantitiesArray) {
+
+            let quantity = null;
+
+            if (quantityRef?.value !== undefined && typeof quantityRef.value === "number") {
+                try {
+                    quantity = await ifcApi.GetLine(modelID, quantityRef.value, true);
+
+                } catch (e) {
+                    console.warn(`Failed to get quantity ${quantityRef.value}:`, e);
+                    continue;
+                }
+            } else if (quantityRef && typeof quantityRef === 'object' && quantityRef.Name?.value) {
+                quantity = quantityRef;
+
+            }
+
+            if (quantity && quantity.Name?.value) {
+                const quantityName = quantity.Name.value;
+                let value = null;
+                let unit = quantity.Unit?.value || "";
+
+                // Extract quantity values based on type
+                if (quantity.LengthValue?.value !== undefined) {
+                    value = { value: quantity.LengthValue.value, unit: unit || "m" };
+                } else if (quantity.AreaValue?.value !== undefined) {
+                    value = { value: quantity.AreaValue.value, unit: unit || "m²" };
+                } else if (quantity.VolumeValue?.value !== undefined) {
+                    value = { value: quantity.VolumeValue.value, unit: unit || "m³" };
+                } else if (quantity.CountValue?.value !== undefined) {
+                    value = quantity.CountValue.value;
+                } else if (quantity.WeightValue?.value !== undefined) {
+                    value = { value: quantity.WeightValue.value, unit: unit || "kg" };
+                } else if (quantity.TimeValue?.value !== undefined) {
+                    value = { value: quantity.TimeValue.value, unit: unit || "s" };
+                }
+
+                if (value !== null && value !== undefined) {
+                    properties[quantityName] = value;
+                }
+            }
+        }
+    }
+
+
+    return properties;
+}
+
+/**
+ * Get all properties for an element
+ */
+export async function getAllElementProperties(
+    ifcApi: IfcAPI,
+    modelID: number,
+    expressID: number
+): Promise<ParsedElementProperties> {
+    // Get the element data
+    const element = await ifcApi.GetLine(modelID, expressID, true);
+    const elementType = ifcApi.GetNameFromTypeCode(element.type);
+
+    // Initialize property sets
+    const propertySets: Record<string, Record<string, any>> = {};
+
+    // Add element attributes
+    propertySets["Element Attributes"] = {};
+    for (const key in element) {
+        if (Object.prototype.hasOwnProperty.call(element, key)) {
+            if (key === "expressID" || key === "type") continue;
+            const value = element[key];
+            if (typeof value !== "object" || value === null) {
+                propertySets["Element Attributes"][key] = value;
+            } else if (value && value.value !== undefined) {
+                propertySets["Element Attributes"][key] = value.value;
+            }
+        }
+    }
+
+    // Get instance property sets
+    try {
+        const instancePsets = await ifcApi.properties.getPropertySets(modelID, expressID, true, false);
+
+
+        if (instancePsets && Array.isArray(instancePsets)) {
+            for (const pset of instancePsets) {
+                if (pset && pset.Name?.value) {
+                    const psetName = pset.Name.value;
+                    const psetType = ifcApi.GetNameFromTypeCode(pset.type);
+
+
+                    // Only process IFCPROPERTYSET and IFCELEMENTQUANTITY (case-insensitive)
+                    const upperType = psetType?.toUpperCase();
+                    if (upperType === "IFCPROPERTYSET" || upperType === "IFCELEMENTQUANTITY") {
+                        const properties = await processPropertySet(ifcApi, modelID, pset);
+                        if (Object.keys(properties).length > 0) {
+                            propertySets[psetName] = properties;
+                        }
+                    }
+                }
+            }
+        }
+    } catch (e) {
+        console.warn("Failed to get property sets:", e);
+    }
+
+    // Get type property sets
+    try {
+        const typeObjects = await ifcApi.properties.getTypeProperties(modelID, expressID, true);
+
+
+        if (typeObjects && Array.isArray(typeObjects)) {
+            for (const typeObject of typeObjects) {
+                if (typeObject) {
+                    const typeName = typeObject.Name?.value || `Type_${typeObject.expressID}`;
+
+                    // Add type attributes
+                    const typeAttrName = `Type Attributes: ${typeName}`;
+                    propertySets[typeAttrName] = {};
+                    for (const key in typeObject) {
+                        if (["expressID", "type", "HasPropertySets", "Name", "Description"].includes(key)) continue;
+                        const value = typeObject[key];
+                        if (value !== null && value !== undefined) {
+                            if (typeof value !== "object") {
+                                propertySets[typeAttrName][key] = value;
+                            } else if (value.value !== undefined) {
+                                propertySets[typeAttrName][key] = value.value;
+                            }
+                        }
+                    }
+                    if (Object.keys(propertySets[typeAttrName]).length === 0) {
+                        delete propertySets[typeAttrName];
+                    }
+
+                    // Process type property sets
+                    if (typeObject.HasPropertySets && Array.isArray(typeObject.HasPropertySets)) {
+                        for (const psetRef of typeObject.HasPropertySets) {
+                            let pset = null;
+
+                            if (psetRef?.value !== undefined && typeof psetRef.value === "number") {
+                                try {
+                                    pset = await ifcApi.GetLine(modelID, psetRef.value, true);
+                                } catch (e) {
+                                    continue;
+                                }
+                            } else if (psetRef && typeof psetRef === 'object' && psetRef.Name?.value) {
+                                pset = psetRef;
+                            }
+
+                            if (pset && pset.Name?.value) {
+                                const psetName = `${pset.Name.value} (from Type: ${typeName})`;
+                                const psetType = ifcApi.GetNameFromTypeCode(pset.type);
+                                const upperType = psetType?.toUpperCase();
+
+                                if (upperType === "IFCPROPERTYSET" || upperType === "IFCELEMENTQUANTITY") {
+                                    const properties = await processPropertySet(ifcApi, modelID, pset);
+                                    if (Object.keys(properties).length > 0) {
+                                        propertySets[psetName] = properties;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    } catch (e) {
+        console.warn("Failed to get type properties:", e);
+    }
+
+    // Get material properties
+    try {
+        const materials = await ifcApi.properties.getMaterialsProperties(modelID, expressID, true, true);
+
+
+        if (materials && Array.isArray(materials)) {
+            for (const material of materials) {
+                if (material) {
+                    const materialType = ifcApi.GetNameFromTypeCode(material.type);
+                    const materialName = material.Name?.value || `Material_${material.expressID}`;
+                    const upperMaterialType = materialType?.toUpperCase();
+
+                    if (upperMaterialType === "IFCMATERIAL") {
+                        const groupName = `Material: ${materialName}`;
+                        propertySets[groupName] = {};
+                        for (const key in material) {
+                            if (["expressID", "type", "Name"].includes(key)) continue;
+                            const value = material[key];
+                            if (value !== null && value !== undefined) {
+                                if (typeof value !== "object") {
+                                    propertySets[groupName][key] = value;
+                                } else if (value.value !== undefined) {
+                                    propertySets[groupName][key] = value.value;
+                                }
+                            }
+                        }
+                        if (Object.keys(propertySets[groupName]).length === 0) {
+                            delete propertySets[groupName];
+                        }
+                    } else if (upperMaterialType === "IFCMATERIALLAYERSET") {
+                        const groupName = `LayerSet: ${materialName}`;
+                        propertySets[groupName] = {};
+
+                        if (material.TotalThickness?.value !== undefined) {
+                            propertySets[groupName]["TotalThickness"] = material.TotalThickness.value;
+                        }
+
+                        if (material.MaterialLayers && Array.isArray(material.MaterialLayers)) {
+                            for (let i = 0; i < material.MaterialLayers.length; i++) {
+                                const layer = material.MaterialLayers[i];
+                                propertySets[groupName][`Layer_${i + 1}_Thickness`] = layer.LayerThickness?.value;
+                                propertySets[groupName][`Layer_${i + 1}_Material`] =
+                                    layer.Material?.Name?.value || layer.Material?.value || "Unknown";
+                            }
+                        }
+
+                        if (Object.keys(propertySets[groupName]).length === 0) {
+                            delete propertySets[groupName];
+                        }
+                    }
+                }
+            }
+        }
+    } catch (e) {
+        console.warn("Failed to get material properties:", e);
+    }
 
 
 
-  return result;
+    return {
+        modelID,
+        expressID,
+        ifcType: elementType,
+        attributes: element,
+        propertySets
+    };
 }

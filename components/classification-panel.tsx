@@ -896,16 +896,16 @@ export function ClassificationPanel() {
                         }
                       }}
                     >
-                        <CircleOff
-                          className={`w-4 h-4 flex-shrink-0 ${!showAllClassificationColors && !isolateUnclassified ? "md:mr-1.5" : ""}`}
-                        />
-                        <span
-                          className={
-                            !showAllClassificationColors && !isolateUnclassified
-                              ? "hidden md:inline"
-                              : "hidden"
-                          }
-                        >
+                      <CircleOff
+                        className={`w-4 h-4 flex-shrink-0 ${!showAllClassificationColors && !isolateUnclassified ? "md:mr-1.5" : ""}`}
+                      />
+                      <span
+                        className={
+                          !showAllClassificationColors && !isolateUnclassified
+                            ? "hidden md:inline"
+                            : "hidden"
+                        }
+                      >
                         {t("original")}
                       </span>
                       <span className="sr-only">
@@ -927,10 +927,12 @@ export function ClassificationPanel() {
                           : "bg-transparent text-muted-foreground hover:bg-accent hover:text-accent-foreground"
                         }`}
                       onClick={() => {
+                        // Clear selection when switching to Colors mode
                         if (!showAllClassificationColors) {
                           clearSelection();
-                          toggleShowAllClassificationColors();
                         }
+                        // Always allow toggling Colors mode on/off
+                        toggleShowAllClassificationColors();
                       }}
                     >
                       <Palette

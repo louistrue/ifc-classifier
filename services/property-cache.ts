@@ -1,5 +1,5 @@
 import { IfcAPI } from "web-ifc";
-import { getAllElementProperties, ParsedElementProperties } from "./ifc-properties-fixed";
+import { getAllElementProperties, ParsedElementProperties } from "./ifc-properties";
 
 /**
  * High-performance property cache for IFC elements

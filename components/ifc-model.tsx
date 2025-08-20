@@ -66,6 +66,32 @@ async function getElementData(
   return nodeData;
 }
 
+// Helper function to validate if an element is contained in a specific storey
+async function isElementContainedInStorey(ifcApi: IfcAPI, modelID: number, storeyID: number, elemID: number): Promise<boolean> {
+  const relType = ifcApi.GetTypeCodeFromName("IFCRELCONTAINEDINSPATIALSTRUCTURE");
+  const relIds = await ifcApi.GetLineIDsWithType(modelID, relType);
+
+  for (let i = 0; i < relIds.size(); i++) {
+    const rid = relIds.get(i);
+    try {
+      const rel = await ifcApi.GetLine(modelID, rid, false);
+      const relating =
+        rel.RelatingStructure?.value ??
+        rel.RelatingStructure?.expressID ??
+        rel.RelatingStructure;
+
+      if (relating === storeyID && Array.isArray(rel.RelatedElements)) {
+        if (rel.RelatedElements.some((re: any) => (re?.value ?? re) === elemID)) {
+          return true;
+        }
+      }
+    } catch {
+      // Continue on error
+    }
+  }
+  return false;
+}
+
 // Function to recursively build the spatial structure tree
 async function buildSpatialTree(
   ifcApi: IfcAPI,
@@ -112,7 +138,9 @@ async function buildSpatialTree(
 
   // 2. Contained elements (IfcRelContainedInSpatialStructure)
   // Only for spatial structure elements like Storey, Space, Building, Site
-  console.log(`[buildSpatialTree] Processing element: ${element.type} (ID: ${elementID})`);
+  if (process.env.NODE_ENV !== "production") {
+    console.log(`[buildSpatialTree] Processing element: ${element.type} (ID: ${elementID})`);
+  }
 
   if (
     element.type === "IFCBUILDINGSTOREY" ||
@@ -127,7 +155,9 @@ async function buildSpatialTree(
       IFCRELCONTAINEDINSPATIALSTRUCTURE
     );
 
-    console.log(`[buildSpatialTree] Found ${relContainedIDs.size()} IFCRELCONTAINEDINSPATIALSTRUCTURE relationships`);
+    if (process.env.NODE_ENV !== "production") {
+      console.log(`[buildSpatialTree] Found ${relContainedIDs.size()} IFCRELCONTAINEDINSPATIALSTRUCTURE relationships`);
+    }
 
     let foundRelationships = 0;
     for (let i = 0; i < relContainedIDs.size(); i++) {
@@ -135,7 +165,7 @@ async function buildSpatialTree(
       const relCont = await ifcApi.GetLine(modelID, relContID, true); // Use true to get full objects
 
       // Debug: Log the relationship structure
-      if (i === 0) {
+      if (process.env.NODE_ENV !== "production" && i === 0) {
         console.log(`[buildSpatialTree] Sample relationship structure:`, {
           RelatingStructure: relCont.RelatingStructure,
           RelatedElements: relCont.RelatedElements ? `Array(${relCont.RelatedElements.length})` : 'undefined'
@@ -143,12 +173,19 @@ async function buildSpatialTree(
       }
 
       // Check if this relationship relates to our current element
-      const relatingId = relCont.RelatingStructure?.value || relCont.RelatingStructure;
+      const relatingStruct = relCont.RelatingStructure;
+      const relatingId =
+        (typeof relatingStruct?.value === "number" && relatingStruct.value) ||
+        (typeof relatingStruct?.expressID === "number" && relatingStruct.expressID) ||
+        (typeof relatingStruct === "number" && relatingStruct) ||
+        null;
       if (relatingId === elementID) {
         foundRelationships++;
         const relatedElements = relCont.RelatedElements;
 
-        console.log(`[buildSpatialTree] Found relationship for ${element.type} with ${relatedElements?.length || 0} related elements`);
+        if (process.env.NODE_ENV !== "production") {
+          console.log(`[buildSpatialTree] Found relationship for ${element.type} with ${relatedElements?.length || 0} related elements`);
+        }
 
         if (relatedElements && Array.isArray(relatedElements)) {
           for (const relatedElement of relatedElements) {
@@ -161,7 +198,9 @@ async function buildSpatialTree(
               childExpressID
             );
 
-            console.log(`[buildSpatialTree] Child element: ${childData.type} (ID: ${childExpressID})`);
+            if (process.env.NODE_ENV !== "production") {
+              console.log(`[buildSpatialTree] Child element: ${childData.type} (ID: ${childExpressID})`);
+            }
 
             if (childData.type) {
               // Always add the element to the tree, regardless of type
@@ -193,8 +232,9 @@ async function buildSpatialTree(
               node.children.push(childNode);
 
               // Debug log to see what we're adding
-              if (childData.type.includes("WALL") || childData.type.includes("DOOR") ||
-                childData.type.includes("WINDOW") || childData.type.includes("SLAB")) {
+              if (process.env.NODE_ENV !== "production" &&
+                (childData.type.includes("WALL") || childData.type.includes("DOOR") ||
+                  childData.type.includes("WINDOW") || childData.type.includes("SLAB"))) {
                 console.log(`[buildSpatialTree] ✓ Added building element to spatial tree: ${childData.type} (ID: ${childExpressID})`);
               }
             }
@@ -203,71 +243,85 @@ async function buildSpatialTree(
       }
     }
 
-    console.log(`[buildSpatialTree] Found ${foundRelationships} relationships for ${element.type} (ID: ${elementID})`);
-  }
-
-  // Also get all building elements directly if this is a building storey
-  // This handles cases where the new web-ifc version might structure things differently
-  if (element.type === "IFCBUILDINGSTOREY") {
-    console.log(`[buildSpatialTree] Fallback: Directly querying for building elements in building storey`);
-
-    // Get common building element types directly
-    const elementTypes = [
-      IFCWALL, IFCWALLSTANDARDCASE, IFCDOOR, IFCWINDOW, IFCSLAB,
-      IFCCOLUMN, IFCBEAM, IFCSTAIR, IFCROOF, IFCCOVERING, IFCRAILING,
-      IFCPLATE, IFCMEMBER, IFCCURTAINWALL
-    ];
-
-    const elementTypeNames = [
-      'IFCWALL', 'IFCWALLSTANDARDCASE', 'IFCDOOR', 'IFCWINDOW', 'IFCSLAB',
-      'IFCCOLUMN', 'IFCBEAM', 'IFCSTAIR', 'IFCROOF', 'IFCCOVERING', 'IFCRAILING',
-      'IFCPLATE', 'IFCMEMBER', 'IFCCURTAINWALL'
-    ];
-
-    let totalElementsAdded = 0;
-
-    for (let typeIdx = 0; typeIdx < elementTypes.length; typeIdx++) {
-      const elementType = elementTypes[typeIdx];
-      const typeName = elementTypeNames[typeIdx];
-
-      try {
-        const elementIDs = await ifcApi.GetLineIDsWithType(modelID, elementType);
-
-        if (elementIDs.size() > 0) {
-          console.log(`[buildSpatialTree] Found ${elementIDs.size()} elements of type ${typeName}`);
-        }
-
-        for (let i = 0; i < elementIDs.size(); i++) {
-          const elemID = elementIDs.get(i);
-
-          // Check if this element is already in our children
-          const alreadyAdded = node.children.some(child => child.expressID === elemID);
-
-          if (!alreadyAdded) {
-            const elemData = await getElementData(ifcApi, modelID, elemID);
-
-            if (elemData.type) {
-              node.children.push({
-                expressID: elemID,
-                type: elemData.type,
-                Name: elemData.Name,
-                GlobalId: elemData.GlobalId,
-                children: [],
-                ...elemData,
-              });
-
-              totalElementsAdded++;
-              console.log(`[buildSpatialTree] ✓ Fallback: Added ${elemData.type} (ID: ${elemID}) to building storey`);
-            }
-          }
-        }
-      } catch (e) {
-        console.log(`[buildSpatialTree] No ${typeName} elements found or error: ${e}`);
-        continue;
-      }
+    if (process.env.NODE_ENV !== "production") {
+      console.log(`[buildSpatialTree] Found ${foundRelationships} relationships for ${element.type} (ID: ${elementID})`);
     }
 
-    console.log(`[buildSpatialTree] Fallback: Added ${totalElementsAdded} building elements to building storey`);
+    // Also get all building elements directly if this is a building storey
+    // This handles cases where the new web-ifc version might structure things differently
+    // Only run fallback if no containment relationships were found for this storey
+    if (element.type === "IFCBUILDINGSTOREY" && foundRelationships === 0) {
+      if (process.env.NODE_ENV !== "production") {
+        console.log(`[buildSpatialTree] Fallback: No containment relationships found, directly querying for building elements in building storey`);
+      }
+
+      // Get common building element types directly
+      const elementTypes = [
+        IFCWALL, IFCWALLSTANDARDCASE, IFCDOOR, IFCWINDOW, IFCSLAB,
+        IFCCOLUMN, IFCBEAM, IFCSTAIR, IFCROOF, IFCCOVERING, IFCRAILING,
+        IFCPLATE, IFCMEMBER, IFCCURTAINWALL
+      ];
+
+      const elementTypeNames = [
+        'IFCWALL', 'IFCWALLSTANDARDCASE', 'IFCDOOR', 'IFCWINDOW', 'IFCSLAB',
+        'IFCCOLUMN', 'IFCBEAM', 'IFCSTAIR', 'IFCROOF', 'IFCCOVERING', 'IFCRAILING',
+        'IFCPLATE', 'IFCMEMBER', 'IFCCURTAINWALL'
+      ];
+
+      let totalElementsAdded = 0;
+
+      for (let typeIdx = 0; typeIdx < elementTypes.length; typeIdx++) {
+        const elementType = elementTypes[typeIdx];
+        const typeName = elementTypeNames[typeIdx];
+
+        try {
+          const elementIDs = await ifcApi.GetLineIDsWithType(modelID, elementType);
+
+          if (process.env.NODE_ENV !== "production" && elementIDs.size() > 0) {
+            console.log(`[buildSpatialTree] Found ${elementIDs.size()} elements of type ${typeName}`);
+          }
+
+          for (let i = 0; i < elementIDs.size(); i++) {
+            const elemID = elementIDs.get(i);
+
+            // Check if this element is already in our children
+            const alreadyAdded = node.children.some(child => child.expressID === elemID);
+
+            // Validate the containment relation to this storey before adding
+            const containedHere = await isElementContainedInStorey(ifcApi, modelID, elementID, elemID);
+
+            if (!alreadyAdded && containedHere) {
+              const elemData = await getElementData(ifcApi, modelID, elemID);
+
+              if (elemData.type) {
+                node.children.push({
+                  expressID: elemID,
+                  type: elemData.type,
+                  Name: elemData.Name,
+                  GlobalId: elemData.GlobalId,
+                  children: [],
+                  ...elemData,
+                });
+
+                totalElementsAdded++;
+                if (process.env.NODE_ENV !== "production") {
+                  console.log(`[buildSpatialTree] ✓ Fallback: Added validated ${elemData.type} (ID: ${elemID}) to building storey`);
+                }
+              }
+            }
+          }
+        } catch (e) {
+          if (process.env.NODE_ENV !== "production") {
+            console.log(`[buildSpatialTree] No ${typeName} elements found or error: ${e}`);
+          }
+          continue;
+        }
+      }
+
+      if (process.env.NODE_ENV !== "production") {
+        console.log(`[buildSpatialTree] Fallback: Added ${totalElementsAdded} validated building elements to building storey`);
+      }
+    }
   }
   return node;
 }
@@ -910,27 +964,31 @@ export function IFCModel({ modelData, outlineLayer }: IFCModelProps) {
 
   // Highlighting and Classification Effects
   useEffect(() => {
-    console.log(
-      `IFCModel (${modelData.id}) - Highlighting Effect Triggered. Dependencies:`,
-      {
-        selectedElement,
-        highlightedElementsCount: highlightedElements.length,
-        classificationsKeys: Object.keys(classifications),
-        internalApiIdForEffects,
-        ifcApiAvailable: !!ifcApi,
-        meshesRefAvailable: !!meshesRef.current,
-      }
-    );
-
-    if (!meshesRef.current || internalApiIdForEffects === null || !ifcApi) {
+    if (process.env.NODE_ENV !== "production") {
       console.log(
-        `IFCModel (${modelData.id}) - Highlighting Effect: Aborting due to missing refs/id/api.`,
+        `IFCModel (${modelData.id}) - Highlighting Effect Triggered. Dependencies:`,
         {
-          meshesRefAvailable: !!meshesRef.current,
+          selectedElement,
+          highlightedElementsCount: highlightedElements.length,
+          classificationsKeys: Object.keys(classifications),
           internalApiIdForEffects,
           ifcApiAvailable: !!ifcApi,
+          meshesRefAvailable: !!meshesRef.current,
         }
       );
+    }
+
+    if (!meshesRef.current || internalApiIdForEffects === null || !ifcApi) {
+      if (process.env.NODE_ENV !== "production") {
+        console.log(
+          `IFCModel (${modelData.id}) - Highlighting Effect: Aborting due to missing refs/id/api.`,
+          {
+            meshesRefAvailable: !!meshesRef.current,
+            internalApiIdForEffects,
+            ifcApiAvailable: !!ifcApi,
+          }
+        );
+      }
       return;
     }
 
@@ -941,19 +999,23 @@ export function IFCModel({ modelData, outlineLayer }: IFCModelProps) {
     }
 
     const currentModelID = internalApiIdForEffects;
-    console.log(
-      `IFCModel (${modelData.id}) - Highlighting Effect: currentModelID = ${currentModelID}`
-    );
+    if (process.env.NODE_ENV !== "production") {
+      console.log(
+        `IFCModel (${modelData.id}) - Highlighting Effect: currentModelID = ${currentModelID}`
+      );
+    }
 
     const selectedExpressIDsInThisModel = selectedElements
       .filter((el) => el.modelID === currentModelID)
       .map((el) => el.expressID);
 
-    console.log(
-      `IFCModel (${modelData.id}) - Highlighting Effect: Selected IDs in this model = ${selectedExpressIDsInThisModel.join(',')}`,
-      `Selected Elements from context:`,
-      selectedElements
-    );
+    if (process.env.NODE_ENV !== "production") {
+      console.log(
+        `IFCModel (${modelData.id}) - Highlighting Effect: Selected IDs in this model = ${selectedExpressIDsInThisModel.join(',')}`,
+        `Selected Elements from context:`,
+        selectedElements
+      );
+    }
 
     const highlightedExpressIDsInThisModel = highlightedElements
       .filter((h) => h.modelID === currentModelID)
@@ -1096,20 +1158,25 @@ export function IFCModel({ modelData, outlineLayer }: IFCModelProps) {
 
         if (isUserExplicitlyHidden) {
           isCurrentlyVisible = false;
-          console.log(`HIDE: Element ${currentModelID}-${expressID} hidden by user filters`);
+          if (process.env.NODE_ENV !== "production") {
+            // Throttle logging heavily to prevent console spam
+            if (expressID % 1000 === 0) {
+              console.log(`HIDE: Element ${currentModelID}-${expressID} hidden by user filters (showing every 1000th)`);
+            }
+          }
         }
 
         // Step 4: Selected Element (highest priority for visibility and material)
         if (selectedExpressIDsInThisModel.includes(expressID)) {
           targetMaterial = selectionMaterial;
           isCurrentlyVisible = true;
-          console.log(`SELECT OVERRIDE: Element ${currentModelID}-${expressID} visible despite filtering because it's selected`);
+          if (process.env.NODE_ENV !== "production") {
+            console.log(`SELECT OVERRIDE: Element ${currentModelID}-${expressID} visible despite filtering because it's selected`);
+          }
         }
 
-        // Debug log for hidden elements
-        if (!isCurrentlyVisible) {
-          console.log(`RESULT: Element ${currentModelID}-${expressID} final visibility = false`);
-        }
+        // Debug log for hidden elements (throttled) - removed to reduce console spam
+        // Individual element visibility logging disabled for performance
 
         mesh.visible = isCurrentlyVisible;
 
@@ -1150,6 +1217,17 @@ export function IFCModel({ modelData, outlineLayer }: IFCModelProps) {
         }
       }
     });
+
+    // Summary logging (development only)
+    if (process.env.NODE_ENV !== "production") {
+      const visibleMeshes = Array.from(meshesRef.current.children).filter((child) =>
+        child instanceof THREE.Mesh && child.visible
+      ).length;
+      const totalMeshes = Array.from(meshesRef.current.children).filter((child) =>
+        child instanceof THREE.Mesh
+      ).length;
+      console.log(`IFCModel (${modelData.id}) - Highlighting Effect Complete: ${visibleMeshes}/${totalMeshes} meshes visible`);
+    }
   }, [
     selectedElements,
     highlightedElements,
