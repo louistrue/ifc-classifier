@@ -317,21 +317,20 @@ export class IFCElementExtractor {
     static clearCache(modelID?: number, ifcApi?: IfcAPI) {
         if (modelID !== undefined || ifcApi !== undefined) {
             const keysToDelete: string[] = [];
+            // Compute apiId upfront when ifcApi is provided
             const apiId = ifcApi ? this.getApiId(ifcApi) : null;
 
             for (const key of Array.from(this.elementCache.keys())) {
                 let shouldDelete = false;
 
-                if (apiId !== null) {
-                    // If ifcApi is provided, only delete keys with matching API prefix
-                    const expectedPrefix = modelID !== undefined ? `${apiId}-${modelID}` : `${apiId}-`;
-                    shouldDelete = key.startsWith(expectedPrefix);
+                if (ifcApi !== undefined && modelID !== undefined) {
+                    // Both provided: match exact key "${apiId}-${modelID}"
+                    shouldDelete = key === `${apiId}-${modelID}`;
                 } else if (modelID !== undefined) {
-                    // If only modelID is provided, delete keys that match the model
-                    // This includes both prefixed and non-prefixed keys (for backward compatibility)
+                    // Only modelID provided: match "-${modelID}" or exact modelID string for backward compatibility
                     shouldDelete = key.includes(`-${modelID}`) || key === modelID.toString();
-                } else {
-                    // If only ifcApi is provided, delete all keys with that API prefix
+                } else if (ifcApi !== undefined) {
+                    // Only ifcApi provided: delete all keys with that API prefix
                     shouldDelete = key.startsWith(`${apiId}-`);
                 }
 

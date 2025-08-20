@@ -255,7 +255,7 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const unsubscribe = bufferedConsole.current.subscribe((update: ConsoleUpdate) => {
       // Only show as active if we have a meaningful status (rule processing has started)
-      const isActive = update.percent < 100 && update.status && update.status.trim() !== "";
+      const isActive = update.percent < 100 && Boolean(update.status && update.status.trim() !== "");
 
       setRuleProgress({
         active: isActive,
@@ -967,7 +967,7 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
       let totalToProcess = 0;
 
       // Calculate total elements to process for progress
-      for (const [targetType, rules] of rulesByType.entries()) {
+      for (const [targetType, rules] of Array.from(rulesByType.entries())) {
         const candidateElements = elementsByType.get(targetType) || [];
         totalToProcess += candidateElements.length * rules.length;
       }
