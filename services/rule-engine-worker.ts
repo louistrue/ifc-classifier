@@ -174,7 +174,8 @@ self.onmessage = async function(e) {
           type: 'PROGRESS_UPDATE',
           payload: {
             progress,
-            status: processedElements + '/' + totalElements
+            status: processedElements + '/' + totalElements,
+            matchCount: matches.length
           }
         });
         lastProgressUpdate = processedElements;
@@ -186,15 +187,26 @@ self.onmessage = async function(e) {
       }
     }
     
-    // Send final summary only
-    const summary = 'Complete: ' + matches.length + ' matches from ' + processedElements + ' elements';
-    logs.push(summary); // Add summary to accumulated logs
-    
+    // Send final summary only (dedupe + trim logs)
+    const dedupedMatches = [];
+    const seen = new Set();
+    for (const m of matches) {
+      const key = m.elementID + '|' + m.classificationCode;
+      if (!seen.has(key)) {
+        seen.add(key);
+        dedupedMatches.push(m);
+      }
+    }
+    const summary = 'Complete: ' + dedupedMatches.length + ' matches from ' + processedElements + ' elements';
+    logs.push(summary);
+    const MAX_LOGS = 500;
+    const trimmedLogs = logs.length > MAX_LOGS ? logs.slice(-MAX_LOGS) : logs;
+
     self.postMessage({
       type: 'RULES_PROCESSED',
       payload: { 
-        matches,
-        logs: logs // Include all accumulated logs
+        matches: dedupedMatches,
+        logs: trimmedLogs
       }
     });
     
@@ -254,13 +266,25 @@ self.onmessage = async function(e) {
       }
     }
     
+    // Dedupe + trim logs for batch payload
+    const dedupedMatches = [];
+    const seen = new Set();
+    for (const m of matches) {
+      const key = m.elementID + '|' + m.classificationCode;
+      if (!seen.has(key)) {
+        seen.add(key);
+        dedupedMatches.push(m);
+      }
+    }
+    const MAX_LOGS = 500;
+    const trimmedLogs = logs.length > MAX_LOGS ? logs.slice(-MAX_LOGS) : logs;
     self.postMessage({
       type: 'BATCH_PROCESSED',
       payload: {
         batchIndex,
         totalBatches,
-        matches,
-        logs
+        matches: dedupedMatches,
+        logs: trimmedLogs
       }
     });
     

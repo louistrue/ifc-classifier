@@ -50,7 +50,7 @@ export interface Rule {
 // Define a basic type for the spatial tree node (can be expanded)
 export interface SpatialStructureNode {
   expressID: number;
-  type: string; // e.g., "IFCPROJECT", "IFCSITE", "IFCBUIILDING", etc.
+  type: string; // e.g., "IFCPROJECT", "IFCSITE", "IFCBUILDING", etc.
   children: SpatialStructureNode[];
   // You might add more properties extracted from GetSpatialStructure, like Name
   GlobalId?: any;
@@ -576,10 +576,10 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
           // Fetch all element properties once if not already fetched for this element
           if (itemProps === null && elementNode.expressID) {
             try {
-              itemProps = await getAllElementProperties(
+              itemProps = await PropertyCache.getProperties(
                 api,
                 modelID,
-                elementNode.expressID,
+                elementNode.expressID
               );
             } catch (e) {
               console.warn(
