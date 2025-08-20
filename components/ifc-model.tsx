@@ -66,8 +66,16 @@ async function getElementData(
   return nodeData;
 }
 
-// Helper function to validate if an element is contained in a specific storey
+// Helper function to validate if an element is contained in a specific storey (optimized)
 async function isElementContainedInStorey(ifcApi: IfcAPI, modelID: number, storeyID: number, elemID: number): Promise<boolean> {
+  // Reuse the optimized Set-based containment function for O(1) lookup
+  const containedElements = await getContainedElementsInStorey(ifcApi, modelID, storeyID);
+  return containedElements.has(elemID);
+}
+
+// Helper function to get all element IDs contained in a specific storey (optimized)
+async function getContainedElementsInStorey(ifcApi: IfcAPI, modelID: number, storeyID: number): Promise<Set<number>> {
+  const containedElements = new Set<number>();
   const relType = ifcApi.GetTypeCodeFromName("IFCRELCONTAINEDINSPATIALSTRUCTURE");
   const relIds = await ifcApi.GetLineIDsWithType(modelID, relType);
 
@@ -81,15 +89,18 @@ async function isElementContainedInStorey(ifcApi: IfcAPI, modelID: number, store
         rel.RelatingStructure;
 
       if (relating === storeyID && Array.isArray(rel.RelatedElements)) {
-        if (rel.RelatedElements.some((re: any) => (re?.value ?? re) === elemID)) {
-          return true;
+        for (const re of rel.RelatedElements) {
+          const elemID = re?.value ?? re;
+          if (typeof elemID === 'number') {
+            containedElements.add(elemID);
+          }
         }
       }
     } catch {
       // Continue on error
     }
   }
-  return false;
+  return containedElements;
 }
 
 // Function to recursively build the spatial structure tree
@@ -255,6 +266,13 @@ async function buildSpatialTree(
         console.log(`[buildSpatialTree] Fallback: No containment relationships found, directly querying for building elements in building storey`);
       }
 
+      // Pre-compute Set of all element IDs contained in this storey for fast lookups
+      const containedElementsSet = await getContainedElementsInStorey(ifcApi, modelID, elementID);
+
+      if (process.env.NODE_ENV !== "production") {
+        console.log(`[buildSpatialTree] Pre-computed containment set with ${containedElementsSet.size} elements`);
+      }
+
       // Get common building element types directly
       const elementTypes = [
         IFCWALL, IFCWALLSTANDARDCASE, IFCDOOR, IFCWINDOW, IFCSLAB,
@@ -287,8 +305,8 @@ async function buildSpatialTree(
             // Check if this element is already in our children
             const alreadyAdded = node.children.some(child => child.expressID === elemID);
 
-            // Validate the containment relation to this storey before adding
-            const containedHere = await isElementContainedInStorey(ifcApi, modelID, elementID, elemID);
+            // Fast containment check using pre-computed Set (replaces repeated scans)
+            const containedHere = containedElementsSet.has(elemID);
 
             if (!alreadyAdded && containedHere) {
               const elemData = await getElementData(ifcApi, modelID, elemID);

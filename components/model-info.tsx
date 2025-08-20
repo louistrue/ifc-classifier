@@ -390,7 +390,7 @@ export function ModelInfo() {
     if (selectedProps.length === 0) return null;
     if (selectedProps.length === 1) return selectedProps[0];
     const sameType = selectedProps.every((p) => p.ifcType === selectedProps[0].ifcType);
-    const base = { ...selectedProps[0], ifcType: sameType ? selectedProps[0].ifcType : undefined };
+    const base = { ...selectedProps[0], ifcType: sameType ? selectedProps[0].ifcType : null };
     const attributes = intersectRecords(selectedProps.map((p) => p.attributes || {}));
     const propertySets: Record<string, any> = {};
     const firstSets = selectedProps[0].propertySets || {};
@@ -595,13 +595,13 @@ export function ModelInfo() {
                   <span>{t('IFC Class')}:</span>
                 </div>
                 <div className="text-xs truncate text-right font-medium">
-                  {ifcType}
+                  {ifcType || 'Unknown'}
                 </div>
               </div>
             </TooltipTrigger>
             <TooltipContent side="right" align="start" className="flex flex-col gap-1 z-50 max-w-sm">
               <p className="font-medium">
-                {naturalIfcInfo.name || ifcType}
+                {naturalIfcInfo.name || ifcType || 'Unknown'}
               </p>
               {naturalIfcInfo.schemaUrl && (
                 <>

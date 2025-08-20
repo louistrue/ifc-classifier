@@ -19,6 +19,7 @@ import { parseRulesFromExcel } from "@/services/rule-import-service";
 import { exportRulesToExcel } from "@/services/rule-export-service";
 import { exportClassificationsToExcel } from "@/services/classification-export-service";
 import { parseClassificationsFromExcel } from "@/services/classification-import-service";
+import { getBufferedConsole, type ConsoleUpdate } from "@/services/buffered-console-service";
 
 // Define interfaces for progress tracking
 export interface RuleProgress {
@@ -105,7 +106,7 @@ interface IFCContextType {
     { en: string; de: string; schema?: string }
   > | null; // Added schema to type
   getNaturalIfcClassName: (
-    ifcClass: string,
+    ifcClass: string | null,
     lang?: "en" | "de",
   ) => { name: string; schemaUrl?: string }; // Updated return type
 
@@ -247,7 +248,28 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
     matchCount: 0,
   });
 
+  // Buffered console for performance
+  const bufferedConsole = useRef(getBufferedConsole());
 
+  // Subscribe to buffered console updates
+  useEffect(() => {
+    const unsubscribe = bufferedConsole.current.subscribe((update: ConsoleUpdate) => {
+      // Only show as active if we have a meaningful status (rule processing has started)
+      const isActive = update.percent < 100 && update.status && update.status.trim() !== "";
+
+      setRuleProgress({
+        active: isActive,
+        percent: update.percent,
+        status: update.status,
+        logs: update.logs,
+        matchCount: update.matchCount || 0,
+      });
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, []);
 
   // Initialize classifications with a default entry
   const [classifications, setClassifications] = useState<Record<string, any>>({
@@ -292,7 +314,7 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
   // Helper function to get natural IFC class name and schema URL
   const getNaturalIfcClassName = useCallback(
     (
-      ifcClass: string,
+      ifcClass: string | null,
       lang: "en" | "de" = "en",
     ): { name: string; schemaUrl?: string } => {
       if (!ifcClass) return { name: "Unknown Type", schemaUrl: undefined };
@@ -837,17 +859,10 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
     }
 
     console.log("IFCContext: Applying all active rules...");
-    setRuleProgress({
-      active: true,
-      percent: 0,
-      status: "Initializing rule engine...",
-      logs: [
-        "Starting rule processing...",
-        "Loading rule engine...",
-        "Preparing element data..."
-      ],
-      matchCount: 0
-    });
+    // Clear and reset buffered console for new rule processing
+    bufferedConsole.current.clear();
+    bufferedConsole.current.updateProgress("Initializing...", 0, 0);
+    bufferedConsole.current.forceFlush(); // Force immediate display
 
     // Yield to allow UI to update with initial progress
     await yieldToMainThread();
@@ -904,11 +919,11 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
 
     // Minimal logging for performance
     console.log(`IFCContext: Applying ${activeRules.length} rules to ${loadedModels.length} models`);
-    setRuleProgress((p) => ({
-      ...p,
-      status: `Processing ${activeRules.length} rule(s) on ${loadedModels.length} model(s)...`,
-      logs: [...p.logs, `Found ${activeRules.length} active rules to process`, `Processing ${loadedModels.length} model(s)...`]
-    }));
+    bufferedConsole.current.updateProgress(
+      `${activeRules.length} rules, ${loadedModels.length} models`,
+      5
+    );
+    bufferedConsole.current.forceFlush(); // Ensure immediate visibility
 
     // Responsive batch rule processing function with progress updates
     const processBatchRules = async (
@@ -917,7 +932,9 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
       allModelElements: Array<{ expressID: number; type: string; children: any[] }>,
       modelID: number,
       ifcApiInternal: IfcAPI,
-      newElementsPerClassification: Record<string, SelectedElementInfo[]>
+      newElementsPerClassification: Record<string, SelectedElementInfo[]>,
+      processedModels: number,
+      totalModels: number
     ) => {
       // Group rules by their IFC Class conditions for batch processing
       const rulesByType = new Map<string, Rule[]>();
@@ -946,15 +963,29 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
       // Process rules with type filters (FAST PATH)
       let processedRuleTypes = 0;
       const totalRuleTypes = rulesByType.size;
+      let totalProcessed = 0;
+      let totalToProcess = 0;
+
+      // Calculate total elements to process for progress
+      for (const [targetType, rules] of rulesByType.entries()) {
+        const candidateElements = elementsByType.get(targetType) || [];
+        totalToProcess += candidateElements.length * rules.length;
+      }
 
       for (const [targetType, rules] of Array.from(rulesByType.entries())) {
         const candidateElements = elementsByType.get(targetType) || [];
+        processedRuleTypes++;
 
         // Update progress for this rule type
-        setRuleProgress((p) => ({
-          ...p,
-          status: `Processing ${targetType.replace('IFC', 'Ifc')} elements (${candidateElements.length} found)...`,
-        }));
+        const baseProgress = (processedModels / totalModels) * 90;
+        const modelProgressRange = (1 / totalModels) * 90;
+        const rulePhaseStart = baseProgress + (modelProgressRange * 0.8);
+        const rulePhaseRange = modelProgressRange * 0.2;
+
+        bufferedConsole.current.updateProgress(
+          `Checking ${candidateElements.length} ${targetType.replace('IFC', 'Ifc')} elements...`,
+          Math.round(rulePhaseStart + (rulePhaseRange * (totalProcessed / Math.max(1, totalToProcess))))
+        );
 
         // Yield to allow UI update
         await yieldToMainThread();
@@ -963,17 +994,7 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
           let processedElements = 0;
           for (const elementNode of candidateElements) {
             try {
-              // Log processing activity for streaming console
-              if (processedElements % 25 === 0 && processedElements > 0) {
-                setRuleProgress((p) => {
-                  if (!p.active) return p;
-                  const newLogs = [...p.logs, `Processing ${targetType.replace('IFC', 'Ifc')} elements... (${processedElements}/${candidateElements.length})`];
-                  return {
-                    ...p,
-                    logs: newLogs.length > 100 ? newLogs.slice(-80) : newLogs,
-                  };
-                });
-              }
+              // NO LOGGING during processing for maximum performance
 
               // For simple IFC Class only rules, skip expensive property fetching
               const hasOnlyIfcClassConditions = rule.conditions.every((c: RuleCondition) => c.property === "Ifc Class");
@@ -1017,27 +1038,26 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
                   existing.push(elementInfo);
                 }
 
-                // Stream log feed for UI console (more frequent updates)
-                setRuleProgress((p) => {
-                  if (!p.active) return p;
-                  // Log every 10th match to show streaming activity
-                  if (elementNode.expressID % 10 === 0) {
-                    const newLogs = [...p.logs, `✓ ${targetType.replace('IFC', 'Ifc')} → ${rule.classificationCode} (#${elementNode.expressID})`];
-                    return {
-                      ...p,
-                      logs: newLogs.length > 100 ? newLogs.slice(-80) : newLogs,
-                    };
-                  }
-                  return p;
-                });
+                // NO LOGGING during processing for maximum performance
               }
             } catch (error) {
               // Silent error handling for performance
             }
 
             processedElements++;
-            // Yield every 50 elements to keep UI responsive
-            if (processedElements % 50 === 0) {
+            totalProcessed++;
+
+            // Update progress and yield more frequently for large sets
+            if (processedElements % 1000 === 0 || (candidateElements.length > 10000 && processedElements % 500 === 0)) {
+              const baseProgress = (processedModels / totalModels) * 90;
+              const modelProgressRange = (1 / totalModels) * 90;
+              const rulePhaseStart = baseProgress + (modelProgressRange * 0.8);
+              const rulePhaseRange = modelProgressRange * 0.2;
+
+              bufferedConsole.current.updateProgress(
+                `Processing ${targetType.replace('IFC', 'Ifc')} (${processedElements}/${candidateElements.length})...`,
+                Math.round(rulePhaseStart + (rulePhaseRange * (totalProcessed / Math.max(1, totalToProcess))))
+              );
               await yieldToMainThread();
             }
           }
@@ -1046,10 +1066,7 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
 
       // Process rules without type filters (slower path)
       for (const rule of rulesWithoutTypeFilter) {
-        setRuleProgress((p) => ({
-          ...p,
-          status: `Processing rule "${rule.name}" on all elements...`,
-        }));
+        // Minimal progress update
 
         await yieldToMainThread();
 
@@ -1094,18 +1111,30 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
     for (const model of loadedModels) {
       if (model.modelID == null) continue;
 
-      // Update progress for model processing
-      setRuleProgress((p) => ({
-        ...p,
-        status: `Loading model ${processedModels + 1}/${totalModels}...`,
-        percent: Math.round((processedModels / totalModels) * 90), // Reserve 10% for final processing
-        logs: [...p.logs, `Loading model ${processedModels + 1}/${totalModels}...`]
-      }));
+      // Update progress for model processing - simplified
+      const modelProgress = Math.round((processedModels / totalModels) * 90);
+      bufferedConsole.current.updateProgress(
+        `Model ${processedModels + 1}/${totalModels}`,
+        modelProgress
+      );
 
       await yieldToMainThread();
 
-      // OPTIMIZED: Get ALL elements with minimal logging
-      const allIfcElements = IFCElementExtractor.getAllElements(ifcApiInternal, model.modelID);
+      // OPTIMIZED: Get ALL elements with progress reporting
+      const allIfcElements = IFCElementExtractor.getAllElements(
+        ifcApiInternal,
+        model.modelID,
+        (percent: number, message: string) => {
+          // Report element extraction progress (0-80% of this model's progress)
+          const baseProgress = (processedModels / totalModels) * 90;
+          const modelProgressRange = (1 / totalModels) * 90;
+          const currentProgress = baseProgress + (modelProgressRange * percent / 100 * 0.8);
+          bufferedConsole.current.updateProgress(
+            `Loading: ${message}`,
+            Math.round(currentProgress)
+          );
+        }
+      );
 
       // Convert to the expected format (optimized)
       const allModelElements = allIfcElements.map(element => ({
@@ -1114,11 +1143,7 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
         children: [] // Not needed for rule matching
       }));
 
-      // Log element count
-      setRuleProgress((p) => ({
-        ...p,
-        logs: [...p.logs, `Found ${allModelElements.length} elements in model ${processedModels + 1}`]
-      }));
+      // NO LOGGING - just process
 
       // Group elements by type for faster rule matching
       const elementsByType = new Map<string, typeof allModelElements>();
@@ -1130,6 +1155,16 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
         elementsByType.get(typeUpper)!.push(element);
       }
 
+      // Update progress for rule processing phase (80-100% of this model)
+      const baseProgress = (processedModels / totalModels) * 90;
+      const modelProgressRange = (1 / totalModels) * 90;
+      const ruleProcessingStart = baseProgress + (modelProgressRange * 0.8);
+
+      bufferedConsole.current.updateProgress(
+        `Applying rules...`,
+        Math.round(ruleProcessingStart)
+      );
+
       // ULTRA-FAST: Batch process rules with smart filtering
       await processBatchRules(
         activeRules,
@@ -1137,29 +1172,24 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
         allModelElements,
         model.modelID,
         ifcApiInternal,
-        newElementsPerClassification
+        newElementsPerClassification,
+        processedModels,
+        totalModels
       );
 
       processedModels += 1;
-      const percent = Math.round((processedModels / totalModels) * 90); // Reserve 10% for final processing
-      setRuleProgress((p) => ({
-        active: true,
-        percent,
-        status: `Completed model ${processedModels}/${totalModels}...`,
-        logs: p.logs.length > 150 ? p.logs.slice(-120) : p.logs,
-        matchCount: p.matchCount,
-      }));
+      const percent = Math.round((processedModels / totalModels) * 90);
+      bufferedConsole.current.updateProgress(
+        `Model ${processedModels}/${totalModels} complete`,
+        percent
+      );
 
       // Yield after each model
       await yieldToMainThread();
     }
 
     // Final progress update
-    setRuleProgress((p) => ({
-      ...p,
-      percent: 95,
-      status: "Finalizing results...",
-    }));
+    bufferedConsole.current.updateProgress("Finalizing...", 95);
 
     await yieldToMainThread();
 
@@ -1189,24 +1219,28 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
         console.log(
           "IFCContext: Finished applying all active rules. Classifications updated.",
         );
-        setRuleProgress({
-          active: false,
-          percent: 100,
-          status: `Complete! Found ${totalMatches} matches`,
-          logs: [],
-          matchCount: totalMatches
-        });
+        // Show final summary only
+        bufferedConsole.current.clear();
+        bufferedConsole.current.addLog(`✓ Complete: ${totalMatches} matches found`);
+        bufferedConsole.current.updateProgress(
+          `${totalMatches} matches`,
+          100,
+          totalMatches
+        );
+        bufferedConsole.current.forceFlush();
       } else {
         console.log(
           "IFCContext: Finished applying all active rules. No changes to classifications elements.",
         );
-        setRuleProgress({
-          active: false,
-          percent: 100,
-          status: "Complete! No new matches found",
-          logs: [],
-          matchCount: 0
-        });
+        // Show final summary only
+        bufferedConsole.current.clear();
+        bufferedConsole.current.addLog("✓ Complete: No matches found");
+        bufferedConsole.current.updateProgress(
+          "No matches",
+          100,
+          0
+        );
+        bufferedConsole.current.forceFlush();
       }
       return updatedClassifications;
     });
@@ -1251,7 +1285,7 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
         "No active rules found, skipping automatic rule application.",
       );
       // Clear any existing rule progress if no active rules
-      setRuleProgress({ active: false, percent: 0, status: "", logs: [], matchCount: 0 });
+      bufferedConsole.current.clear();
     }
   }, [modelsReadyKey, rulesKey, applyAllActiveRules, rules]);
 
