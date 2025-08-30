@@ -1,0 +1,1436 @@
+[
+  {
+    "code": "A01.01",
+    "name": "Acquisition du terrain",
+    "color": "#0e5b48",
+    "elements": []
+  },
+  {
+    "code": "A01.02",
+    "name": "Acquisition du droit de superficie",
+    "color": "#c5b621",
+    "elements": []
+  },
+  {
+    "code": "A01.03",
+    "name": "Acquisition de bâtiments et d'ouvrages",
+    "color": "#a7d277",
+    "elements": []
+  },
+  {
+    "code": "A01.04",
+    "name": "Participation des bordiers",
+    "color": "#9406a8",
+    "elements": []
+  },
+  {
+    "code": "A02.01",
+    "name": "Droit de mutation, impôts sur le gain immobilier",
+    "color": "#ef9d4e",
+    "elements": []
+  },
+  {
+    "code": "A02.02",
+    "name": "Frais de notaire",
+    "color": "#65afb5",
+    "elements": []
+  },
+  {
+    "code": "A02.03",
+    "name": "Taxes d'inscription au registre foncier",
+    "color": "#3cbda7",
+    "elements": []
+  },
+  {
+    "code": "A02.04",
+    "name": "Frais d'avocat, frais de justice",
+    "color": "#591e15",
+    "elements": []
+  },
+  {
+    "code": "A02.05",
+    "name": "Commissions aux intermédiaires",
+    "color": "#c342f8",
+    "elements": []
+  },
+  {
+    "code": "A02.06",
+    "name": "Indemnisation, bornage",
+    "color": "#173607",
+    "elements": []
+  },
+  {
+    "code": "A02.07",
+    "name": "Topométrie, bornage",
+    "color": "#659556",
+    "elements": []
+  },
+  {
+    "code": "B01.01",
+    "name": "Etudes géotechniques",
+    "color": "#5a0119",
+    "elements": []
+  },
+  {
+    "code": "B01.02",
+    "name": "Relevé",
+    "color": "#be33c2",
+    "elements": []
+  },
+  {
+    "code": "B01.03",
+    "name": "Mesures relatives à l'environnement",
+    "color": "#ca1e8b",
+    "elements": []
+  },
+  {
+    "code": "B01.04",
+    "name": "Surveillance",
+    "color": "#765f4c",
+    "elements": []
+  },
+  {
+    "code": "B02.01",
+    "name": "Dessertes de chantier",
+    "color": "#ded3bb",
+    "elements": []
+  },
+  {
+    "code": "B02.02",
+    "name": "Alimentation, élimination",
+    "color": "#6f480a",
+    "elements": []
+  },
+  {
+    "code": "B02.03",
+    "name": "Ateliers, réfectoires",
+    "color": "#0d32fb",
+    "elements": []
+  },
+  {
+    "code": "B02.04",
+    "name": "Equipments de levage, de chargement, de transport et de stockage",
+    "color": "#d3b2b4",
+    "elements": []
+  },
+  {
+    "code": "B02.05",
+    "name": "Equipements de préparation des matériaux",
+    "color": "#405588",
+    "elements": []
+  },
+  {
+    "code": "B02.06",
+    "name": "Mesures à prendre liées aux conditions météorologiques",
+    "color": "#d90842",
+    "elements": []
+  },
+  {
+    "code": "B02.07",
+    "name": "Organisation du chantier, sécurisation",
+    "color": "#ef2b0c",
+    "elements": []
+  },
+  {
+    "code": "B02.08",
+    "name": "Mesures de protection des abords",
+    "color": "#a2bf14",
+    "elements": []
+  },
+  {
+    "code": "B03.01",
+    "name": "Dispositifs de retenue provisoires",
+    "color": "#7e00bd",
+    "elements": []
+  },
+  {
+    "code": "B03.02",
+    "name": "Canalisations et conduites provisoires",
+    "color": "#910b54",
+    "elements": []
+  },
+  {
+    "code": "B03.03",
+    "name": "Bâtiments provisoires",
+    "color": "#061947",
+    "elements": []
+  },
+  {
+    "code": "B03.04",
+    "name": "Infrastructures de transport provisoires",
+    "color": "#d23af2",
+    "elements": []
+  },
+  {
+    "code": "B03.05",
+    "name": "Aménagements provisoires, équipements",
+    "color": "#5f3867",
+    "elements": []
+  },
+  {
+    "code": "B04.01",
+    "name": "Lignes à courant fort",
+    "color": "#cddf46",
+    "elements": []
+  },
+  {
+    "code": "B04.02",
+    "name": "Lignes à courant faible",
+    "color": "#b073cb",
+    "elements": []
+  },
+  {
+    "code": "B04.03",
+    "name": "Conduites de chauffage à distance",
+    "color": "#37df9d",
+    "elements": []
+  },
+  {
+    "code": "B04.04",
+    "name": "Conduites de refroidissement à distance",
+    "color": "#921b59",
+    "elements": []
+  },
+  {
+    "code": "B04.05",
+    "name": "Conduites d'eau",
+    "color": "#a35174",
+    "elements": []
+  },
+  {
+    "code": "B04.06",
+    "name": "Conduites d'eaux usées",
+    "color": "#27e31d",
+    "elements": []
+  },
+  {
+    "code": "B04.07",
+    "name": "Conduites d'eaux pluviales",
+    "color": "#5f3030",
+    "elements": []
+  },
+  {
+    "code": "B04.08",
+    "name": "Conduites de gaz",
+    "color": "#54bdda",
+    "elements": []
+  },
+  {
+    "code": "B05.01",
+    "name": "Abattage, défrichement, transplantation",
+    "color": "#418a9b",
+    "elements": []
+  },
+  {
+    "code": "B05.02",
+    "name": "Déconstruction d'ouvrages (tout ou parties) non contaminés",
+    "color": "#e7bb7e",
+    "elements": []
+  },
+  {
+    "code": "B05.03",
+    "name": "Déconstruction d'ouvrages (tout ou parties) contaminés",
+    "color": "#bc99e3",
+    "elements": []
+  },
+  {
+    "code": "B06.01",
+    "name": "Excavations, déblais non contaminés",
+    "color": "#bc3b42",
+    "elements": []
+  },
+  {
+    "code": "B06.02",
+    "name": "Excavations, déblais contaminés",
+    "color": "#14b6a4",
+    "elements": []
+  },
+  {
+    "code": "B06.03",
+    "name": "Stabilisation de talus",
+    "color": "#d4b117",
+    "elements": []
+  },
+  {
+    "code": "B06.04",
+    "name": "Enceintes de fouilles",
+    "color": "#29d2f5",
+    "elements": []
+  },
+  {
+    "code": "B06.05",
+    "name": "Remblayages",
+    "color": "#059c9f",
+    "elements": []
+  },
+  {
+    "code": "B06.06",
+    "name": "Epuisement des eaux",
+    "color": "#d1b8da",
+    "elements": []
+  },
+  {
+    "code": "B07.01",
+    "name": "Amélioration du sol de fondation",
+    "color": "#5f0049",
+    "elements": []
+  },
+  {
+    "code": "B07.02",
+    "name": "Pieux de fondation",
+    "color": "#98f198",
+    "elements": []
+  },
+  {
+    "code": "B07.03",
+    "name": "Reprises en sous-oeuvre de l'ouvrage",
+    "color": "#06aaf3",
+    "elements": []
+  },
+  {
+    "code": "B07.04",
+    "name": "Soutènements d'ouvrage",
+    "color": "#d8d210",
+    "elements": []
+  },
+  {
+    "code": "B08.01",
+    "name": "Echafaudages de façade",
+    "color": "#ad98ea",
+    "elements": []
+  },
+  {
+    "code": "B08.02",
+    "name": "Echafaudages de service",
+    "color": "#5de5d0",
+    "elements": []
+  },
+  {
+    "code": "B08.03",
+    "name": "Toits provisoires",
+    "color": "#beb4db",
+    "elements": []
+  },
+  {
+    "code": "B08.04",
+    "name": "Echafaudages de protection",
+    "color": "#018c35",
+    "elements": []
+  },
+  {
+    "code": "B09.01",
+    "name": "Adaptations structurelles d'ouvrages attenants",
+    "color": "#1eb9cb",
+    "elements": []
+  },
+  {
+    "code": "B09.02",
+    "name": "Reprises en sous-oeuvre, protections d'ouvrages attenants",
+    "color": "#6b900a",
+    "elements": []
+  },
+  {
+    "code": "B09.03",
+    "name": "Infrastructures de transport en dehors de la parcelle",
+    "color": "#8fa252",
+    "elements": []
+  },
+  {
+    "code": "C01.01",
+    "name": "Supports de fondations, radiers, dalles de sol",
+    "color": "#57cc0d",
+    "elements": []
+  },
+  {
+    "code": "C01.02",
+    "name": "Fondations",
+    "color": "#6f5a35",
+    "elements": []
+  },
+  {
+    "code": "C01.03",
+    "name": "Dalles de sol, radiers",
+    "color": "#6187bd",
+    "elements": []
+  },
+  {
+    "code": "C01.04",
+    "name": "Escaliers ou rampes en contact avec le sol",
+    "color": "#29aa7e",
+    "elements": []
+  },
+  {
+    "code": "C01.05",
+    "name": "Paliers en contact avec le sol",
+    "color": "#3260ca",
+    "elements": []
+  },
+  {
+    "code": "C02.01",
+    "name": "Parois porteuses extérieures",
+    "color": "#2787ff",
+    "elements": []
+  },
+  {
+    "code": "C02.02",
+    "name": "Parois porteuses intérieures",
+    "color": "#9d987a",
+    "elements": []
+  },
+  {
+    "code": "C03.01",
+    "name": "Piliers extérieurs",
+    "color": "#48a1ae",
+    "elements": []
+  },
+  {
+    "code": "C03.02",
+    "name": "Piliers intérieurs",
+    "color": "#fca0fb",
+    "elements": []
+  },
+  {
+    "code": "C04.01",
+    "name": "Planchers",
+    "color": "#396b76",
+    "elements": []
+  },
+  {
+    "code": "C04.02",
+    "name": "Escaliers et rampes intérieurs",
+    "color": "#b11736",
+    "elements": []
+  },
+  {
+    "code": "C04.03",
+    "name": "Paliers intérieurs",
+    "color": "#d647f2",
+    "elements": []
+  },
+  {
+    "code": "C04.04",
+    "name": "Structures porteuses de toitures plates",
+    "color": "#c75686",
+    "elements": []
+  },
+  {
+    "code": "C04.05",
+    "name": "Structures porteuses de toitures inclinées",
+    "color": "#347847",
+    "elements": []
+  },
+  {
+    "code": "C04.06",
+    "name": "Escaliers et rampes extérieurs",
+    "color": "#263ab0",
+    "elements": []
+  },
+  {
+    "code": "C04.07",
+    "name": "Paliers extérieurs",
+    "color": "#c6e3fc",
+    "elements": []
+  },
+  {
+    "code": "C04.08",
+    "name": "Structures porteuses extérieures, avant-toits",
+    "color": "#05668e",
+    "elements": []
+  },
+  {
+    "code": "C05.01",
+    "name": "Percement et saignées dans le gros œuvre",
+    "color": "#d5c442",
+    "elements": []
+  },
+  {
+    "code": "C05.02",
+    "name": "Socles de machines, incorporés",
+    "color": "#ab2f1b",
+    "elements": []
+  },
+  {
+    "code": "D01.01",
+    "name": "Equipements de production de courant fort",
+    "color": "#46d046",
+    "elements": []
+  },
+  {
+    "code": "D01.02",
+    "name": "Transformation de courant fort",
+    "color": "#ac50d9",
+    "elements": []
+  },
+  {
+    "code": "D01.03",
+    "name": "Accumulation de courant fort",
+    "color": "#7f06a5",
+    "elements": []
+  },
+  {
+    "code": "D01.04",
+    "name": "Installations à courant fort",
+    "color": "#8da625",
+    "elements": []
+  },
+  {
+    "code": "D01.05",
+    "name": "Récepteurs courant fort: luminaires",
+    "color": "#7e7b8e",
+    "elements": []
+  },
+  {
+    "code": "D01.06",
+    "name": "Récepteurs courant fort: appareils électriques",
+    "color": "#a2ba2b",
+    "elements": []
+  },
+  {
+    "code": "D01.07",
+    "name": "Equipements de production de courant faible",
+    "color": "#abeb30",
+    "elements": []
+  },
+  {
+    "code": "D01.08",
+    "name": "Transformation de courant faible",
+    "color": "#f84e4b",
+    "elements": []
+  },
+  {
+    "code": "D01.09",
+    "name": "Accumulation de courant faible",
+    "color": "#725005",
+    "elements": []
+  },
+  {
+    "code": "D01.10",
+    "name": "Installations à courant faible",
+    "color": "#966027",
+    "elements": []
+  },
+  {
+    "code": "D01.11",
+    "name": "Récepteurs de courant faible",
+    "color": "#0b86bc",
+    "elements": []
+  },
+  {
+    "code": "D02.01",
+    "name": "Niveau de gestion",
+    "color": "#6e0ff8",
+    "elements": []
+  },
+  {
+    "code": "D02.02",
+    "name": "Niveau d'automation",
+    "color": "#fd4d7f",
+    "elements": []
+  },
+  {
+    "code": "D02.03",
+    "name": "Niveau des périphériques",
+    "color": "#0769fe",
+    "elements": []
+  },
+  {
+    "code": "D02.04",
+    "name": "Gestion d'ambiance",
+    "color": "#77a9c8",
+    "elements": []
+  },
+  {
+    "code": "D02.05",
+    "name": "Réseau d'automation",
+    "color": "#f118ef",
+    "elements": []
+  },
+  {
+    "code": "D02.06",
+    "name": "Ensemble d'appareillages",
+    "color": "#718f58",
+    "elements": []
+  },
+  {
+    "code": "D02.07",
+    "name": "Intégration du système",
+    "color": "#939628",
+    "elements": []
+  },
+  {
+    "code": "D03.01",
+    "name": "Installations de détection d'effractions et d'agressions",
+    "color": "#aa7086",
+    "elements": []
+  },
+  {
+    "code": "D03.02",
+    "name": "Installations de contrôle d'accès",
+    "color": "#b45c38",
+    "elements": []
+  },
+  {
+    "code": "D03.03",
+    "name": "Installations de surveillance vidéo",
+    "color": "#6c91eb",
+    "elements": []
+  },
+  {
+    "code": "D03.04",
+    "name": "Systèmes de verrouillage",
+    "color": "#827566",
+    "elements": []
+  },
+  {
+    "code": "D04.01",
+    "name": "Installations de détection d'incendie",
+    "color": "#1d80f0",
+    "elements": []
+  },
+  {
+    "code": "D04.02",
+    "name": "Installations de détection de gaz",
+    "color": "#84d236",
+    "elements": []
+  },
+  {
+    "code": "D04.03",
+    "name": "Installations d'extinction à l'eau",
+    "color": "#7ab715",
+    "elements": []
+  },
+  {
+    "code": "D04.04",
+    "name": "Installations d'extinction à sec",
+    "color": "#a038cf",
+    "elements": []
+  },
+  {
+    "code": "D04.05",
+    "name": "Extincteurs",
+    "color": "#f06c87",
+    "elements": []
+  },
+  {
+    "code": "D04.06",
+    "name": "Installations d'évacuation de fumée et de chaleur",
+    "color": "#d2214b",
+    "elements": []
+  },
+  {
+    "code": "D04.07",
+    "name": "Installations de haut-parleurs électro-acoustiques",
+    "color": "#6943d7",
+    "elements": []
+  },
+  {
+    "code": "D05.01",
+    "name": "Sources de chaleur, puits de chaleur, silos à combustibles",
+    "color": "#ffae53",
+    "elements": []
+  },
+  {
+    "code": "D05.02",
+    "name": "Production de chaleur",
+    "color": "#833574",
+    "elements": []
+  },
+  {
+    "code": "D05.03",
+    "name": "Accumulation de chaleur",
+    "color": "#20d11e",
+    "elements": []
+  },
+  {
+    "code": "D05.04",
+    "name": "Distribution de chaleur",
+    "color": "#55453d",
+    "elements": []
+  },
+  {
+    "code": "D05.05",
+    "name": "Emission de chaleur",
+    "color": "#c1e7cd",
+    "elements": []
+  },
+  {
+    "code": "D05.06",
+    "name": "Consommation de chaleur: part d'investissement",
+    "color": "#9fa13c",
+    "elements": []
+  },
+  {
+    "code": "D06.01",
+    "name": "Sources de froid, puits de froid, silos à combustibles",
+    "color": "#2da9ae",
+    "elements": []
+  },
+  {
+    "code": "D06.02",
+    "name": "Production de froid",
+    "color": "#62d14b",
+    "elements": []
+  },
+  {
+    "code": "D06.03",
+    "name": "Accumulation de froid",
+    "color": "#8eaca6",
+    "elements": []
+  },
+  {
+    "code": "D06.04",
+    "name": "Distribution de froid",
+    "color": "#507310",
+    "elements": []
+  },
+  {
+    "code": "D06.05",
+    "name": "Emission de froid",
+    "color": "#cc2999",
+    "elements": []
+  },
+  {
+    "code": "D06.06",
+    "name": "Consommation de froid: part d'investissement",
+    "color": "#37d238",
+    "elements": []
+  },
+  {
+    "code": "D07.01",
+    "name": "Amenée d'air neuf, évacuation d'air",
+    "color": "#a99268",
+    "elements": []
+  },
+  {
+    "code": "D07.02",
+    "name": "Conditionnement d'air",
+    "color": "#3d14db",
+    "elements": []
+  },
+  {
+    "code": "D07.03",
+    "name": "Accumulation de chaleur d'air",
+    "color": "#3c5e18",
+    "elements": []
+  },
+  {
+    "code": "D07.04",
+    "name": "Distribution d'air",
+    "color": "#112a18",
+    "elements": []
+  },
+  {
+    "code": "D07.05",
+    "name": "Emission d'air",
+    "color": "#53da19",
+    "elements": []
+  },
+  {
+    "code": "D07.06",
+    "name": "Air: part d'investissement",
+    "color": "#60e64b",
+    "elements": []
+  },
+  {
+    "code": "D08.01",
+    "name": "Alimentation en eau",
+    "color": "#614eec",
+    "elements": []
+  },
+  {
+    "code": "D08.02",
+    "name": "Traitement de l'eau",
+    "color": "#115759",
+    "elements": []
+  },
+  {
+    "code": "D08.03",
+    "name": "Accumulation de l'eau",
+    "color": "#52acda",
+    "elements": []
+  },
+  {
+    "code": "D08.04",
+    "name": "Distribution de l'eau",
+    "color": "#dbb9fe",
+    "elements": []
+  },
+  {
+    "code": "D08.05",
+    "name": "Eau: robinetterie, appareils",
+    "color": "#b10789",
+    "elements": []
+  },
+  {
+    "code": "D08.06",
+    "name": "Eau: éléments d'installation",
+    "color": "#6088fe",
+    "elements": []
+  },
+  {
+    "code": "D09.01",
+    "name": "Evacuation des eaux usées",
+    "color": "#1c18c9",
+    "elements": []
+  },
+  {
+    "code": "D09.02",
+    "name": "Traitement des eaux usées",
+    "color": "#e7083d",
+    "elements": []
+  },
+  {
+    "code": "D09.03",
+    "name": "Accumulation des eaux usées",
+    "color": "#6dcc99",
+    "elements": []
+  },
+  {
+    "code": "D09.04",
+    "name": "Collecte des eaux usées",
+    "color": "#a060d8",
+    "elements": []
+  },
+  {
+    "code": "D09.05",
+    "name": "Eaux usées: robinetterie, appareils",
+    "color": "#a66233",
+    "elements": []
+  },
+  {
+    "code": "D10.01",
+    "name": "Alimentation en gaz",
+    "color": "#b91bca",
+    "elements": []
+  },
+  {
+    "code": "D10.02",
+    "name": "Traitement du gaz",
+    "color": "#63e4f5",
+    "elements": []
+  },
+  {
+    "code": "D10.03",
+    "name": "Accumulation du gaz",
+    "color": "#b0b906",
+    "elements": []
+  },
+  {
+    "code": "D10.04",
+    "name": "Distribution de gaz",
+    "color": "#dd4314",
+    "elements": []
+  },
+  {
+    "code": "D10.05",
+    "name": "Gaz: robinetterie, appareils",
+    "color": "#980c69",
+    "elements": []
+  },
+  {
+    "code": "D11.01",
+    "name": "Agents et fluides spéciaux: alimentation, évacuation",
+    "color": "#e1f6ae",
+    "elements": []
+  },
+  {
+    "code": "D11.02",
+    "name": "Agents et fluides spéciaux: traitement",
+    "color": "#84e7ea",
+    "elements": []
+  },
+  {
+    "code": "D11.03",
+    "name": "Agents et fluides spéciaux: accumulation",
+    "color": "#cf4e07",
+    "elements": []
+  },
+  {
+    "code": "D11.04",
+    "name": "Agents et fluides spéciaux: distribution",
+    "color": "#f8a86d",
+    "elements": []
+  },
+  {
+    "code": "D11.05",
+    "name": "Agents et fluides spéciaux: robinetterie, appareils",
+    "color": "#14622d",
+    "elements": []
+  },
+  {
+    "code": "D12.01",
+    "name": "Ascenseurs",
+    "color": "#53e3a2",
+    "elements": []
+  },
+  {
+    "code": "D12.02",
+    "name": "Ascenseurs de charge et de service",
+    "color": "#72d111",
+    "elements": []
+  },
+  {
+    "code": "D12.03",
+    "name": "Ascenseurs spéciaux",
+    "color": "#d7fb77",
+    "elements": []
+  },
+  {
+    "code": "D12.04",
+    "name": "Escaliers mécaniques",
+    "color": "#92cfa8",
+    "elements": []
+  },
+  {
+    "code": "D12.05",
+    "name": "Trottoirs roulants",
+    "color": "#1016fa",
+    "elements": []
+  },
+  {
+    "code": "D12.06",
+    "name": "Dispositifs de levage, stations de chargement",
+    "color": "#f5645d",
+    "elements": []
+  },
+  {
+    "code": "E01.01",
+    "name": "Etanchéités contre terre",
+    "color": "#da1623",
+    "elements": []
+  },
+  {
+    "code": "E01.02",
+    "name": "Isolations thermiques contre terre",
+    "color": "#2301cd",
+    "elements": []
+  },
+  {
+    "code": "E01.03",
+    "name": "Couches de protection contre terre",
+    "color": "#efe9b8",
+    "elements": []
+  },
+  {
+    "code": "E02.01",
+    "name": "Crépis",
+    "color": "#beeb1e",
+    "elements": []
+  },
+  {
+    "code": "E02.02",
+    "name": "Systèmes d'isolation thermique extérieure",
+    "color": "#8681fd",
+    "elements": []
+  },
+  {
+    "code": "E02.03",
+    "name": "Bardages",
+    "color": "#ff3d67",
+    "elements": []
+  },
+  {
+    "code": "E02.04",
+    "name": "Systèmes de façade, façades légères",
+    "color": "#8a9bbc",
+    "elements": []
+  },
+  {
+    "code": "E02.05",
+    "name": "Revêtements de plafonds extérieurs",
+    "color": "#058840",
+    "elements": []
+  },
+  {
+    "code": "E02.06",
+    "name": "Dispositifs antichute extérieurs",
+    "color": "#5ba9e5",
+    "elements": []
+  },
+  {
+    "code": "E03.01",
+    "name": "Fenêtres",
+    "color": "#7862ac",
+    "elements": []
+  },
+  {
+    "code": "E03.02",
+    "name": "Portes extérieures pour personnes",
+    "color": "#cffc8d",
+    "elements": []
+  },
+  {
+    "code": "E03.03",
+    "name": "Portes extérieures pour véhicules",
+    "color": "#9af9cf",
+    "elements": []
+  },
+  {
+    "code": "E03.04",
+    "name": "Protections contre le soleil, contre les intempéries",
+    "color": "#0be369",
+    "elements": []
+  },
+  {
+    "code": "E03.05",
+    "name": "Dispositifs antichute",
+    "color": "#44ac4c",
+    "elements": []
+  },
+  {
+    "code": "F01.01",
+    "name": "Etanchéités enterrées",
+    "color": "#3e6490",
+    "elements": []
+  },
+  {
+    "code": "F01.02",
+    "name": "Toitures plates",
+    "color": "#aab5c0",
+    "elements": []
+  },
+  {
+    "code": "F01.03",
+    "name": "Toitures inclinées",
+    "color": "#a46a53",
+    "elements": []
+  },
+  {
+    "code": "F01.04",
+    "name": "Systèmes de toiture, toitures légères",
+    "color": "#2a27b9",
+    "elements": []
+  },
+  {
+    "code": "F02.01",
+    "name": "Eléments incorporés dans toitures plates",
+    "color": "#3d13b7",
+    "elements": []
+  },
+  {
+    "code": "F02.02",
+    "name": "Eléments incorporés dans toitures inclinées",
+    "color": "#f27ecb",
+    "elements": []
+  },
+  {
+    "code": "F02.03",
+    "name": "Installations de protection incorporées dans toitures",
+    "color": "#e3c2fb",
+    "elements": []
+  },
+  {
+    "code": "G01.01",
+    "name": "Cloisons fixes",
+    "color": "#974a86",
+    "elements": []
+  },
+  {
+    "code": "G01.02",
+    "name": "Cloisons mobiles",
+    "color": "#7522a0",
+    "elements": []
+  },
+  {
+    "code": "G01.03",
+    "name": "Cloisons de gaines",
+    "color": "#24b00e",
+    "elements": []
+  },
+  {
+    "code": "G01.04",
+    "name": "Fenêtres intérieures",
+    "color": "#535b07",
+    "elements": []
+  },
+  {
+    "code": "G01.05",
+    "name": "Portes intérieures, pour personnes",
+    "color": "#c3b2be",
+    "elements": []
+  },
+  {
+    "code": "G01.06",
+    "name": "Portes intérieures, pour véhicules",
+    "color": "#9078cd",
+    "elements": []
+  },
+  {
+    "code": "G02.01",
+    "name": "Supports pour revêtements de sols",
+    "color": "#c99b05",
+    "elements": []
+  },
+  {
+    "code": "G02.02",
+    "name": "Revêtements de sols",
+    "color": "#5d1746",
+    "elements": []
+  },
+  {
+    "code": "G03.01",
+    "name": "Supports pour revêtements de parois",
+    "color": "#75b239",
+    "elements": []
+  },
+  {
+    "code": "G03.02",
+    "name": "Revêtements de parois",
+    "color": "#f09999",
+    "elements": []
+  },
+  {
+    "code": "G04.01",
+    "name": "Supports pour faux-plafonds",
+    "color": "#2920d5",
+    "elements": []
+  },
+  {
+    "code": "G04.02",
+    "name": "Faux-plafonds",
+    "color": "#df02da",
+    "elements": []
+  },
+  {
+    "code": "G05.01",
+    "name": "Placards, étagères, tablettes",
+    "color": "#4430d6",
+    "elements": []
+  },
+  {
+    "code": "G05.02",
+    "name": "Agencements de cuisines",
+    "color": "#7f4065",
+    "elements": []
+  },
+  {
+    "code": "G05.03",
+    "name": "Habillages intérieurs de fenêtres",
+    "color": "#150fbc",
+    "elements": []
+  },
+  {
+    "code": "G05.04",
+    "name": "Dispositifs intérieurs de fermeture",
+    "color": "#d337cb",
+    "elements": []
+  },
+  {
+    "code": "G05.05",
+    "name": "Dispositifs de protection antichute et contre les chocs",
+    "color": "#81f74f",
+    "elements": []
+  },
+  {
+    "code": "G05.06",
+    "name": "Composants spéciaux",
+    "color": "#3dc05c",
+    "elements": []
+  },
+  {
+    "code": "G05.07",
+    "name": "Accessoires, équipements d'abri de protection civile",
+    "color": "#de2a75",
+    "elements": []
+  },
+  {
+    "code": "G06.01",
+    "name": "Percements et saignées dans aménagements intérieurs",
+    "color": "#1634f5",
+    "elements": []
+  },
+  {
+    "code": "G06.02",
+    "name": "Cloisonnements",
+    "color": "#2dcc69",
+    "elements": []
+  },
+  {
+    "code": "G06.03",
+    "name": "Nettoyage",
+    "color": "#389b06",
+    "elements": []
+  },
+  {
+    "code": "G06.04",
+    "name": "Séchages",
+    "color": "#7d824c",
+    "elements": []
+  },
+  {
+    "code": "I01.01",
+    "name": "Mise en forme du terrain",
+    "color": "#7b9295",
+    "elements": []
+  },
+  {
+    "code": "I01.02",
+    "name": "Evacuation souterraine des eaux",
+    "color": "#f8b677",
+    "elements": []
+  },
+  {
+    "code": "I02.01",
+    "name": "Consolidation de talus",
+    "color": "#c92be0",
+    "elements": []
+  },
+  {
+    "code": "I02.02",
+    "name": "Murs de soutènement",
+    "color": "#f2b712",
+    "elements": []
+  },
+  {
+    "code": "I02.03",
+    "name": "Parois libres",
+    "color": "#dedabf",
+    "elements": []
+  },
+  {
+    "code": "I02.04",
+    "name": "Escaliers, rampes",
+    "color": "#e65f26",
+    "elements": []
+  },
+  {
+    "code": "I02.05",
+    "name": "Petits ouvrages",
+    "color": "#27508a",
+    "elements": []
+  },
+  {
+    "code": "I02.06",
+    "name": "Ouvrages souterrains",
+    "color": "#54c821",
+    "elements": []
+  },
+  {
+    "code": "I02.07",
+    "name": "Dispositifs de protection antichute et contre les chocs pour les abords de bâtiments",
+    "color": "#2cac73",
+    "elements": []
+  },
+  {
+    "code": "I02.08",
+    "name": "Clôtures",
+    "color": "#b10eb7",
+    "elements": []
+  },
+  {
+    "code": "I03.01",
+    "name": "Couche végétale",
+    "color": "#3a6a40",
+    "elements": []
+  },
+  {
+    "code": "I03.02",
+    "name": "Zone de semis",
+    "color": "#36f290",
+    "elements": []
+  },
+  {
+    "code": "I03.03",
+    "name": "Plantations de surfaces, haies",
+    "color": "#e4f3fa",
+    "elements": []
+  },
+  {
+    "code": "I03.04",
+    "name": "Végétalisations verticales",
+    "color": "#a7a8db",
+    "elements": []
+  },
+  {
+    "code": "I03.05",
+    "name": "Plantations en isolé",
+    "color": "#a4598b",
+    "elements": []
+  },
+  {
+    "code": "I03.06",
+    "name": "Garnitures et bordures pour espaces verts",
+    "color": "#5afb8f",
+    "elements": []
+  },
+  {
+    "code": "I03.07",
+    "name": "Plans d'eau quasi naturels",
+    "color": "#8e7c17",
+    "elements": []
+  },
+  {
+    "code": "I03.08",
+    "name": "Techniques du génie biologique",
+    "color": "#bac6ce",
+    "elements": []
+  },
+  {
+    "code": "I03.09",
+    "name": "Mesures d'entretien jusqu'à la remise",
+    "color": "#252cd5",
+    "elements": []
+  },
+  {
+    "code": "I04.01",
+    "name": "Couches de fondation et d'assise",
+    "color": "#fdedf3",
+    "elements": []
+  },
+  {
+    "code": "I04.02",
+    "name": "Garnitures et bordures pour surfaces en dur",
+    "color": "#71c8a0",
+    "elements": []
+  },
+  {
+    "code": "I04.03",
+    "name": "Couches de roulement",
+    "color": "#13bac2",
+    "elements": []
+  },
+  {
+    "code": "I04.04",
+    "name": "Marquages au sol",
+    "color": "#53674c",
+    "elements": []
+  },
+  {
+    "code": "I05.01",
+    "name": "Installations électriques courant fort, à l'extérieur",
+    "color": "#a5dffd",
+    "elements": []
+  },
+  {
+    "code": "I05.02",
+    "name": "Installations électriques courant faible, à l'extérieur",
+    "color": "#1ea7cf",
+    "elements": []
+  },
+  {
+    "code": "I05.03",
+    "name": "Installations de chauffage, à l'extérieur",
+    "color": "#3cb445",
+    "elements": []
+  },
+  {
+    "code": "I05.04",
+    "name": "Installations de refroidissement, à l'extérieur",
+    "color": "#e99f74",
+    "elements": []
+  },
+  {
+    "code": "I05.05",
+    "name": "Installations sanitaires, à l'extérieur",
+    "color": "#2e33c9",
+    "elements": []
+  },
+  {
+    "code": "I05.06",
+    "name": "Evacuation des eaux de ruissellement, à l'extérieur",
+    "color": "#be4d37",
+    "elements": []
+  },
+  {
+    "code": "I05.07",
+    "name": "Installations de transport, à l'extérieur",
+    "color": "#a25767",
+    "elements": []
+  },
+  {
+    "code": "I05.08",
+    "name": "Protection du périmètre",
+    "color": "#04b27b",
+    "elements": []
+  },
+  {
+    "code": "I06.01",
+    "name": "Equipement mobile, à l'extérieur",
+    "color": "#669050",
+    "elements": []
+  },
+  {
+    "code": "I06.02",
+    "name": "Equipement fixe, à l'extérieur",
+    "color": "#a0c698",
+    "elements": []
+  },
+  {
+    "code": "I06.03",
+    "name": "Engins de jeux et de sport, à l'extérieur",
+    "color": "#88c77c",
+    "elements": []
+  },
+  {
+    "code": "I06.04",
+    "name": "Equipements pour collecte des déchets, à l'extérieur",
+    "color": "#61666a",
+    "elements": []
+  },
+  {
+    "code": "J01.01",
+    "name": "Mobilier usuel",
+    "color": "#3952ee",
+    "elements": []
+  },
+  {
+    "code": "J01.02",
+    "name": "Mobilier spécifique",
+    "color": "#801af8",
+    "elements": []
+  },
+  {
+    "code": "J01.03",
+    "name": "Luminaires mobiles",
+    "color": "#c94139",
+    "elements": []
+  },
+  {
+    "code": "J01.04",
+    "name": "Signalétique",
+    "color": "#3edccc",
+    "elements": []
+  },
+  {
+    "code": "J02.01",
+    "name": "Petit inventaire usuel",
+    "color": "#d506cd",
+    "elements": []
+  },
+  {
+    "code": "J02.02",
+    "name": "Petit inventaire spécifique",
+    "color": "#3c23ba",
+    "elements": []
+  },
+  {
+    "code": "J02.03",
+    "name": "Engins mobiles",
+    "color": "#e6b694",
+    "elements": []
+  },
+  {
+    "code": "J03.01",
+    "name": "Textiles usuels",
+    "color": "#1fb385",
+    "elements": []
+  },
+  {
+    "code": "J03.02",
+    "name": "Textiles spécifiques",
+    "color": "#cdd762",
+    "elements": []
+  },
+  {
+    "code": "J04.01",
+    "name": "Oeuvres d'art exposées",
+    "color": "#5dcfb6",
+    "elements": []
+  },
+  {
+    "code": "J04.02",
+    "name": "Oeuvres d'art intégrées",
+    "color": "#d25a3a",
+    "elements": []
+  }
+]

@@ -175,15 +175,44 @@ export function ClassificationPanel() {
   const [errorLoadingEBKPH, setErrorLoadingEBKPH] = useState<string | null>(
     null
   );
+
+  // State for CFC
+  const [defaultCFC, setDefaultCFC] = useState<ClassificationItem[]>([]);
+  const [isLoadingCFC, setIsLoadingCFC] = useState(true);
+  const [errorLoadingCFC, setErrorLoadingCFC] = useState<string | null>(
+    null
+  );
+
+  // State for eCCC-Bat
+  const [defaultECCC_Bat, setDefaultECCC_Bat] = useState<ClassificationItem[]>([]);
+  const [isLoadingECCC_Bat, setIsLoadingECCC_Bat] = useState(true);
+  const [errorLoadingECCC_Bat, setErrorLoadingECCC_Bat] = useState<string | null>(
+    null
+  );
+
   const [hasAutoLoaded, setHasAutoLoaded] = useState(false);
 
   // ----- Export classification system metadata -----
-  const presetMeta: Record<"ebkp" | "uniclass", ClassificationSystemMeta> = {
+  const presetMeta: Record<"ebkp" | "cfc" | "eccc_bat" | "uniclass", ClassificationSystemMeta> = {
     ebkp: {
       name: "eBKP-H",
       source: "Bauen digital Schweiz / CRB",
       edition: "2012",
       description: "Elementbaukostenplan Hochbau",
+      referenceTokens: ["."],
+    },
+    cfc: {
+      name: "CFC",
+      source: "CRB | SN 506 500",
+      edition: "2017",
+      description: "Code des frais de construction",
+      referenceTokens: [],
+    },
+    eccc_bat: {
+      name: "eCCC-Bat",
+      source: "CRB",
+      edition: "2020",
+      description: "Code des coûts de construction par éléments - Bâtiment eCCC-Bât",
       referenceTokens: ["."],
     },
     uniclass: {
@@ -196,7 +225,7 @@ export function ClassificationPanel() {
   };
 
   const [classificationPreset, setClassificationPreset] = useState<
-    "ebkp" | "uniclass" | "custom"
+    "ebkp" | "cfc" | "eccc_bat" | "uniclass" | "custom"
   >("custom");
   const [customMeta, setCustomMeta] = useState<ClassificationSystemMeta>({
     name: "MyClassification",
@@ -252,6 +281,18 @@ export function ClassificationPanel() {
     const uniclassCodes = new Set(defaultUniclassPr.map((c) => c.code));
     return Object.keys(classifications).some((code) => uniclassCodes.has(code));
   }, [classifications, defaultUniclassPr]);
+
+  const hasCFCPreset = useMemo(() => {
+    if (defaultCFC.length === 0) return false;
+    const cfcCodes = new Set(defaultCFC.map((c) => c.code));
+    return Object.keys(classifications).some((code) => cfcCodes.has(code));
+  }, [classifications, defaultCFC]);
+
+  const hasECCC_BatPreset = useMemo(() => {
+    if (defaultECCC_Bat.length === 0) return false;
+    const ecccBatCodes = new Set(defaultECCC_Bat.map((c) => c.code));
+    return Object.keys(classifications).some((code) => ecccBatCodes.has(code));
+  }, [classifications, defaultECCC_Bat]);
 
   // Determine if any classifications have elements assigned
   const hasClassifiedElements = useMemo(() => {
@@ -414,8 +455,52 @@ export function ClassificationPanel() {
       }
     };
 
+    const fetchCFCData = async () => {
+      setIsLoadingCFC(true);
+      setErrorLoadingCFC(null);
+      try {
+        const response = await fetch("/data/cfc.json");
+        if (!response.ok)
+          throw new Error(
+            `Failed to fetch CFC data: ${response.statusText}`
+          );
+        const data: ClassificationItem[] = await response.json();
+        setDefaultCFC(data);
+      } catch (error) {
+        console.error("Error loading CFC data:", error);
+        setErrorLoadingCFC(
+          error instanceof Error ? error.message : "Unknown error"
+        );
+      } finally {
+        setIsLoadingCFC(false);
+      }
+    };
+
+    const fetchECCC_BatData = async () => {
+      setIsLoadingECCC_Bat(true);
+      setErrorLoadingECCC_Bat(null);
+      try {
+        const response = await fetch("/data/eccc_bat.json");
+        if (!response.ok)
+          throw new Error(
+            `Failed to fetch eCCC-Bat data: ${response.statusText}`
+          );
+        const data: ClassificationItem[] = await response.json();
+        setDefaultECCC_Bat(data);
+      } catch (error) {
+        console.error("Error loading eCCC-Bat data:", error);
+        setErrorLoadingECCC_Bat(
+          error instanceof Error ? error.message : "Unknown error"
+        );
+      } finally {
+        setIsLoadingECCC_Bat(false);
+      }
+    };
+
     fetchUniclassData();
     fetcheBKPHData();
+    fetchCFCData();
+    fetchECCC_BatData();
   }, []);
 
   const sortedClassificationEntries = useMemo(() => {
@@ -514,6 +599,30 @@ export function ClassificationPanel() {
     console.log(`Added ${addedCount} eBKP-H classifications.`);
   }, [defaultEBKPH, classifications, addClassification]);
 
+  const handleAddAllCFC = useCallback(() => {
+    if (!defaultCFC || defaultCFC.length === 0) return;
+    let addedCount = 0;
+    defaultCFC.forEach((defClass) => {
+      if (!classifications[defClass.code]) {
+        addClassification(defClass);
+        addedCount++;
+      }
+    });
+    console.log(`Added ${addedCount} CFC classifications.`);
+  }, [defaultCFC, classifications, addClassification]);
+
+  const handleAddAllECCC_Bat = useCallback(() => {
+    if (!defaultECCC_Bat || defaultECCC_Bat.length === 0) return;
+    let addedCount = 0;
+    defaultECCC_Bat.forEach((defClass) => {
+      if (!classifications[defClass.code]) {
+        addClassification(defClass);
+        addedCount++;
+      }
+    });
+    console.log(`Added ${addedCount} eCCC-Bat classifications.`);
+  }, [defaultECCC_Bat, classifications, addClassification]);
+
   const areAllUniclassAdded = useCallback(() => {
     if (
       isLoadingUniclass ||
@@ -536,6 +645,18 @@ export function ClassificationPanel() {
       return false;
     return defaultEBKPH.every((defClass) => !!classifications[defClass.code]);
   }, [isLoadingEBKPH, errorLoadingEBKPH, defaultEBKPH, classifications]);
+
+  const areAllCFCAdded = useCallback(() => {
+    if (isLoadingCFC || errorLoadingCFC || defaultCFC.length === 0)
+      return false;
+    return defaultCFC.every((defClass) => !!classifications[defClass.code]);
+  }, [isLoadingCFC, errorLoadingCFC, defaultCFC, classifications]);
+
+  const areAllECCC_BatAdded = useCallback(() => {
+    if (isLoadingECCC_Bat || errorLoadingECCC_Bat || defaultECCC_Bat.length === 0)
+      return false;
+    return defaultECCC_Bat.every((defClass) => !!classifications[defClass.code]);
+  }, [isLoadingECCC_Bat, errorLoadingECCC_Bat, defaultECCC_Bat, classifications]);
 
   // Auto load default classifications based on stored settings
   useEffect(() => {
@@ -563,6 +684,24 @@ export function ClassificationPanel() {
       ) {
         handleAddAlleBKPH();
         setHasAutoLoaded(true);
+      } else if (
+        defaultClassification === "cfc" &&
+        !isLoadingCFC &&
+        !errorLoadingCFC &&
+        defaultCFC.length > 0 &&
+        !areAllCFCAdded()
+      ) {
+        handleAddAllCFC();
+        setHasAutoLoaded(true);
+      } else if (
+        defaultClassification === "eccc_bat" &&
+        !isLoadingECCC_Bat &&
+        !errorLoadingECCC_Bat &&
+        defaultECCC_Bat.length > 0 &&
+        !areAllECCC_BatAdded()
+      ) {
+        handleAddAllECCC_Bat();
+        setHasAutoLoaded(true);
       }
     } catch (err) {
       console.error("Failed to auto load classifications", err);
@@ -570,15 +709,25 @@ export function ClassificationPanel() {
   }, [
     isLoadingUniclass,
     isLoadingEBKPH,
+    isLoadingCFC,
+    isLoadingECCC_Bat,
     defaultUniclassPr,
     defaultEBKPH,
+    defaultCFC,
+    defaultECCC_Bat,
     errorLoadingUniclass,
     errorLoadingEBKPH,
+    errorLoadingCFC,
+    errorLoadingECCC_Bat,
     hasAutoLoaded,
     areAllUniclassAdded,
     areAlleBKPHAdded,
+    areAllCFCAdded,
+    areAllECCC_BatAdded,
     handleAddAllUniclassPr,
     handleAddAlleBKPH,
+    handleAddAllCFC,
+    handleAddAllECCC_Bat,
   ]);
 
   const handleAddClassification = () => {
@@ -1000,6 +1149,99 @@ export function ClassificationPanel() {
                 <DropdownMenuLabel className="text-xs font-semibold text-muted-foreground px-2 py-1.5">
                   {t("sections.defaultSets")}
                 </DropdownMenuLabel>
+                {isLoadingEBKPH && (
+                  <DropdownMenuItem disabled>
+                    {t("buttons.loadingEbkph")}
+                  </DropdownMenuItem>
+                )}
+                {errorLoadingEBKPH && (
+                  <DropdownMenuItem disabled className="text-destructive">
+                    {t("buttons.ebkphError", { message: errorLoadingEBKPH })}
+                  </DropdownMenuItem>
+                )}
+                {!isLoadingEBKPH &&
+                  !errorLoadingEBKPH &&
+                  defaultEBKPH.length > 0 && (
+                    <DropdownMenuItem
+                      onClick={handleAddAlleBKPH}
+                      disabled={areAlleBKPHAdded()}
+                    >
+                      {t("buttons.loadEbkph", { count: defaultEBKPH.length })}
+                      {currentDefaultClassification === "ebkph" && (
+                        <Star className="ml-2 h-4 w-4 text-yellow-400 fill-yellow-400" />
+                      )}
+                    </DropdownMenuItem>
+                  )}
+                {!isLoadingEBKPH &&
+                  !errorLoadingEBKPH &&
+                  defaultEBKPH.length === 0 && (
+                    <DropdownMenuItem disabled>
+                      {t("buttons.noEbkphFound")}
+                    </DropdownMenuItem>
+                  )}
+
+                {isLoadingECCC_Bat && (
+                  <DropdownMenuItem disabled>
+                    {t("buttons.loadingEcccBat", "Loading eCCC-Bat...")}
+                  </DropdownMenuItem>
+                )}
+                {errorLoadingECCC_Bat && (
+                  <DropdownMenuItem disabled className="text-destructive">
+                    {t("buttons.ecccBatError", { message: errorLoadingECCC_Bat })}
+                  </DropdownMenuItem>
+                )}
+                {!isLoadingECCC_Bat &&
+                  !errorLoadingECCC_Bat &&
+                  defaultECCC_Bat.length > 0 && (
+                    <DropdownMenuItem
+                      onClick={handleAddAllECCC_Bat}
+                      disabled={areAllECCC_BatAdded()}
+                    >
+                      {t("buttons.loadEcccBat", { count: defaultECCC_Bat.length })}
+                      {currentDefaultClassification === "eccc_bat" && (
+                        <Star className="ml-2 h-4 w-4 text-yellow-400 fill-yellow-400" />
+                      )}
+                    </DropdownMenuItem>
+                  )}
+                {!isLoadingECCC_Bat &&
+                  !errorLoadingECCC_Bat &&
+                  defaultECCC_Bat.length === 0 && (
+                    <DropdownMenuItem disabled>
+                      {t("buttons.noEcccBatFound", "No eCCC-Bat found")}
+                    </DropdownMenuItem>
+                  )}
+
+                {isLoadingCFC && (
+                  <DropdownMenuItem disabled>
+                    {t("buttons.loadingCfc", "Loading CFC...")}
+                  </DropdownMenuItem>
+                )}
+                {errorLoadingCFC && (
+                  <DropdownMenuItem disabled className="text-destructive">
+                    {t("buttons.cfcError", { message: errorLoadingCFC })}
+                  </DropdownMenuItem>
+                )}
+                {!isLoadingCFC &&
+                  !errorLoadingCFC &&
+                  defaultCFC.length > 0 && (
+                    <DropdownMenuItem
+                      onClick={handleAddAllCFC}
+                      disabled={areAllCFCAdded()}
+                    >
+                      {t("buttons.loadCfc", { count: defaultCFC.length })}
+                      {currentDefaultClassification === "cfc" && (
+                        <Star className="ml-2 h-4 w-4 text-yellow-400 fill-yellow-400" />
+                      )}
+                    </DropdownMenuItem>
+                  )}
+                {!isLoadingCFC &&
+                  !errorLoadingCFC &&
+                  defaultCFC.length === 0 && (
+                    <DropdownMenuItem disabled>
+                      {t("buttons.noCfcFound", "No CFC found")}
+                    </DropdownMenuItem>
+                  )}
+
                 {isLoadingUniclass && (
                   <DropdownMenuItem disabled>
                     {t("buttons.loadingUniclass")}
@@ -1032,36 +1274,6 @@ export function ClassificationPanel() {
                   defaultUniclassPr.length === 0 && (
                     <DropdownMenuItem disabled>
                       {t("buttons.noUniclassFound")}
-                    </DropdownMenuItem>
-                  )}
-                {isLoadingEBKPH && (
-                  <DropdownMenuItem disabled>
-                    {t("buttons.loadingEbkph")}
-                  </DropdownMenuItem>
-                )}
-                {errorLoadingEBKPH && (
-                  <DropdownMenuItem disabled className="text-destructive">
-                    {t("buttons.ebkphError", { message: errorLoadingEBKPH })}
-                  </DropdownMenuItem>
-                )}
-                {!isLoadingEBKPH &&
-                  !errorLoadingEBKPH &&
-                  defaultEBKPH.length > 0 && (
-                    <DropdownMenuItem
-                      onClick={handleAddAlleBKPH}
-                      disabled={areAlleBKPHAdded()}
-                    >
-                      {t("buttons.loadEbkph", { count: defaultEBKPH.length })}
-                      {currentDefaultClassification === "ebkph" && (
-                        <Star className="ml-2 h-4 w-4 text-yellow-400 fill-yellow-400" />
-                      )}
-                    </DropdownMenuItem>
-                  )}
-                {!isLoadingEBKPH &&
-                  !errorLoadingEBKPH &&
-                  defaultEBKPH.length === 0 && (
-                    <DropdownMenuItem disabled>
-                      {t("buttons.noEbkphFound")}
                     </DropdownMenuItem>
                   )}
                 <DropdownMenuSeparator />
@@ -1705,11 +1917,15 @@ export function ClassificationPanel() {
               if (open) {
                 const defaultPreset = hasEBKPPreset
                   ? "ebkp"
-                  : hasUniclassPreset
-                    ? "uniclass"
-                    : "custom";
+                  : hasECCC_BatPreset
+                    ? "eccc_bat"
+                    : hasCFCPreset
+                      ? "cfc"
+                      : hasUniclassPreset
+                        ? "uniclass"
+                        : "custom";
                 setClassificationPreset(
-                  defaultPreset as "ebkp" | "uniclass" | "custom"
+                  defaultPreset as "ebkp" | "cfc" | "eccc_bat" | "uniclass" | "custom"
                 );
                 setShowAdvancedMeta(false);
               }
@@ -1742,7 +1958,7 @@ export function ClassificationPanel() {
                     value={classificationPreset}
                     onValueChange={(val) =>
                       setClassificationPreset(
-                        val as "ebkp" | "uniclass" | "custom"
+                        val as "ebkp" | "cfc" | "eccc_bat" | "uniclass" | "custom"
                       )
                     }
                   >
@@ -1751,6 +1967,8 @@ export function ClassificationPanel() {
                     </SelectTrigger>
                     <SelectContent>
                       {hasEBKPPreset && <SelectItem value="ebkp">eBKP-H</SelectItem>}
+                      {hasECCC_BatPreset && <SelectItem value="eccc_bat">eCCC-Bat</SelectItem>}
+                      {hasCFCPreset && <SelectItem value="cfc">CFC</SelectItem>}
                       {hasUniclassPreset && (
                         <SelectItem value="uniclass">Uniclass</SelectItem>
                       )}
@@ -1762,7 +1980,13 @@ export function ClassificationPanel() {
                 {classificationPreset !== "custom" && (
                   <div className="text-xs text-muted-foreground border rounded p-2">
                     {Object.entries(
-                      classificationPreset === "ebkp" ? presetMeta.ebkp : presetMeta.uniclass
+                      classificationPreset === "ebkp"
+                        ? presetMeta.ebkp
+                        : classificationPreset === "cfc"
+                          ? presetMeta.cfc
+                          : classificationPreset === "eccc_bat"
+                            ? presetMeta.eccc_bat
+                            : presetMeta.uniclass
                     ).map(([k, v]) => (
                       <div key={k} className="flex justify-between gap-1">
                         <span className="capitalize">{k}</span>
@@ -1777,7 +2001,11 @@ export function ClassificationPanel() {
                         const meta =
                           classificationPreset === "ebkp"
                             ? presetMeta.ebkp
-                            : presetMeta.uniclass;
+                            : classificationPreset === "cfc"
+                              ? presetMeta.cfc
+                              : classificationPreset === "eccc_bat"
+                                ? presetMeta.eccc_bat
+                                : presetMeta.uniclass;
                         setCustomMeta(meta);
                         setClassificationPreset("custom");
                         setShowAdvancedMeta(true);
