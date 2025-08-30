@@ -53,7 +53,7 @@ export default function I18nClientProvider({
   }, []);
 
   if (!isReady) {
-    return <div>{t('loadingTranslations')}</div>;
+    return <div>Loading translations...</div>;
   }
 
   return <I18nextProvider i18n={i18n}>{children}</I18nextProvider>;

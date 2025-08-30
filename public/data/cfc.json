@@ -1,0 +1,1754 @@
+[
+  {
+    "code": "00",
+    "name": "Etudes préliminaires",
+    "color": "#8364d9",
+    "elements": []
+  },
+  {
+    "code": "01",
+    "name": "Acquisition du terrain ou du droit de superficie",
+    "color": "#a3ae64",
+    "elements": []
+  },
+  {
+    "code": "02",
+    "name": "Frais accessoires à l'acquisition du terrain ou du droit de superficie",
+    "color": "#19ddef",
+    "elements": []
+  },
+  {
+    "code": "03",
+    "name": "Indemnisations, servitudes, participations",
+    "color": "#ccb40b",
+    "elements": []
+  },
+  {
+    "code": "04",
+    "name": "Financement avant le début des travaux",
+    "color": "#f4561c",
+    "elements": []
+  },
+  {
+    "code": "05",
+    "name": "Conduites de raccordement en dehors de la parcelle",
+    "color": "#28c04a",
+    "elements": []
+  },
+  {
+    "code": "06",
+    "name": "Voies d'accès en dehors de la parcelle",
+    "color": "#976ede",
+    "elements": []
+  },
+  {
+    "code": "09",
+    "name": "Honoraires",
+    "color": "#39b572",
+    "elements": []
+  },
+  {
+    "code": "100",
+    "name": "Poste d'attente",
+    "color": "#ceda74",
+    "elements": []
+  },
+  {
+    "code": "101",
+    "name": "Relevés",
+    "color": "#b19a5a",
+    "elements": []
+  },
+  {
+    "code": "102",
+    "name": "Etudes géotechniques",
+    "color": "#0f56df",
+    "elements": []
+  },
+  {
+    "code": "103",
+    "name": "Etudes des eaux souterraines",
+    "color": "#4e7a62",
+    "elements": []
+  },
+  {
+    "code": "104",
+    "name": "Gabarits",
+    "color": "#10cf2b",
+    "elements": []
+  },
+  {
+    "code": "109",
+    "name": "Divers",
+    "color": "#f3009a",
+    "elements": []
+  },
+  {
+    "code": "110",
+    "name": "Poste d'attente",
+    "color": "#591049",
+    "elements": []
+  },
+  {
+    "code": "111",
+    "name": "Défrichage",
+    "color": "#52829f",
+    "elements": []
+  },
+  {
+    "code": "112.1",
+    "name": "Démolitions",
+    "color": "#1cb291",
+    "elements": []
+  },
+  {
+    "code": "112.2",
+    "name": "Elimination d'éléments de construction spéciaux",
+    "color": "#465dfd",
+    "elements": []
+  },
+  {
+    "code": "113",
+    "name": "Assainissement de sites contaminés",
+    "color": "#37ca0c",
+    "elements": []
+  },
+  {
+    "code": "114.0",
+    "name": "Installations de chantier",
+    "color": "#93bd82",
+    "elements": []
+  },
+  {
+    "code": "114.1",
+    "name": "Terrassements",
+    "color": "#9cba9a",
+    "elements": []
+  },
+  {
+    "code": "115",
+    "name": "Forages et coupes dans béton et maçonnerie",
+    "color": "#6c7557",
+    "elements": []
+  },
+  {
+    "code": "119",
+    "name": "Divers",
+    "color": "#119394",
+    "elements": []
+  },
+  {
+    "code": "120",
+    "name": "Poste d'attente",
+    "color": "#7508c0",
+    "elements": []
+  },
+  {
+    "code": "121",
+    "name": "Protection d'ouvrages et aménagements existants",
+    "color": "#569d6a",
+    "elements": []
+  },
+  {
+    "code": "122",
+    "name": "Aménagements provisoires",
+    "color": "#83f77e",
+    "elements": []
+  },
+  {
+    "code": "123",
+    "name": "Reprises en sous-oeuvre",
+    "color": "#58a048",
+    "elements": []
+  },
+  {
+    "code": "124",
+    "name": "Travaux de remise en état",
+    "color": "#724a4f",
+    "elements": []
+  },
+  {
+    "code": "129",
+    "name": "Divers",
+    "color": "#3801d3",
+    "elements": []
+  },
+  {
+    "code": "130",
+    "name": "Poste d'attente",
+    "color": "#63f713",
+    "elements": []
+  },
+  {
+    "code": "131",
+    "name": "Clôtures",
+    "color": "#9d6620",
+    "elements": []
+  },
+  {
+    "code": "132",
+    "name": "Dessertes, places",
+    "color": "#fbadc1",
+    "elements": []
+  },
+  {
+    "code": "133",
+    "name": "Bureau de la direction de travaux",
+    "color": "#6f5985",
+    "elements": []
+  },
+  {
+    "code": "134",
+    "name": "Cantonnements, réfectoires, cuisines",
+    "color": "#2aaf60",
+    "elements": []
+  },
+  {
+    "code": "135",
+    "name": "Installations provisoires",
+    "color": "#a503ed",
+    "elements": []
+  },
+  {
+    "code": "136",
+    "name": "Frais d'énergie, d'eau, etc.",
+    "color": "#78830a",
+    "elements": []
+  },
+  {
+    "code": "137",
+    "name": "Fermetures et protections provisoires",
+    "color": "#265a68",
+    "elements": []
+  },
+  {
+    "code": "138",
+    "name": "Tri des déchets de chantier",
+    "color": "#465373",
+    "elements": []
+  },
+  {
+    "code": "139",
+    "name": "Divers",
+    "color": "#14c06f",
+    "elements": []
+  },
+  {
+    "code": "140",
+    "name": "Poste d'attente",
+    "color": "#0ceb59",
+    "elements": []
+  },
+  {
+    "code": "141",
+    "name": "Mise en forme du terrain, gros oeuvre 1",
+    "color": "#17993a",
+    "elements": []
+  },
+  {
+    "code": "142",
+    "name": "Gros oeuvre 2",
+    "color": "#89d188",
+    "elements": []
+  },
+  {
+    "code": "143",
+    "name": "Installations électriques",
+    "color": "#8c9034",
+    "elements": []
+  },
+  {
+    "code": "144",
+    "name": "Installations CVC, automatismes du bâtiment",
+    "color": "#6b8b11",
+    "elements": []
+  },
+  {
+    "code": "145",
+    "name": "Installations sanitaires",
+    "color": "#21d616",
+    "elements": []
+  },
+  {
+    "code": "146",
+    "name": "Installations de transport, installations de stockage",
+    "color": "#4c7d3e",
+    "elements": []
+  },
+  {
+    "code": "147",
+    "name": "Aménagements intérieurs 1",
+    "color": "#75a176",
+    "elements": []
+  },
+  {
+    "code": "148",
+    "name": "Aménagements intérieurs 2",
+    "color": "#bae61a",
+    "elements": []
+  },
+  {
+    "code": "149",
+    "name": "Divers",
+    "color": "#0d7691",
+    "elements": []
+  },
+  {
+    "code": "150",
+    "name": "Poste d'attente",
+    "color": "#4db70c",
+    "elements": []
+  },
+  {
+    "code": "151",
+    "name": "Terrassements",
+    "color": "#70beb6",
+    "elements": []
+  },
+  {
+    "code": "152",
+    "name": "Canalisations (adaptation du réseau)",
+    "color": "#0a2bef",
+    "elements": []
+  },
+  {
+    "code": "153",
+    "name": "Electricité (adaptation du réseau)",
+    "color": "#f4f1c7",
+    "elements": []
+  },
+  {
+    "code": "154",
+    "name": "Conduites pour installations CVC",
+    "color": "#248b32",
+    "elements": []
+  },
+  {
+    "code": "155",
+    "name": "Eau et gaz (adaptation du réseau)",
+    "color": "#23902a",
+    "elements": []
+  },
+  {
+    "code": "156",
+    "name": "Travaux accessoires",
+    "color": "#699d3d",
+    "elements": []
+  },
+  {
+    "code": "159",
+    "name": "Divers",
+    "color": "#616bb8",
+    "elements": []
+  },
+  {
+    "code": "160",
+    "name": "POste d'attente",
+    "color": "#5e78be",
+    "elements": []
+  },
+  {
+    "code": "161",
+    "name": "Routes",
+    "color": "#9e1940",
+    "elements": []
+  },
+  {
+    "code": "162",
+    "name": "Voies ferrées",
+    "color": "#2f1ff5",
+    "elements": []
+  },
+  {
+    "code": "163",
+    "name": "Voie navigable",
+    "color": "#8b0798",
+    "elements": []
+  },
+  {
+    "code": "169",
+    "name": "Divers",
+    "color": "#4f3279",
+    "elements": []
+  },
+  {
+    "code": "170",
+    "name": "Poste d'attente",
+    "color": "#628f3b",
+    "elements": []
+  },
+  {
+    "code": "171",
+    "name": "Pieux",
+    "color": "#033853",
+    "elements": []
+  },
+  {
+    "code": "172",
+    "name": "Enceintes de fouille",
+    "color": "#94a975",
+    "elements": []
+  },
+  {
+    "code": "173",
+    "name": "Etayages",
+    "color": "#2aaf00",
+    "elements": []
+  },
+  {
+    "code": "174",
+    "name": "Ancrages",
+    "color": "#5ff3fc",
+    "elements": []
+  },
+  {
+    "code": "175",
+    "name": "Etanchement des ouvrages enterrés",
+    "color": "#704a1e",
+    "elements": []
+  },
+  {
+    "code": "176",
+    "name": "Epuisement des eaux",
+    "color": "#a551c6",
+    "elements": []
+  },
+  {
+    "code": "177",
+    "name": "Amélioration des sols de fondation",
+    "color": "#fecb69",
+    "elements": []
+  },
+  {
+    "code": "178",
+    "name": "Travaux accessoires",
+    "color": "#d7e444",
+    "elements": []
+  },
+  {
+    "code": "179",
+    "name": "Divers",
+    "color": "#500c38",
+    "elements": []
+  },
+  {
+    "code": "19",
+    "name": "Honoraires",
+    "color": "#e8ad76",
+    "elements": []
+  },
+  {
+    "code": "200",
+    "name": "Poste d'attente",
+    "color": "#7fd707",
+    "elements": []
+  },
+  {
+    "code": "201",
+    "name": "Fouilles en pleine masse",
+    "color": "#ed0288",
+    "elements": []
+  },
+  {
+    "code": "209",
+    "name": "Divers",
+    "color": "#0e4d09",
+    "elements": []
+  },
+  {
+    "code": "210",
+    "name": "Poste d'attente",
+    "color": "#995f4c",
+    "elements": []
+  },
+  {
+    "code": "211.0",
+    "name": "Installations de chantier",
+    "color": "#2ea2d9",
+    "elements": []
+  },
+  {
+    "code": "211.1",
+    "name": "Echafaudages",
+    "color": "#706a2a",
+    "elements": []
+  },
+  {
+    "code": "211.3",
+    "name": "Fouilles isolées et fouilles en rigole",
+    "color": "#805d6e",
+    "elements": []
+  },
+  {
+    "code": "211.4",
+    "name": "Canalisations intérieures",
+    "color": "#334dbf",
+    "elements": []
+  },
+  {
+    "code": "211.5",
+    "name": "Béton et béton armé",
+    "color": "#caab14",
+    "elements": []
+  },
+  {
+    "code": "211.6",
+    "name": "Maçonnerie",
+    "color": "#923965",
+    "elements": []
+  },
+  {
+    "code": "211.7",
+    "name": "Travaux d'entretien",
+    "color": "#dce6eb",
+    "elements": []
+  },
+  {
+    "code": "211.8",
+    "name": "Mesures liées aux conditions météorologiques",
+    "color": "#b4fa4d",
+    "elements": []
+  },
+  {
+    "code": "212.0",
+    "name": "Installations de chantier",
+    "color": "#45e7fe",
+    "elements": []
+  },
+  {
+    "code": "212.1",
+    "name": "Echafaudages",
+    "color": "#d3dc25",
+    "elements": []
+  },
+  {
+    "code": "212.2",
+    "name": "Eléments préfabriqués en béton",
+    "color": "#a47e28",
+    "elements": []
+  },
+  {
+    "code": "212.3",
+    "name": "Eléments préfabriqués en maçonnerie",
+    "color": "#80074d",
+    "elements": []
+  },
+  {
+    "code": "212.4",
+    "name": "Eléments en béton cellulaire",
+    "color": "#52924b",
+    "elements": []
+  },
+  {
+    "code": "213.0",
+    "name": "Installations de chantier",
+    "color": "#8290fc",
+    "elements": []
+  },
+  {
+    "code": "213.1",
+    "name": "Echafaudages",
+    "color": "#e557a6",
+    "elements": []
+  },
+  {
+    "code": "213.2",
+    "name": "Charpente métallique",
+    "color": "#77920c",
+    "elements": []
+  },
+  {
+    "code": "213.5",
+    "name": "Revêtements extérieurs",
+    "color": "#dd3d1b",
+    "elements": []
+  },
+  {
+    "code": "214.0",
+    "name": "Installations de chantier",
+    "color": "#05c5ec",
+    "elements": []
+  },
+  {
+    "code": "214.1",
+    "name": "Charpente",
+    "color": "#603955",
+    "elements": []
+  },
+  {
+    "code": "214.2",
+    "name": "Construction en bois calculée par ingénieur",
+    "color": "#e6db6f",
+    "elements": []
+  },
+  {
+    "code": "214.3",
+    "name": "Construction préfabriquée en bois",
+    "color": "#7e523b",
+    "elements": []
+  },
+  {
+    "code": "214.4",
+    "name": "Revêtements extérieurs, corniches, escaliers",
+    "color": "#7f5500",
+    "elements": []
+  },
+  {
+    "code": "214.5",
+    "name": "Echafaudages",
+    "color": "#fd126c",
+    "elements": []
+  },
+  {
+    "code": "214.6",
+    "name": "Toitures inclinées, sous-constructions",
+    "color": "#b09a3f",
+    "elements": []
+  },
+  {
+    "code": "215.0",
+    "name": "Installations de chantier",
+    "color": "#3f9b04",
+    "elements": []
+  },
+  {
+    "code": "215.1",
+    "name": "Echafaudages",
+    "color": "#27465e",
+    "elements": []
+  },
+  {
+    "code": "215.2",
+    "name": "Façades",
+    "color": "#7af5a0",
+    "elements": []
+  },
+  {
+    "code": "215.3",
+    "name": "Ossature",
+    "color": "#6d393f",
+    "elements": []
+  },
+  {
+    "code": "215.5",
+    "name": "Revêtements extérieurs",
+    "color": "#b0b29d",
+    "elements": []
+  },
+  {
+    "code": "216.0",
+    "name": "Travaux en pierre naturelle",
+    "color": "#fe5c43",
+    "elements": []
+  },
+  {
+    "code": "216.1",
+    "name": "Travaux en pierre artificielle",
+    "color": "#5367df",
+    "elements": []
+  },
+  {
+    "code": "217",
+    "name": "Fermetures d'abris P.C.",
+    "color": "#2168fe",
+    "elements": []
+  },
+  {
+    "code": "219",
+    "name": "Divers",
+    "color": "#95f1ce",
+    "elements": []
+  },
+  {
+    "code": "220",
+    "name": "Poste d'attente",
+    "color": "#240689",
+    "elements": []
+  },
+  {
+    "code": "221.0",
+    "name": "Fenêtres en bois",
+    "color": "#7620b2",
+    "elements": []
+  },
+  {
+    "code": "221.1",
+    "name": "Fenêtres en bois-métal",
+    "color": "#eb56e3",
+    "elements": []
+  },
+  {
+    "code": "221.2",
+    "name": "Fenêtres en matière synthétique",
+    "color": "#f75fa6",
+    "elements": []
+  },
+  {
+    "code": "221.3",
+    "name": "Fenêtres en acier",
+    "color": "#ca9f61",
+    "elements": []
+  },
+  {
+    "code": "221.4",
+    "name": "Fenêtres en aluminium",
+    "color": "#48d98f",
+    "elements": []
+  },
+  {
+    "code": "221.5",
+    "name": "Portes extérieures en bois",
+    "color": "#d5111a",
+    "elements": []
+  },
+  {
+    "code": "221.6",
+    "name": "Portes extérieures en métal",
+    "color": "#5aa15c",
+    "elements": []
+  },
+  {
+    "code": "221.7",
+    "name": "Vitrines",
+    "color": "#54c444",
+    "elements": []
+  },
+  {
+    "code": "221.8",
+    "name": "Eléments extérieurs spéciaux d'éclairage naturel",
+    "color": "#c6ccdd",
+    "elements": []
+  },
+  {
+    "code": "221.9",
+    "name": "Eléments préfabriqués en métal",
+    "color": "#e73244",
+    "elements": []
+  },
+  {
+    "code": "222",
+    "name": "Ferblanterie",
+    "color": "#339eb3",
+    "elements": []
+  },
+  {
+    "code": "223",
+    "name": "Protection contre la foudre",
+    "color": "#2b118b",
+    "elements": []
+  },
+  {
+    "code": "224.0",
+    "name": "Couvertures toitures inclinées",
+    "color": "#91b498",
+    "elements": []
+  },
+  {
+    "code": "224.1",
+    "name": "Couches d'étanchéité toitures plates",
+    "color": "#5ba352",
+    "elements": []
+  },
+  {
+    "code": "224.2",
+    "name": "Vitrages dans toitures inclinées",
+    "color": "#3a3faa",
+    "elements": []
+  },
+  {
+    "code": "224.3",
+    "name": "Vitrages dans toitures plates",
+    "color": "#c2ea44",
+    "elements": []
+  },
+  {
+    "code": "224.4",
+    "name": "Echafaudages",
+    "color": "#2a41f8",
+    "elements": []
+  },
+  {
+    "code": "225.0",
+    "name": "Echafaudage",
+    "color": "#f99d5f",
+    "elements": []
+  },
+  {
+    "code": "225.1",
+    "name": "Etanchement des joints",
+    "color": "#ed6d2e",
+    "elements": []
+  },
+  {
+    "code": "225.2",
+    "name": "Isolations spéciales",
+    "color": "#81bb3b",
+    "elements": []
+  },
+  {
+    "code": "225.3",
+    "name": "Etanchéités spéciales",
+    "color": "#5ed78b",
+    "elements": []
+  },
+  {
+    "code": "225.4",
+    "name": "Revêtements coupe-feu, etc.",
+    "color": "#73a1ba",
+    "elements": []
+  },
+  {
+    "code": "226.0",
+    "name": "Echafaudage",
+    "color": "#5f8018",
+    "elements": []
+  },
+  {
+    "code": "226.1",
+    "name": "Crépis et enduits extérieurs",
+    "color": "#d26b67",
+    "elements": []
+  },
+  {
+    "code": "226.2",
+    "name": "Isolations thermiques extérieures crépies",
+    "color": "#e2c53a",
+    "elements": []
+  },
+  {
+    "code": "227.0",
+    "name": "Echafaudages",
+    "color": "#55ec20",
+    "elements": []
+  },
+  {
+    "code": "227.1",
+    "name": "Peinture extérieure",
+    "color": "#867a17",
+    "elements": []
+  },
+  {
+    "code": "227.2",
+    "name": "Préservation du bois extérieur",
+    "color": "#ee8f10",
+    "elements": []
+  },
+  {
+    "code": "227.3",
+    "name": "Traitement du bois extérieur",
+    "color": "#fda3f9",
+    "elements": []
+  },
+  {
+    "code": "228.0",
+    "name": "Volets-contrevents de fenêtres et de portes-fenêtres",
+    "color": "#b7cbd9",
+    "elements": []
+  },
+  {
+    "code": "228.1",
+    "name": "Volets roulants",
+    "color": "#cde89f",
+    "elements": []
+  },
+  {
+    "code": "228.2",
+    "name": "Stores à lamelles",
+    "color": "#ac5219",
+    "elements": []
+  },
+  {
+    "code": "228.3",
+    "name": "Stores en toile",
+    "color": "#70f15f",
+    "elements": []
+  },
+  {
+    "code": "228.4",
+    "name": "Installations de protection contre l'éblouissement",
+    "color": "#696d4e",
+    "elements": []
+  },
+  {
+    "code": "228.5",
+    "name": "Protection contre les insectes",
+    "color": "#b69030",
+    "elements": []
+  },
+  {
+    "code": "228.6",
+    "name": "Grillages extérieurs mobiles",
+    "color": "#697679",
+    "elements": []
+  },
+  {
+    "code": "229",
+    "name": "Divers",
+    "color": "#7d00e2",
+    "elements": []
+  },
+  {
+    "code": "230",
+    "name": "Poste d'attente",
+    "color": "#88cb1b",
+    "elements": []
+  },
+  {
+    "code": "231.0",
+    "name": "Groupes électrogènes de secours",
+    "color": "#36008e",
+    "elements": []
+  },
+  {
+    "code": "231.1",
+    "name": "Equipements à haute et à moyenne tension",
+    "color": "#bfd36d",
+    "elements": []
+  },
+  {
+    "code": "231.2",
+    "name": "Ensemble d'appareillage",
+    "color": "#4294a7",
+    "elements": []
+  },
+  {
+    "code": "231.3",
+    "name": "Equipements de compensation du courant réactif",
+    "color": "#4fe920",
+    "elements": []
+  },
+  {
+    "code": "231.4",
+    "name": "Equipements de sécurité",
+    "color": "#7ea7c7",
+    "elements": []
+  },
+  {
+    "code": "231.5",
+    "name": "Equipements de production d'énergie électrique",
+    "color": "#3ce3ab",
+    "elements": []
+  },
+  {
+    "code": "231.9",
+    "name": "Divers",
+    "color": "#f20608",
+    "elements": []
+  },
+  {
+    "code": "232.0",
+    "name": "Alimentation",
+    "color": "#b75bad",
+    "elements": []
+  },
+  {
+    "code": "232.1",
+    "name": "Mises à terre et liaisons équipotentielles",
+    "color": "#a6641b",
+    "elements": []
+  },
+  {
+    "code": "232.2",
+    "name": "Tubes",
+    "color": "#bb6305",
+    "elements": []
+  },
+  {
+    "code": "232.3",
+    "name": "Systèmes d'installation",
+    "color": "#64f96b",
+    "elements": []
+  },
+  {
+    "code": "232.4",
+    "name": "Lignes montantes et principales",
+    "color": "#956611",
+    "elements": []
+  },
+  {
+    "code": "232.5",
+    "name": "Installations d'éclairage",
+    "color": "#e68c7a",
+    "elements": []
+  },
+  {
+    "code": "232.6",
+    "name": "Installations électriques de force",
+    "color": "#207fcb",
+    "elements": []
+  },
+  {
+    "code": "232.7",
+    "name": "Installations CVCS",
+    "color": "#f0bb1d",
+    "elements": []
+  },
+  {
+    "code": "232.9",
+    "name": "Divers",
+    "color": "#ef5638",
+    "elements": []
+  },
+  {
+    "code": "233.0",
+    "name": "Fourniture",
+    "color": "#252988",
+    "elements": []
+  },
+  {
+    "code": "233.1",
+    "name": "Pose",
+    "color": "#898866",
+    "elements": []
+  },
+  {
+    "code": "234",
+    "name": "Appareils électriques",
+    "color": "#a8fef0",
+    "elements": []
+  },
+  {
+    "code": "235.0",
+    "name": "Equipements de télécommunication",
+    "color": "#519fb7",
+    "elements": []
+  },
+  {
+    "code": "235.1",
+    "name": "Equipements radio/TV",
+    "color": "#e7b574",
+    "elements": []
+  },
+  {
+    "code": "235.2",
+    "name": "Equipements multimédia",
+    "color": "#eff61d",
+    "elements": []
+  },
+  {
+    "code": "235.3",
+    "name": "Equipements informatiques",
+    "color": "#faa78b",
+    "elements": []
+  },
+  {
+    "code": "235.4",
+    "name": "Equipements de communication",
+    "color": "#3b536d",
+    "elements": []
+  },
+  {
+    "code": "235.5",
+    "name": "Equipements audio et vidéo, horloges",
+    "color": "#c3dce7",
+    "elements": []
+  },
+  {
+    "code": "235.8",
+    "name": "Equipements de sécurité",
+    "color": "#73efbe",
+    "elements": []
+  },
+  {
+    "code": "235.9",
+    "name": "Divers",
+    "color": "#9f5faa",
+    "elements": []
+  },
+  {
+    "code": "236.1",
+    "name": "Installations pour équipements de télécommunication",
+    "color": "#ed3f0a",
+    "elements": []
+  },
+  {
+    "code": "236.2",
+    "name": "Installations radio/TV",
+    "color": "#bd1090",
+    "elements": []
+  },
+  {
+    "code": "236.3",
+    "name": "Installations multimédia",
+    "color": "#5ee35a",
+    "elements": []
+  },
+  {
+    "code": "236.4",
+    "name": "Installations CUC",
+    "color": "#29a6da",
+    "elements": []
+  },
+  {
+    "code": "236.5",
+    "name": "Installations pour équipements de communication",
+    "color": "#75f441",
+    "elements": []
+  },
+  {
+    "code": "236.6",
+    "name": "Installations audio et vidéo, horloges",
+    "color": "#c8add4",
+    "elements": []
+  },
+  {
+    "code": "236.7",
+    "name": "Installations de sécurité",
+    "color": "#95e3f2",
+    "elements": []
+  },
+  {
+    "code": "236.8",
+    "name": "Installations de protection incendie",
+    "color": "#a11758",
+    "elements": []
+  },
+  {
+    "code": "236.9",
+    "name": "Divers",
+    "color": "#617c52",
+    "elements": []
+  },
+  {
+    "code": "237",
+    "name": "Automatismes du bâtiment",
+    "color": "#aceadb",
+    "elements": []
+  },
+  {
+    "code": "239",
+    "name": "Divers",
+    "color": "#77a1e5",
+    "elements": []
+  },
+  {
+    "code": "240",
+    "name": "Poste d'attente",
+    "color": "#aa132c",
+    "elements": []
+  },
+  {
+    "code": "242",
+    "name": "Installations de chauffage",
+    "color": "#ecda2a",
+    "elements": []
+  },
+  {
+    "code": "244",
+    "name": "Installations de ventillation et de conditionnement d'air",
+    "color": "#c428f6",
+    "elements": []
+  },
+  {
+    "code": "245",
+    "name": "Installations d'extraction de fumée et de chaleur",
+    "color": "#72261c",
+    "elements": []
+  },
+  {
+    "code": "246",
+    "name": "Installations de refroidissement",
+    "color": "#79ae62",
+    "elements": []
+  },
+  {
+    "code": "247",
+    "name": "Installations spéciales",
+    "color": "#cbbd36",
+    "elements": []
+  },
+  {
+    "code": "248",
+    "name": "Automatismes du bâtiment",
+    "color": "#683c07",
+    "elements": []
+  },
+  {
+    "code": "250",
+    "name": "Poste d'attente",
+    "color": "#abd969",
+    "elements": []
+  },
+  {
+    "code": "251",
+    "name": "Appareils sanitaires courants",
+    "color": "#d8b772",
+    "elements": []
+  },
+  {
+    "code": "252",
+    "name": "Appareils sanitaires spéciaux",
+    "color": "#e4192d",
+    "elements": []
+  },
+  {
+    "code": "253",
+    "name": "Appareils d'alimentation et d'évacuation",
+    "color": "#16bd12",
+    "elements": []
+  },
+  {
+    "code": "254",
+    "name": "Conduites sanitaires",
+    "color": "#cbdbf3",
+    "elements": []
+  },
+  {
+    "code": "255",
+    "name": "Isolations",
+    "color": "#ddda1d",
+    "elements": []
+  },
+  {
+    "code": "257",
+    "name": "Installations d'extinction incendie",
+    "color": "#e918d7",
+    "elements": []
+  },
+  {
+    "code": "258",
+    "name": "Equipements de cuisine",
+    "color": "#10e5e0",
+    "elements": []
+  },
+  {
+    "code": "259",
+    "name": "Divers",
+    "color": "#db9550",
+    "elements": []
+  },
+  {
+    "code": "260",
+    "name": "Poste d'attente",
+    "color": "#6c2f03",
+    "elements": []
+  },
+  {
+    "code": "261",
+    "name": "Ascenceurs",
+    "color": "#3bcc98",
+    "elements": []
+  },
+  {
+    "code": "262",
+    "name": "Escaliers mécaniques, trottoirs roulants, monte-charge",
+    "color": "#977c8c",
+    "elements": []
+  },
+  {
+    "code": "263",
+    "name": "Installations de nettoyage de façade",
+    "color": "#171f7d",
+    "elements": []
+  },
+  {
+    "code": "264",
+    "name": "Installations de manutention diverses",
+    "color": "#19046f",
+    "elements": []
+  },
+  {
+    "code": "265",
+    "name": "Dispositifs de levage",
+    "color": "#4e0e18",
+    "elements": []
+  },
+  {
+    "code": "266",
+    "name": "Installations de stationnement",
+    "color": "#964d41",
+    "elements": []
+  },
+  {
+    "code": "269",
+    "name": "Divers",
+    "color": "#ffece3",
+    "elements": []
+  },
+  {
+    "code": "270",
+    "name": "Poste d'attente",
+    "color": "#c59b27",
+    "elements": []
+  },
+  {
+    "code": "271.0",
+    "name": "Crépis et enduits intérieurs",
+    "color": "#9d5551",
+    "elements": []
+  },
+  {
+    "code": "271.1",
+    "name": "Construction à sec",
+    "color": "#0ee65d",
+    "elements": []
+  },
+  {
+    "code": "271.2",
+    "name": "Echafaudages",
+    "color": "#a38485",
+    "elements": []
+  },
+  {
+    "code": "272.0",
+    "name": "Portes intérieures en métal",
+    "color": "#176974",
+    "elements": []
+  },
+  {
+    "code": "272.1",
+    "name": "Eléments préfabriqués en métal",
+    "color": "#6ca4e0",
+    "elements": []
+  },
+  {
+    "code": "272.2",
+    "name": "Ouvrages métalliques courants",
+    "color": "#9b163a",
+    "elements": []
+  },
+  {
+    "code": "272.3",
+    "name": "Vitrages intérieurs",
+    "color": "#709f15",
+    "elements": []
+  },
+  {
+    "code": "272.4",
+    "name": "Eléments préfabriqués pour abris P.C.",
+    "color": "#83bc85",
+    "elements": []
+  },
+  {
+    "code": "273.0",
+    "name": "Portes intérieures",
+    "color": "#a1e8b8",
+    "elements": []
+  },
+  {
+    "code": "273.1",
+    "name": "Armoires encastrées, placards, étagères, etc.",
+    "color": "#b8f738",
+    "elements": []
+  },
+  {
+    "code": "273.2",
+    "name": "Vitrages intérieurs",
+    "color": "#2d89b2",
+    "elements": []
+  },
+  {
+    "code": "273.3",
+    "name": "Menuiserie courante",
+    "color": "#2944ed",
+    "elements": []
+  },
+  {
+    "code": "274",
+    "name": "Vitrages intérieurs spéciaux",
+    "color": "#35167a",
+    "elements": []
+  },
+  {
+    "code": "275",
+    "name": "Systèmes de verrouillage",
+    "color": "#5188a9",
+    "elements": []
+  },
+  {
+    "code": "276.0",
+    "name": "Installations intérieures d'obscurcissement",
+    "color": "#252260",
+    "elements": []
+  },
+  {
+    "code": "276.1",
+    "name": "Grillages intérieurs mobiles",
+    "color": "#b6c73f",
+    "elements": []
+  },
+  {
+    "code": "276.2",
+    "name": "Systèmes de rideaux",
+    "color": "#f49ecd",
+    "elements": []
+  },
+  {
+    "code": "277.0",
+    "name": "Cloisons amovibles",
+    "color": "#517ac5",
+    "elements": []
+  },
+  {
+    "code": "277.1",
+    "name": "Cloisons mobiles (coulissantes ou accordéon)",
+    "color": "#0b16b3",
+    "elements": []
+  },
+  {
+    "code": "277.2",
+    "name": "Cloisons fixes",
+    "color": "#4dcae4",
+    "elements": []
+  },
+  {
+    "code": "278",
+    "name": "Etiquetage, marquage, signalétique",
+    "color": "#4744f6",
+    "elements": []
+  },
+  {
+    "code": "279",
+    "name": "Divers",
+    "color": "#f213c0",
+    "elements": []
+  },
+  {
+    "code": "280",
+    "name": "Poste d'attente",
+    "color": "#febe6a",
+    "elements": []
+  },
+  {
+    "code": "281.0",
+    "name": "Chapes",
+    "color": "#d0e380",
+    "elements": []
+  },
+  {
+    "code": "281.1",
+    "name": "Revêtements de sol sans joints",
+    "color": "#d8a1f0",
+    "elements": []
+  },
+  {
+    "code": "281.2",
+    "name": "Revêtements de sol en matières synthétiques, textiles, etc.",
+    "color": "#153bcd",
+    "elements": []
+  },
+  {
+    "code": "281.4",
+    "name": "Revêtements de sol en pierre naturelle",
+    "color": "#0ec304",
+    "elements": []
+  },
+  {
+    "code": "281.5",
+    "name": "Revêtements de sol en pierre artificielle",
+    "color": "#cbe159",
+    "elements": []
+  },
+  {
+    "code": "281.6",
+    "name": "Carrelages",
+    "color": "#acd51d",
+    "elements": []
+  },
+  {
+    "code": "281.7",
+    "name": "Revêtements de sol en bois",
+    "color": "#30ad3b",
+    "elements": []
+  },
+  {
+    "code": "281.8",
+    "name": "Faux-planchers techniques",
+    "color": "#cd8e45",
+    "elements": []
+  },
+  {
+    "code": "281.9",
+    "name": "Plinthes",
+    "color": "#10ff66",
+    "elements": []
+  },
+  {
+    "code": "282.0",
+    "name": "Revêtements de parois sans joints",
+    "color": "#3140c5",
+    "elements": []
+  },
+  {
+    "code": "282.1",
+    "name": "Papiers peints et revêtements similaires",
+    "color": "#d53426",
+    "elements": []
+  },
+  {
+    "code": "282.2",
+    "name": "Revêtements de parois en pierre naturelle",
+    "color": "#065039",
+    "elements": []
+  },
+  {
+    "code": "282.3",
+    "name": "Revêtements de parois en pierre artificielle",
+    "color": "#2a5934",
+    "elements": []
+  },
+  {
+    "code": "282.4",
+    "name": "Revêtements de parois en carreaux",
+    "color": "#69897a",
+    "elements": []
+  },
+  {
+    "code": "282.5",
+    "name": "Revêtements de parois en bois, dérivés du bois",
+    "color": "#95bd49",
+    "elements": []
+  },
+  {
+    "code": "282.6",
+    "name": "Revêtements de parois en matières synthétiques, textiles, etc.",
+    "color": "#0dd8ae",
+    "elements": []
+  },
+  {
+    "code": "282.7",
+    "name": "Echafaudages",
+    "color": "#2fe3fb",
+    "elements": []
+  },
+  {
+    "code": "283.0",
+    "name": "Echafaudages",
+    "color": "#0bb7c2",
+    "elements": []
+  },
+  {
+    "code": "283.1",
+    "name": "Faux-plafonds en métal",
+    "color": "#35bd62",
+    "elements": []
+  },
+  {
+    "code": "283.2",
+    "name": "Faux-plafonds en plâtre",
+    "color": "#4de01a",
+    "elements": []
+  },
+  {
+    "code": "283.3",
+    "name": "Faux-plafonds en fibres minérales",
+    "color": "#eb4100",
+    "elements": []
+  },
+  {
+    "code": "283.4",
+    "name": "Faux-plafonds en bois, dérivés du bois",
+    "color": "#163792",
+    "elements": []
+  },
+  {
+    "code": "283.5",
+    "name": "Faux-plafonds en matières synthétiques, textiles, etc.",
+    "color": "#d9e308",
+    "elements": []
+  },
+  {
+    "code": "284",
+    "name": "Fumisterie et poêlerie",
+    "color": "#4f2ec2",
+    "elements": []
+  },
+  {
+    "code": "285.0",
+    "name": "Echafaudages",
+    "color": "#8dae30",
+    "elements": []
+  },
+  {
+    "code": "285.1",
+    "name": "Peinture intérieure",
+    "color": "#860471",
+    "elements": []
+  },
+  {
+    "code": "285.2",
+    "name": "Préservation du bois intérieur",
+    "color": "#2fd8d5",
+    "elements": []
+  },
+  {
+    "code": "285.3",
+    "name": "Traitement du bois intérieur",
+    "color": "#64fe0a",
+    "elements": []
+  },
+  {
+    "code": "286",
+    "name": "Assèchement d'ouvrage",
+    "color": "#4a6a52",
+    "elements": []
+  },
+  {
+    "code": "287",
+    "name": "Nettoyage du bâtiment",
+    "color": "#83c973",
+    "elements": []
+  },
+  {
+    "code": "288",
+    "name": "Jardinage (bâtiment)",
+    "color": "#1d5c8e",
+    "elements": []
+  },
+  {
+    "code": "289",
+    "name": "Divers",
+    "color": "#da706f",
+    "elements": []
+  },
+  {
+    "code": "3",
+    "name": "Equipement d'instalation",
+    "color": "#6357ba",
+    "elements": []
+  },
+  {
+    "code": "40",
+    "name": "Mise en forme du terrain",
+    "color": "#5b6103",
+    "elements": []
+  },
+  {
+    "code": "41",
+    "name": "Constructions",
+    "color": "#9ba338",
+    "elements": []
+  },
+  {
+    "code": "42",
+    "name": "Jardins",
+    "color": "#1c293f",
+    "elements": []
+  },
+  {
+    "code": "44",
+    "name": "Installations",
+    "color": "#1c691c",
+    "elements": []
+  },
+  {
+    "code": "45",
+    "name": "Conduites à l'intérieur de la parcelle",
+    "color": "#2aa41b",
+    "elements": []
+  },
+  {
+    "code": "46",
+    "name": "Tracés",
+    "color": "#d5fa32",
+    "elements": []
+  },
+  {
+    "code": "47",
+    "name": "Ouvrages d'art",
+    "color": "#6c7d1b",
+    "elements": []
+  },
+  {
+    "code": "48",
+    "name": "Ouvrages souterrains",
+    "color": "#4b4ffd",
+    "elements": []
+  },
+  {
+    "code": "420",
+    "name": "Poste d'attente",
+    "color": "#fe543d",
+    "elements": []
+  },
+  {
+    "code": "421",
+    "name": "Aménagements de jardin",
+    "color": "#d44eaa",
+    "elements": []
+  },
+  {
+    "code": "422",
+    "name": "Clôtures",
+    "color": "#02ae8d",
+    "elements": []
+  },
+  {
+    "code": "423",
+    "name": "Equipements, engins",
+    "color": "#523b66",
+    "elements": []
+  },
+  {
+    "code": "424",
+    "name": "Places de jeux et de sport",
+    "color": "#32184b",
+    "elements": []
+  },
+  {
+    "code": "425",
+    "name": "Murs de soutènement",
+    "color": "#2a3ebf",
+    "elements": []
+  },
+  {
+    "code": "429",
+    "name": "Divers",
+    "color": "#101739",
+    "elements": []
+  },
+  {
+    "code": "901",
+    "name": "Equipements de vestiaires, rayonnages, etc",
+    "color": "#b231c4",
+    "elements": []
+  },
+  {
+    "code": "902",
+    "name": "Equipements de sport",
+    "color": "#a00019",
+    "elements": []
+  },
+  {
+    "code": "908",
+    "name": "Equipements d'abris P.C.",
+    "color": "#06ddfe",
+    "elements": []
+  },
+  {
+    "code": "91",
+    "name": "Luminaires",
+    "color": "#751b37",
+    "elements": []
+  },
+  {
+    "code": "92",
+    "name": "Textiles",
+    "color": "#208a4c",
+    "elements": []
+  },
+  {
+    "code": "Appareils,",
+    "name": "machines",
+    "color": "#8e3d20",
+    "elements": []
+  },
+  {
+    "code": "Petit",
+    "name": "inventaire",
+    "color": "#1ad629",
+    "elements": []
+  },
+  {
+    "code": "Moyens",
+    "name": "de transport",
+    "color": "#836b66",
+    "elements": []
+  },
+  {
+    "code": "Consommables",
+    "name": "Consommables",
+    "color": "#74fc61",
+    "elements": []
+  }
+]

@@ -9,45 +9,57 @@ const Footer: React.FC = () => {
 
   return (
     <footer className="hidden md:block bg-transparent text-[var(--color-text)] py-1 relative overflow-hidden">
-        <div className="bg-gradient-to-t from-[hsl(var(--background,_0_0%_100%))]/60 to-transparent pointer-events-auto">
-          <div className="px-4 py-1 flex flex-col items-center justify-center lg:justify-between lg:flex-row relative z-10">
-            {/* Desktop: Side-by-side layout */}
-            <div className="flex flex-col lg:flex-row items-center space-y-1 lg:space-y-0 lg:space-x-6 text-sm">
-              <a
-                href="https://github.com/louistrue/ifc-classifier"
-                target="_blank"
-                rel="noopener noreferrer"
-                aria-label="View our GitHub repository"
-                className="flex items-center hover:text-[var(--color-primary)] transition-colors duration-300"
-              >
-                <Github size={16} className="mr-1.5" />
-                <span>GitHub</span>
-              </a>
-              <a
-                href="https://www.lt.plus"
-                target="_blank"
-                rel="noopener noreferrer"
-                aria-label="Visit our website"
-                className="hover:text-[var(--color-primary)] hover:underline transition-colors duration-300"
-              >
-                lt.plus
-              </a>
-            </div>
-            <div className="text-xs text-[var(--color-text-muted)] mt-1 lg:mt-0 text-center lg:text-right">
-              <span>© {new Date().getFullYear()} </span>
-              <a
-                href="https://www.gnu.org/licenses/agpl-3.0.en.html"
-                target="_blank"
-                rel="noopener noreferrer"
-                aria-label="View AGPL-3.0 License terms"
-                className="font-medium hover:text-[var(--color-primary)] hover:underline transition-colors duration-300"
-              >
-                AGPL-3.0
-              </a>
-              <span> {t('footer.license')}</span>
-            </div>
+      <div className="bg-gradient-to-t from-[hsl(var(--background,_0_0%_100%))]/60 to-transparent pointer-events-auto">
+        <div className="px-4 py-1 flex flex-col items-center justify-center lg:justify-between lg:flex-row relative z-10">
+          {/* Desktop: Side-by-side layout */}
+          <div className="flex flex-col lg:flex-row items-center space-y-1 lg:space-y-0 lg:space-x-6 text-sm">
+            <a
+              href="https://github.com/louistrue/ifc-classifier"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="View our GitHub repository"
+              className="flex items-center hover:text-[var(--color-primary)] transition-colors duration-300"
+            >
+              <Github size={16} className="mr-1.5" />
+              <span>GitHub</span>
+            </a>
+            <a
+              href="https://www.lt.plus"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Visit our website"
+              className="hover:text-[var(--color-primary)] hover:underline transition-colors duration-300"
+            >
+              lt.plus
+            </a>
+          </div>
+          <div className="text-xs text-[var(--color-text-muted)] mt-1 lg:mt-0 text-center">
+            <span>Made with ❤️ by </span>
+            <a
+              href="https://buymeacoffee.com/louistrue"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Buy me a coffee"
+              className="hover:text-[var(--color-primary)] transition-colors duration-300"
+            >
+              Louis Trümpler
+            </a>
+          </div>
+          <div className="text-xs text-[var(--color-text-muted)] mt-1 lg:mt-0 text-center lg:text-right">
+            <span>© {new Date().getFullYear()} </span>
+            <a
+              href="https://www.gnu.org/licenses/agpl-3.0.en.html"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="View AGPL-3.0 License terms"
+              className="font-medium hover:text-[var(--color-primary)] hover:underline transition-colors duration-300"
+            >
+              AGPL-3.0
+            </a>
+            <span> {t('footer.license')}</span>
           </div>
         </div>
+      </div>
       <style jsx global>{`
         footer {
           color: var(--color-text);
