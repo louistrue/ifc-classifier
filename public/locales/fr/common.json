@@ -98,6 +98,7 @@
     },
     "buttons": {
         "save": "Enregistrer",
+        "saveChanges": "Enregistrer les modifications",
         "cancel": "Annuler",
         "apply": "Appliquer",
         "delete": "Supprimer",
@@ -217,7 +218,11 @@
         "mapFromModelTitle": "Mapper les classifications depuis le modèle",
         "mapFromModelDescription": "Extraire les classifications des valeurs de propriétés dans le modèle",
         "psetName": "Nom du PSet",
-        "propertyName": "Nom de la propriété"
+        "propertyName": "Nom de la propriété",
+        "manageClassifications": "Gérer les classifications",
+        "confirmRemoval": "Confirmer la suppression",
+        "confirmRemoveMessage": "Êtes-vous sûr de vouloir supprimer la classification <code>{{code}}</code> ? Cette action est irréversible.",
+        "confirmRemoveAllMessage": "Êtes-vous sûr de vouloir supprimer toutes les classifications ? Cette action est irréversible."
     },
     "rules": {
         "addNew": "Ajouter une nouvelle règle",
@@ -255,6 +260,10 @@
         "createNewClassification": "Créer une nouvelle classification \"{{value}}\"",
         "searchPlaceholder": "Rechercher des règles...",
         "noSearchResults": "Aucune règle ne correspond à votre recherche."
+    },
+    "models": {
+        "confirmRemoval": "Confirmer la suppression",
+        "confirmRemoveModel": "Êtes-vous sûr de vouloir supprimer le modèle <code>{{name}}</code> de la scène ? Cette action est irréversible."
     },
     "operators": {
         "equals": "Égal à",

@@ -98,6 +98,7 @@
   },
   "buttons": {
     "save": "Save",
+    "saveChanges": "Save Changes",
     "cancel": "Cancel",
     "apply": "Apply",
     "delete": "Delete",
@@ -217,7 +218,11 @@
     "showMetadataFields": "Show metadata fields…",
     "editMetadata": "Edit…",
     "psetName": "PSet Name",
-    "propertyName": "Property Name"
+    "propertyName": "Property Name",
+    "manageClassifications": "Manage Classifications",
+    "confirmRemoval": "Confirm Removal",
+    "confirmRemoveMessage": "Are you sure you want to remove the classification <code>{{code}}</code>? This action cannot be undone.",
+    "confirmRemoveAllMessage": "Are you sure you want to remove all classifications? This action cannot be undone."
   },
   "rules": {
     "addNew": "Add New Rule",
@@ -255,6 +260,10 @@
     "createNewClassification": "Create new classification \"{{value}}\"",
     "searchPlaceholder": "Search rules...",
     "noSearchResults": "No rules match your search."
+  },
+  "models": {
+    "confirmRemoval": "Confirm Removal",
+    "confirmRemoveModel": "Are you sure you want to remove the model <code>{{name}}</code> from the scene? This action cannot be undone."
   },
   "operators": {
     "equals": "Equals",

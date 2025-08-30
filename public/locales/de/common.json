@@ -98,6 +98,7 @@
   },
   "buttons": {
     "save": "Speichern",
+    "saveChanges": "Änderungen speichern",
     "cancel": "Abbrechen",
     "apply": "Anwenden",
     "delete": "Löschen",
@@ -219,7 +220,11 @@
     "mapFromModelTitle": "Klassifizierungen aus Modell übernehmen",
     "mapFromModelDescription": "Extrahiere Klassifizierungen aus Eigenschaftswerten im Modell.",
     "psetName": "Eigenschaftssatz-Name",
-    "propertyName": "Eigenschaftsname"
+    "propertyName": "Eigenschaftsname",
+    "manageClassifications": "Klassifizierungen verwalten",
+    "confirmRemoval": "Löschen bestätigen",
+    "confirmRemoveMessage": "Sind Sie sicher, dass Sie die Klassifizierung <code>{{code}}</code> entfernen möchten? Diese Aktion kann nicht rückgängig gemacht werden.",
+    "confirmRemoveAllMessage": "Sind Sie sicher, dass Sie alle Klassifizierungen entfernen möchten? Diese Aktion kann nicht rückgängig gemacht werden."
   },
   "rules": {
     "addNew": "Neue Regel hinzufügen",
@@ -257,6 +262,10 @@
     "createNewClassification": "Neue Klassifizierung \"{{value}}\" erstellen",
     "searchPlaceholder": "Regeln durchsuchen...",
     "noSearchResults": "Keine Regeln entsprechen Ihrer Suche."
+  },
+  "models": {
+    "confirmRemoval": "Löschen bestätigen",
+    "confirmRemoveModel": "Sind Sie sicher, dass Sie das Modell <code>{{name}}</code> aus der Szene entfernen möchten? Diese Aktion kann nicht rückgängig gemacht werden."
   },
   "operators": {
     "equals": "Gleich",

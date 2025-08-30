@@ -91,7 +91,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useTranslation } from "react-i18next";
+import { useTranslation, Trans } from "react-i18next";
 
 // Helper function to compare two arrays of SelectedElementInfo (order-independent)
 function areElementArraysEqual(arr1: any[], arr2: any[]): boolean {
@@ -1137,13 +1137,13 @@ export function ClassificationPanel() {
                   {" "}
                   {/* Subtle look */}
                   <MoreHorizontal className="w-5 h-5 text-muted-foreground" />
-                  <span className="sr-only">Manage Classifications</span>
+                  <span className="sr-only">{t("classifications.manageClassifications")}</span>
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 <DropdownMenuItem onSelect={() => setIsAddDialogOpen(true)}>
                   <Plus className="mr-2 h-4 w-4" />
-                  Add New Classification
+                  {t("classifications.addNew")}
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuLabel className="text-xs font-semibold text-muted-foreground px-2 py-1.5">
@@ -1643,9 +1643,11 @@ export function ClassificationPanel() {
                   setCurrentClassificationForEdit(null);
                 }}
               >
-                Cancel
+                {t("buttons.cancel")}
               </Button>
-              <Button onClick={handleUpdateClassification}>Save Changes</Button>
+              <Button onClick={handleUpdateClassification}>
+                {t("buttons.saveChanges")}
+              </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
@@ -2094,16 +2096,17 @@ export function ClassificationPanel() {
               <div className="flex items-center space-x-2">
                 <AlertTriangle className="h-6 w-6 text-destructive" />
                 <DialogTitle className="text-lg font-medium">
-                  Confirm Removal
+                  {t("classifications.confirmRemoval")}
                 </DialogTitle>
               </div>
             </DialogHeader>
             <DialogDescription className="mt-2 text-sm text-muted-foreground">
-              Are you sure you want to remove the classification &nbsp;
-              <span className="font-semibold text-foreground">
-                {classificationCodeToRemove}
-              </span>
-              ? This action cannot be undone.
+              <Trans
+                t={t}
+                i18nKey="classifications.confirmRemoveMessage"
+                values={{ code: classificationCodeToRemove }}
+                components={{ code: <span className="font-semibold text-foreground" /> }}
+              />
             </DialogDescription>
             <DialogFooter className="mt-6 sm:justify-end gap-2">
               <Button
@@ -2111,7 +2114,7 @@ export function ClassificationPanel() {
                 onClick={() => setIsConfirmRemoveOpen(false)}
                 className="sm:w-auto w-full"
               >
-                Cancel
+                {t("buttons.cancel")}
               </Button>
               <Button
                 variant="destructive"
@@ -2122,7 +2125,7 @@ export function ClassificationPanel() {
                 }}
                 className="sm:w-auto w-full"
               >
-                Remove Classification
+                {t("classifications.removeClassification")}
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -2138,13 +2141,12 @@ export function ClassificationPanel() {
               <div className="flex items-center space-x-2">
                 <AlertTriangle className="h-6 w-6 text-destructive" />
                 <DialogTitle className="text-lg font-medium">
-                  Confirm Removal
+                  {t("classifications.confirmRemoval")}
                 </DialogTitle>
               </div>
             </DialogHeader>
             <DialogDescription className="mt-2 text-sm text-muted-foreground">
-              Are you sure you want to remove all classifications? This action
-              cannot be undone.
+              {t("classifications.confirmRemoveAllMessage")}
             </DialogDescription>
             <DialogFooter className="mt-6 sm:justify-end gap-2">
               <Button
@@ -2152,7 +2154,7 @@ export function ClassificationPanel() {
                 onClick={() => setIsConfirmRemoveAllOpen(false)}
                 className="sm:w-auto w-full"
               >
-                Cancel
+                {t("buttons.cancel")}
               </Button>
               <Button
                 variant="destructive"
@@ -2162,7 +2164,7 @@ export function ClassificationPanel() {
                 }}
                 className="sm:w-auto w-full"
               >
-                Remove All
+                {t("buttons.removeAll")}
               </Button>
             </DialogFooter>
           </DialogContent>

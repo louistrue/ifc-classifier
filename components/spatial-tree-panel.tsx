@@ -49,7 +49,7 @@ import {
 } from "@/components/ui/tooltip";
 import { Badge } from "@/components/ui/badge";
 import { useSchemaPreview } from "@/lib/useSchemaPreview";
-import { useTranslation } from "react-i18next";
+import { useTranslation, Trans } from "react-i18next";
 import { SchemaReader } from "./schema-reader";
 
 // Helper function to generate a unique key for a node
@@ -837,16 +837,17 @@ export function SpatialTreePanel() {
               <div className="flex items-center space-x-2">
                 <AlertTriangle className="h-6 w-6 text-destructive" />
                 <DialogTitle className="text-lg font-medium">
-                  Confirm Removal
+                  {t("models.confirmRemoval")}
                 </DialogTitle>
               </div>
             </DialogHeader>
             <DialogDescription className="mt-2 text-sm text-muted-foreground">
-              Are you sure you want to remove the model &quot;
-              <span className="font-semibold text-foreground">
-                {modelToRemove.name}
-              </span>
-              &quot; from the scene? This action cannot be undone.
+              <Trans
+                t={t}
+                i18nKey="models.confirmRemoveModel"
+                values={{ name: modelToRemove.name }}
+                components={{ name: <span className="font-semibold text-foreground" /> }}
+              />
             </DialogDescription>
             <DialogFooter className="mt-6 sm:justify-end gap-2">
               <Button
@@ -854,14 +855,14 @@ export function SpatialTreePanel() {
                 onClick={() => setIsConfirmRemoveOpen(false)}
                 className="sm:w-auto w-full"
               >
-                Cancel
+                {t("buttons.cancel")}
               </Button>
               <Button
                 variant="destructive"
                 onClick={confirmRemove}
                 className="sm:w-auto w-full"
               >
-                Remove Model
+                {t("buttons.removeModel", { name: modelToRemove.name })}
               </Button>
             </DialogFooter>
           </DialogContent>
