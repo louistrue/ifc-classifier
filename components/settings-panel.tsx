@@ -182,6 +182,8 @@ export function SettingsPanel({ onSettingsChanged }: SettingsPanelProps) {
                     <SelectItem value="none">{t("settings.none")}</SelectItem>
                     <SelectItem value="uniclass">Uniclass Pr</SelectItem>
                     <SelectItem value="ebkph">eBKP-H</SelectItem>
+                    <SelectItem value="cfc">CFC</SelectItem>
+                    <SelectItem value="eccc_bat">eCCC-Bat</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
