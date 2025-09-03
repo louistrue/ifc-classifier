@@ -138,7 +138,10 @@
         "deleteRule": "Elimina regola",
         "previewRule": "Anteprima impatto regola",
         "clearPreview": "Cancella anteprima",
-        "mapFromModel": "Mappa dal modello"
+        "mapFromModel": "Mappa dal modello",
+        "browseBSDD": "Sfoglia bSDD",
+        "loadingBSDD": "Caricamento bSDD...",
+        "added": "Aggiunto"
     },
     "messages": {
         "loading": "Caricamento...",
@@ -215,6 +218,8 @@
         "classificationPlural": "classificazioni",
         "searchPlaceholder": "Cerca classificazioni...",
         "noSearchResults": "Nessuna classificazione corrisponde alla tua ricerca.",
+        "browseBSDDTitle": "Sfoglia bSDD",
+        "searchBSDDPlaceholder": "Cerca in bSDD...",
         "mapFromModelTitle": "Mappa classificazioni dal modello",
         "mapFromModelDescription": "Estrai classificazioni dai valori delle proprietà nel modello",
         "psetName": "Nome PSet",
