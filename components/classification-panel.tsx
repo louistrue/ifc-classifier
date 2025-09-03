@@ -25,6 +25,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Dialog,
   DialogContent,
@@ -115,6 +116,16 @@ interface AppSettings {
 }
 const SETTINGS_KEY = "appSettings";
 
+interface BSDDClass {
+  uri: string;
+  code: string;
+  name: string;
+  classType: string;
+  referenceCode: string;
+  parentClassCode?: string;
+  descriptionPart?: string;
+}
+
 export function ClassificationPanel() {
   const {
     classifications,
@@ -161,6 +172,13 @@ export function ClassificationPanel() {
   const [mapPropertyNameError, setMapPropertyNameError] = useState<
     string | null
   >(null);
+  const [isBSDDDialogOpen, setIsBSDDDialogOpen] = useState(false);
+  const [bsddSearch, setBsddSearch] = useState("");
+  const [bsddResults, setBsddResults] = useState<BSDDClass[]>([]);
+  const [isBSDDLoading, setIsBSDDLoading] = useState(false);
+  const [bsddError, setBsddError] = useState<string | null>(null);
+  const BSDD_DICTIONARY_URI =
+    "https://identifier.buildingsmart.org/uri/nbs/uniclass2015/1";
   const [defaultUniclassPr, setDefaultUniclassPr] = useState<
     ClassificationItem[]
   >([]);
@@ -396,6 +414,43 @@ export function ClassificationPanel() {
     if (!file) return;
     importClassificationsFromExcel(file);
     e.target.value = "";
+  };
+
+  const handleBSDDSearch = useCallback(async () => {
+    if (!bsddSearch.trim()) return;
+    setIsBSDDLoading(true);
+    setBsddError(null);
+    try {
+      const url = `https://api.bsdd.buildingsmart.org/api/Dictionary/v1/Classes?Uri=${encodeURIComponent(
+        BSDD_DICTIONARY_URI
+      )}&SearchText=${encodeURIComponent(bsddSearch.trim())}&Limit=100`;
+      const response = await fetch(url, {
+        headers: { accept: "application/json" },
+      });
+      if (!response.ok) {
+        throw new Error(`Failed to fetch bSDD data: ${response.statusText}`);
+      }
+      const data = await response.json();
+      setBsddResults(data.classes || []);
+    } catch (error) {
+      console.error("Error searching bSDD:", error);
+      setBsddError(
+        error instanceof Error ? error.message : t("messages.error")
+      );
+      setBsddResults([]);
+    } finally {
+      setIsBSDDLoading(false);
+    }
+  }, [bsddSearch, t, BSDD_DICTIONARY_URI]);
+
+  const handleAddBSDDClassification = (cls: BSDDClass) => {
+    if (!classifications[cls.code]) {
+      addClassification({
+        code: cls.code,
+        name: cls.name,
+        color: "#3b82f6",
+      });
+    }
   };
 
   // Effect to manage the default selected model for export
@@ -1276,6 +1331,9 @@ export function ClassificationPanel() {
                       {t("buttons.noUniclassFound")}
                     </DropdownMenuItem>
                   )}
+                <DropdownMenuItem onClick={() => setIsBSDDDialogOpen(true)}>
+                  {t("buttons.searchBSDD")}
+                </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuLabel className="text-xs font-semibold text-muted-foreground px-2 py-1.5">
                   {t("sections.manageData")}
@@ -1412,12 +1470,77 @@ export function ClassificationPanel() {
               >
                 {t("buttons.cancel")}
               </Button>
-              <Button onClick={handleAddClassification}>
-                {t("buttons.add")}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+          <Button onClick={handleAddClassification}>
+            {t("buttons.add")}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+    <Dialog open={isBSDDDialogOpen} onOpenChange={setIsBSDDDialogOpen}>
+      <DialogContent className="sm:max-w-xl">
+        <DialogHeader>
+          <DialogTitle>
+            {t("classifications.searchBSDDTitle")}
+          </DialogTitle>
+        </DialogHeader>
+        <div className="flex gap-2 py-2">
+          <Input
+            value={bsddSearch}
+            onChange={(e) => setBsddSearch(e.target.value)}
+            placeholder={t("classifications.bsdSearchPlaceholder")}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") handleBSDDSearch();
+            }}
+          />
+          <Button onClick={handleBSDDSearch} disabled={isBSDDLoading}>
+            {isBSDDLoading ? t("buttons.loading") : t("buttons.search")}
+          </Button>
+        </div>
+        {bsddError && (
+          <div className="text-sm text-destructive">{bsddError}</div>
+        )}
+        <ScrollArea className="h-64 mt-2">
+          {isBSDDLoading ? (
+            <div className="p-4 text-center text-sm">
+              {t("messages.loading")}
+            </div>
+          ) : bsddResults.length === 0 ? (
+            <div className="p-4 text-center text-sm text-muted-foreground">
+              {t("classifications.noBsdResults")}
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>{t("classifications.code")}</TableHead>
+                  <TableHead>{t("classifications.name")}</TableHead>
+                  <TableHead className="text-right"></TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {bsddResults.map((cls) => (
+                  <TableRow key={cls.code}>
+                    <TableCell>{cls.code}</TableCell>
+                    <TableCell>{cls.name}</TableCell>
+                    <TableCell className="text-right">
+                      <Button
+                        size="sm"
+                        onClick={() => handleAddBSDDClassification(cls)}
+                        disabled={!!classifications[cls.code]}
+                      >
+                        {classifications[cls.code]
+                          ? t("buttons.added")
+                          : t("buttons.add")}
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </ScrollArea>
+      </DialogContent>
+    </Dialog>
         {/* The old "Row 2 Management Dropdown section" is now fully replaced by the 3-dot menu in the header and this restored dialog. */}
         {/* The hidden file input for import is kept at the end of the component. */}
         <Dialog

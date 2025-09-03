@@ -138,7 +138,9 @@
         "deleteRule": "Supprimer la règle",
         "previewRule": "Prévisualiser l'impact de la règle",
         "clearPreview": "Effacer la prévisualisation",
-        "mapFromModel": "Mapper depuis le modèle"
+        "mapFromModel": "Mapper depuis le modèle",
+        "searchBSDD": "Rechercher bSDD",
+        "added": "Ajouté"
     },
     "messages": {
         "loading": "Chargement...",
@@ -222,7 +224,10 @@
         "manageClassifications": "Gérer les classifications",
         "confirmRemoval": "Confirmer la suppression",
         "confirmRemoveMessage": "Êtes-vous sûr de vouloir supprimer la classification <code>{{code}}</code> ? Cette action est irréversible.",
-        "confirmRemoveAllMessage": "Êtes-vous sûr de vouloir supprimer toutes les classifications ? Cette action est irréversible."
+        "confirmRemoveAllMessage": "Êtes-vous sûr de vouloir supprimer toutes les classifications ? Cette action est irréversible.",
+        "searchBSDDTitle": "Rechercher bSDD (Uniclass 2015)",
+        "bsdSearchPlaceholder": "Entrez un terme pour rechercher dans bSDD...",
+        "noBsdResults": "Aucune classification bSDD trouvée."
     },
     "rules": {
         "addNew": "Ajouter une nouvelle règle",

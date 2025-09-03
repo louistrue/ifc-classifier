@@ -138,7 +138,9 @@
     "deleteRule": "Regel löschen",
     "previewRule": "Regelauswirkung anzeigen",
     "clearPreview": "Vorschau zurücksetzen",
-    "mapFromModel": "Aus Modell übernehmen"
+    "mapFromModel": "Aus Modell übernehmen",
+    "searchBSDD": "bSDD durchsuchen",
+    "added": "Hinzugefügt"
   },
   "messages": {
     "loading": "Wird geladen...",
@@ -224,7 +226,10 @@
     "manageClassifications": "Klassifizierungen verwalten",
     "confirmRemoval": "Löschen bestätigen",
     "confirmRemoveMessage": "Sind Sie sicher, dass Sie die Klassifizierung <code>{{code}}</code> entfernen möchten? Diese Aktion kann nicht rückgängig gemacht werden.",
-    "confirmRemoveAllMessage": "Sind Sie sicher, dass Sie alle Klassifizierungen entfernen möchten? Diese Aktion kann nicht rückgängig gemacht werden."
+    "confirmRemoveAllMessage": "Sind Sie sicher, dass Sie alle Klassifizierungen entfernen möchten? Diese Aktion kann nicht rückgängig gemacht werden.",
+    "searchBSDDTitle": "bSDD durchsuchen (Uniclass 2015)",
+    "bsdSearchPlaceholder": "Begriff zur Suche im bSDD eingeben...",
+    "noBsdResults": "Keine bSDD-Klassifikationen gefunden."
   },
   "rules": {
     "addNew": "Neue Regel hinzufügen",

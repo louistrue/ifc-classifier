@@ -138,7 +138,9 @@
     "deleteRule": "Delete Rule",
     "previewRule": "Preview Rule Impact",
     "clearPreview": "Clear Preview",
-    "mapFromModel": "Map From Model"
+    "mapFromModel": "Map From Model",
+    "searchBSDD": "Search bSDD",
+    "added": "Added"
   },
   "messages": {
     "loading": "Loading...",
@@ -222,7 +224,10 @@
     "manageClassifications": "Manage Classifications",
     "confirmRemoval": "Confirm Removal",
     "confirmRemoveMessage": "Are you sure you want to remove the classification <code>{{code}}</code>? This action cannot be undone.",
-    "confirmRemoveAllMessage": "Are you sure you want to remove all classifications? This action cannot be undone."
+    "confirmRemoveAllMessage": "Are you sure you want to remove all classifications? This action cannot be undone.",
+    "searchBSDDTitle": "Search bSDD (Uniclass 2015)",
+    "bsdSearchPlaceholder": "Enter term to search bSDD...",
+    "noBsdResults": "No bSDD classifications found."
   },
   "rules": {
     "addNew": "Add New Rule",
