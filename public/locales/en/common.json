@@ -216,6 +216,7 @@
     "noSearchResults": "No classifications match your search.",
     "browseBSDDTitle": "Browse bSDD",
     "searchBSDDPlaceholder": "Search bSDD...",
+    "enterSearchTerm": "Enter a search term to browse bSDD.",
     "mapFromModelTitle": "Map Classifications from Model",
     "mapFromModelDescription": "Extract classifications from property values in the model",
     "export": "Export",

@@ -11,7 +11,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { fetchBSDDClasses, BsddClass } from "@/services/bsdd-service";
+import { searchBSDDClasses, BsddClass } from "@/services/bsdd-service";
 import { Plus, Check, AlertCircle } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
@@ -65,8 +65,12 @@ export function BsddDialog({ open, onOpenChange, onAdd, existingCodes }: BsddDia
     if (!open) return;
     const controller = new AbortController();
     const timer = setTimeout(() => {
+      if (!query.trim()) {
+        setResults([]);
+        return;
+      }
       setLoading(true);
-      fetchBSDDClasses(query, controller.signal)
+      searchBSDDClasses(query, controller.signal)
         .then((cls) => {
           setResults(cls);
           setError(null);
@@ -115,7 +119,15 @@ export function BsddDialog({ open, onOpenChange, onAdd, existingCodes }: BsddDia
                 <AlertCircle className="h-4 w-4" /> {error}
               </div>
             )}
-            {!loading && !error && results.length === 0 && (
+            {!loading && !error && !query.trim() && (
+              <div className="p-4 text-sm text-muted-foreground">
+                {t(
+                  "classifications.enterSearchTerm",
+                  "Enter a search term to browse bSDD.",
+                )}
+              </div>
+            )}
+            {!loading && !error && query.trim() && results.length === 0 && (
               <div className="p-4 text-sm text-muted-foreground">
                 {t("classifications.noSearchResults")}
               </div>

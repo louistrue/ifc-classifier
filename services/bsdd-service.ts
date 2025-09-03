@@ -3,25 +3,24 @@ export interface BsddClass {
   code: string;
   name: string;
   classType: string;
-  referenceCode: string;
-  parentClassCode?: string;
-  descriptionPart?: string;
 }
 
-const BSDD_DICTIONARY_URI = "https://identifier.buildingsmart.org/uri/nbs/uniclass2015/1";
+const BSDD_DICTIONARY_URI =
+  "https://identifier.buildingsmart.org/uri/nbs/uniclass2015/1";
 
-export async function fetchBSDDClasses(
+export async function searchBSDDClasses(
   search: string,
   signal?: AbortSignal,
 ): Promise<BsddClass[]> {
+  const query = search.trim();
+  if (!query) return [];
+
   const params = new URLSearchParams({
-    Uri: BSDD_DICTIONARY_URI,
+    DictionaryUri: BSDD_DICTIONARY_URI,
+    SearchText: query,
     Limit: "100",
   });
-  if (search) {
-    params.set("SearchText", search);
-  }
-  const url = `https://api.bsdd.buildingsmart.org/api/Dictionary/v1/Classes?${params.toString()}`;
+  const url = `https://api.bsdd.buildingsmart.org/api/SearchInDictionary/v1?${params.toString()}`;
   const res = await fetch(url, {
     headers: { accept: "text/plain" },
     signal,
@@ -30,5 +29,11 @@ export async function fetchBSDDClasses(
     throw new Error("Failed to fetch bSDD classes");
   }
   const data = await res.json();
-  return data.classes ?? [];
+  const classes = data.dictionary?.classes ?? [];
+  return classes.map((cls: any) => ({
+    uri: cls.uri,
+    code: cls.referenceCode ?? cls.code ?? "",
+    name: cls.name,
+    classType: cls.classType,
+  }));
 }
