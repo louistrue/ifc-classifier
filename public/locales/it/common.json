@@ -223,6 +223,7 @@
         "noSearchResults": "Nessuna classificazione corrisponde alla tua ricerca.",
         "browseBSDDTitle": "Sfoglia bSDD",
         "searchBSDDPlaceholder": "Cerca in bSDD...",
+        "enterSearchTerm": "Inserisci un termine di ricerca per esplorare il bSDD.",
         "mapFromModelTitle": "Mappa classificazioni dal modello",
         "mapFromModelDescription": "Estrai classificazioni dai valori delle proprietà nel modello",
         "psetName": "Nome PSet",

@@ -223,6 +223,7 @@
     "noSearchResults": "Keine Klassifizierungen entsprechen Ihrer Suche.",
     "browseBSDDTitle": "bSDD durchsuchen",
     "searchBSDDPlaceholder": "bSDD durchsuchen...",
+    "enterSearchTerm": "Suchbegriff eingeben, um im bSDD zu stöbern.",
     "noClassificationFound": "Keine Klassifizierung gefunden. Tippen Sie, um zu erstellen.",
     "createNewClassification": "Neue Klassifizierung \"{{value}}\" erstellen",
     "mapFromModelTitle": "Klassifizierungen aus Modell übernehmen",
