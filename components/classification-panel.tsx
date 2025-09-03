@@ -70,6 +70,7 @@ import {
   ArchiveRestore,
   Star,
   Cuboid,
+  Search,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -92,6 +93,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useTranslation, Trans } from "react-i18next";
+import { BSDDClassificationDialog } from "@/components/bsdd-classification-dialog";
 
 // Helper function to compare two arrays of SelectedElementInfo (order-independent)
 function areElementArraysEqual(arr1: any[], arr2: any[]): boolean {
@@ -153,6 +155,7 @@ export function ClassificationPanel() {
     useState<ClassificationItem | null>(null);
   const [isMapFromModelDialogOpen, setIsMapFromModelDialogOpen] =
     useState(false);
+  const [isBSDDDialogOpen, setIsBSDDDialogOpen] = useState(false);
   const [mapPsetName, setMapPsetName] = useState("");
   const [mapPropertyName, setMapPropertyName] = useState("");
   const [isMapLoading, setIsMapLoading] = useState(false);
@@ -1141,14 +1144,18 @@ export function ClassificationPanel() {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem onSelect={() => setIsAddDialogOpen(true)}>
-                  <Plus className="mr-2 h-4 w-4" />
-                  {t("classifications.addNew")}
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuLabel className="text-xs font-semibold text-muted-foreground px-2 py-1.5">
-                  {t("sections.defaultSets")}
-                </DropdownMenuLabel>
+              <DropdownMenuItem onSelect={() => setIsAddDialogOpen(true)}>
+                <Plus className="mr-2 h-4 w-4" />
+                {t("classifications.addNew")}
+              </DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => setIsBSDDDialogOpen(true)}>
+                <Search className="mr-2 h-4 w-4" />
+                {t("buttons.searchBSDD")}
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuLabel className="text-xs font-semibold text-muted-foreground px-2 py-1.5">
+                {t("sections.defaultSets")}
+              </DropdownMenuLabel>
                 {isLoadingEBKPH && (
                   <DropdownMenuItem disabled>
                     {t("buttons.loadingEbkph")}
@@ -1418,6 +1425,13 @@ export function ClassificationPanel() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+        <BSDDClassificationDialog
+          open={isBSDDDialogOpen}
+          onOpenChange={setIsBSDDDialogOpen}
+          onSelect={(cls) =>
+            addClassification({ code: cls.code, name: cls.name, color: "#3b82f6" })
+          }
+        />
         {/* The old "Row 2 Management Dropdown section" is now fully replaced by the 3-dot menu in the header and this restored dialog. */}
         {/* The hidden file input for import is kept at the end of the component. */}
         <Dialog

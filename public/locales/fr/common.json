@@ -131,6 +131,7 @@
         "ecccBatError": "Erreur eCCC-Bat : {{message}}",
         "loadEcccBat": "Charger eCCC-Bat ({{count}})",
         "noEcccBatFound": "Aucun élément eCCC-Bat trouvé.",
+        "searchBSDD": "Rechercher dans bSDD",
         "addCondition": "Ajouter une condition",
         "saveRule": "Enregistrer la règle",
         "copyRule": "Copier la règle",
@@ -222,7 +223,9 @@
         "manageClassifications": "Gérer les classifications",
         "confirmRemoval": "Confirmer la suppression",
         "confirmRemoveMessage": "Êtes-vous sûr de vouloir supprimer la classification <code>{{code}}</code> ? Cette action est irréversible.",
-        "confirmRemoveAllMessage": "Êtes-vous sûr de vouloir supprimer toutes les classifications ? Cette action est irréversible."
+        "confirmRemoveAllMessage": "Êtes-vous sûr de vouloir supprimer toutes les classifications ? Cette action est irréversible.",
+        "bsddDialogTitle": "Rechercher une classification bSDD",
+        "bsddSearchPlaceholder": "Rechercher des classes..."
     },
     "rules": {
         "addNew": "Ajouter une nouvelle règle",
