@@ -70,6 +70,7 @@ import {
   ArchiveRestore,
   Star,
   Cuboid,
+  Globe,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -107,6 +108,16 @@ function areElementArraysEqual(arr1: any[], arr2: any[]): boolean {
 
 // Define sortable keys
 type SortableKey = "code" | "name" | "elementsCount";
+
+interface BsddClass {
+  uri: string;
+  code: string;
+  name: string;
+  classType: string;
+  referenceCode: string;
+  parentClassCode?: string;
+  descriptionPart?: string;
+}
 
 // Define AppSettings interface locally or import if available globally
 interface AppSettings {
@@ -190,7 +201,51 @@ export function ClassificationPanel() {
     null
   );
 
+  // State for bSDD search
+  const [isBsddDialogOpen, setIsBsddDialogOpen] = useState(false);
+  const [bsddSearch, setBsddSearch] = useState("");
+  const [bsddResults, setBsddResults] = useState<BsddClass[]>([]);
+  const [isBsddLoading, setIsBsddLoading] = useState(false);
+  const [bsddError, setBsddError] = useState<string | null>(null);
+
   const [hasAutoLoaded, setHasAutoLoaded] = useState(false);
+
+  const fetchBsdd = useCallback(async (search: string) => {
+    setIsBsddLoading(true);
+    setBsddError(null);
+    try {
+      const params = new URLSearchParams({
+        Uri: "https://identifier.buildingsmart.org/uri/nbs/uniclass2015/1",
+        Limit: "100",
+      });
+      if (search) params.set("SearchText", search);
+      const response = await fetch(
+        `https://api.bsdd.buildingsmart.org/api/Dictionary/v1/Classes?${params.toString()}`,
+        { headers: { accept: "application/json" } },
+      );
+      if (!response.ok)
+        throw new Error(`Failed to fetch bSDD data: ${response.statusText}`);
+      const data = (await response.json()) as { classes: BsddClass[] };
+      setBsddResults(data.classes || []);
+    } catch (error) {
+      console.error("Error loading bSDD data:", error);
+      setBsddError(error instanceof Error ? error.message : "Unknown error");
+    } finally {
+      setIsBsddLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!isBsddDialogOpen) return;
+    if (bsddSearch === "") {
+      fetchBsdd("");
+      return;
+    }
+    const handler = setTimeout(() => {
+      fetchBsdd(bsddSearch);
+    }, 500);
+    return () => clearTimeout(handler);
+  }, [bsddSearch, isBsddDialogOpen, fetchBsdd]);
 
   // ----- Export classification system metadata -----
   const presetMeta: Record<"ebkp" | "cfc" | "eccc_bat" | "uniclass", ClassificationSystemMeta> = {
@@ -622,6 +677,14 @@ export function ClassificationPanel() {
     });
     console.log(`Added ${addedCount} eCCC-Bat classifications.`);
   }, [defaultECCC_Bat, classifications, addClassification]);
+
+  const handleAddBsddClass = useCallback(
+    (cls: BsddClass) => {
+      if (classifications[cls.code]) return;
+      addClassification({ code: cls.code, name: cls.name, color: "#3b82f6" });
+    },
+    [classifications, addClassification],
+  );
 
   const areAllUniclassAdded = useCallback(() => {
     if (
@@ -1276,6 +1339,10 @@ export function ClassificationPanel() {
                       {t("buttons.noUniclassFound")}
                     </DropdownMenuItem>
                   )}
+                <DropdownMenuItem onSelect={() => setIsBsddDialogOpen(true)}>
+                  <Globe className="mr-2 h-4 w-4" />
+                  {t("buttons.searchBsdd")}
+                </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuLabel className="text-xs font-semibold text-muted-foreground px-2 py-1.5">
                   {t("sections.manageData")}
@@ -1652,6 +1719,83 @@ export function ClassificationPanel() {
           </DialogContent>
         </Dialog>
       )}
+
+      <Dialog open={isBsddDialogOpen} onOpenChange={setIsBsddDialogOpen}>
+        <DialogContent className="sm:max-w-[700px]">
+          <DialogHeader>
+            <DialogTitle>{t("bsdd.title")}</DialogTitle>
+            <DialogDescription>
+              {t("buttons.searchBsdd")}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <Input
+              placeholder={t("bsdd.searchPlaceholder")}
+              value={bsddSearch}
+              onChange={(e) => setBsddSearch(e.target.value)}
+            />
+            {isBsddLoading ? (
+              <p>{t("buttons.loadingBsdd")}</p>
+            ) : bsddError ? (
+              <p className="text-destructive">
+                {t("buttons.bsddError", { message: bsddError })}
+              </p>
+            ) : (
+              <div className="max-h-64 overflow-y-auto border rounded-md">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>{t("classifications.code")}</TableHead>
+                      <TableHead>{t("classifications.name")}</TableHead>
+                      <TableHead className="w-24"></TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {bsddResults.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={3}>
+                          {t("bsdd.noResults")}
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      bsddResults.map((cls) => {
+                        const added = !!classifications[cls.code];
+                        return (
+                          <TableRow key={cls.code}>
+                            <TableCell className="font-mono text-xs">
+                              {cls.code}
+                            </TableCell>
+                            <TableCell>{cls.name}</TableCell>
+                            <TableCell className="text-right">
+                              <Button
+                                size="sm"
+                                onClick={() => handleAddBsddClass(cls)}
+                                disabled={added}
+                              >
+                                {added
+                                  ? t("buttons.added")
+                                  : t("buttons.add")}
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setIsBsddDialogOpen(false)}
+            >
+              {t("buttons.cancel")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {selectedElements.length > 0 && (
         <div className="mt-4 space-y-2 border-t pt-4">

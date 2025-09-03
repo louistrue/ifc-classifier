@@ -131,6 +131,10 @@
     "ecccBatError": "eCCC-Bat Error: {{message}}",
     "loadEcccBat": "Load eCCC-Bat ({{count}})",
     "noEcccBatFound": "No eCCC-Bat items found.",
+    "searchBsdd": "Search bSDD",
+    "loadingBsdd": "Loading bSDD...",
+    "bsddError": "bSDD Error: {{message}}",
+    "added": "Added",
     "addCondition": "Add Condition",
     "saveRule": "Save Rule",
     "copyRule": "Copy Rule",
@@ -223,6 +227,11 @@
     "confirmRemoval": "Confirm Removal",
     "confirmRemoveMessage": "Are you sure you want to remove the classification <code>{{code}}</code>? This action cannot be undone.",
     "confirmRemoveAllMessage": "Are you sure you want to remove all classifications? This action cannot be undone."
+  },
+  "bsdd": {
+    "title": "Search bSDD Classifications",
+    "searchPlaceholder": "Search classes...",
+    "noResults": "No classes found."
   },
   "rules": {
     "addNew": "Add New Rule",
