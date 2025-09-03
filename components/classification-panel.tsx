@@ -70,6 +70,7 @@ import {
   ArchiveRestore,
   Star,
   Cuboid,
+  Search,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -78,6 +79,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { BsddDialog } from "@/components/bsdd-dialog";
 import {
   exportIfcWithClassificationsService,
   downloadFile,
@@ -143,6 +145,7 @@ export function ClassificationPanel() {
   } = useIFCContext();
   const { t } = useTranslation();
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [isBsddDialogOpen, setIsBsddDialogOpen] = useState(false);
   const [newClassification, setNewClassification] = useState({
     code: "",
     name: "",
@@ -1145,6 +1148,10 @@ export function ClassificationPanel() {
                   <Plus className="mr-2 h-4 w-4" />
                   {t("classifications.addNew")}
                 </DropdownMenuItem>
+                <DropdownMenuItem onSelect={() => setIsBsddDialogOpen(true)}>
+                  <Search className="mr-2 h-4 w-4" />
+                  {t("buttons.browseBSDD", "Browse bSDD")}
+                </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuLabel className="text-xs font-semibold text-muted-foreground px-2 py-1.5">
                   {t("sections.defaultSets")}
@@ -1412,17 +1419,23 @@ export function ClassificationPanel() {
               >
                 {t("buttons.cancel")}
               </Button>
-              <Button onClick={handleAddClassification}>
-                {t("buttons.add")}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-        {/* The old "Row 2 Management Dropdown section" is now fully replaced by the 3-dot menu in the header and this restored dialog. */}
-        {/* The hidden file input for import is kept at the end of the component. */}
-        <Dialog
-          open={isMapFromModelDialogOpen}
-          onOpenChange={(open) => {
+          <Button onClick={handleAddClassification}>
+            {t("buttons.add")}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+    <BsddDialog
+      open={isBsddDialogOpen}
+      onOpenChange={setIsBsddDialogOpen}
+      onAdd={(item) => addClassification(item)}
+      existingCodes={new Set(Object.keys(classifications))}
+    />
+    {/* The old "Row 2 Management Dropdown section" is now fully replaced by the 3-dot menu in the header and this restored dialog. */}
+    {/* The hidden file input for import is kept at the end of the component. */}
+    <Dialog
+      open={isMapFromModelDialogOpen}
+      onOpenChange={(open) => {
             setIsMapFromModelDialogOpen(open);
             if (!open) {
               // Reset form state when closing
