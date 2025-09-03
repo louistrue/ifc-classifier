@@ -138,7 +138,10 @@
     "deleteRule": "Regel löschen",
     "previewRule": "Regelauswirkung anzeigen",
     "clearPreview": "Vorschau zurücksetzen",
-    "mapFromModel": "Aus Modell übernehmen"
+    "mapFromModel": "Aus Modell übernehmen",
+    "browseBSDD": "bSDD durchsuchen",
+    "loadingBSDD": "bSDD wird geladen...",
+    "added": "Hinzugefügt"
   },
   "messages": {
     "loading": "Wird geladen...",
@@ -215,6 +218,8 @@
     "classificationPlural": "Klassifikationen",
     "searchPlaceholder": "Klassifizierungen durchsuchen...",
     "noSearchResults": "Keine Klassifizierungen entsprechen Ihrer Suche.",
+    "browseBSDDTitle": "bSDD durchsuchen",
+    "searchBSDDPlaceholder": "bSDD durchsuchen...",
     "noClassificationFound": "Keine Klassifizierung gefunden. Tippen Sie, um zu erstellen.",
     "createNewClassification": "Neue Klassifizierung \"{{value}}\" erstellen",
     "mapFromModelTitle": "Klassifizierungen aus Modell übernehmen",
