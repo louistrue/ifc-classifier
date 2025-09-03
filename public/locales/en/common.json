@@ -138,7 +138,10 @@
     "deleteRule": "Delete Rule",
     "previewRule": "Preview Rule Impact",
     "clearPreview": "Clear Preview",
-    "mapFromModel": "Map From Model"
+    "mapFromModel": "Map From Model",
+    "browseBSDD": "Browse bSDD",
+    "loadingBSDD": "Loading bSDD...",
+    "added": "Added"
   },
   "messages": {
     "loading": "Loading...",
@@ -211,6 +214,8 @@
     "classificationPlural": "classifications",
     "searchPlaceholder": "Search classifications...",
     "noSearchResults": "No classifications match your search.",
+    "browseBSDDTitle": "Browse bSDD",
+    "searchBSDDPlaceholder": "Search bSDD...",
     "mapFromModelTitle": "Map Classifications from Model",
     "mapFromModelDescription": "Extract classifications from property values in the model",
     "export": "Export",
