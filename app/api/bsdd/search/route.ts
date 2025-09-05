@@ -3,10 +3,19 @@ import { NextRequest, NextResponse } from 'next/server';
 const BSDD_BASE_URL = 'https://api.bsdd.buildingsmart.org';
 const DEFAULT_DICTIONARY_URI = 'https://identifier.buildingsmart.org/uri/nbs/uniclass2015/1';
 
+// Popular dictionaries for quick access
+const POPULAR_DICTIONARIES = [
+  'https://identifier.buildingsmart.org/uri/buildingsmart/ifc/4.3',
+  'https://identifier.buildingsmart.org/uri/nbs/uniclass2015/1',
+  'https://identifier.buildingsmart.org/uri/etim/etim/10.0',
+  'https://identifier.buildingsmart.org/uri/molio/cciconstruction/1.0',
+  'https://identifier.buildingsmart.org/uri/buildingsmart-de/LAFA1/1.0'
+];
+
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    
+
     // Get search parameters with defaults
     const searchText = searchParams.get('searchText') || '';
     const dictionaryUri = searchParams.get('dictionaryUri') || DEFAULT_DICTIONARY_URI;
@@ -72,7 +81,7 @@ export async function GET(request: NextRequest) {
 
   } catch (error) {
     console.error('Error proxying BSDD request:', error);
-    
+
     // Handle timeout errors specifically
     if (error instanceof Error && error.name === 'AbortError') {
       return NextResponse.json(
@@ -80,7 +89,7 @@ export async function GET(request: NextRequest) {
         { status: 408 }
       );
     }
-    
+
     return NextResponse.json(
       { error: 'Internal server error while fetching from BSDD API' },
       { status: 500 }
