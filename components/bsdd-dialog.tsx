@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import {
   Dialog,
   DialogContent,
@@ -26,7 +26,8 @@ import {
   getBSDDDictionaries,
   POPULAR_DICTIONARIES,
   BsddClass,
-  BsddDictionary
+  BsddDictionary,
+  fetchDictionaryClasses
 } from "@/services/bsdd-service";
 import {
   Plus,
@@ -95,11 +96,19 @@ export function BsddDialog({ open, onOpenChange, onAdd, existingCodes, onRemove 
 
   // Results state
   const [searchResults, setSearchResults] = useState<BsddClass[]>([]);
+  const [prefetchedResults, setPrefetchedResults] = useState<BsddClass[]>([]);
   const [availableDictionaries, setAvailableDictionaries] = useState<BsddDictionary[]>([]);
 
   // UI state
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [prefetchLoading, setPrefetchLoading] = useState(false);
+  const [prefetchError, setPrefetchError] = useState<string | null>(null);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const loadingMoreRef = useRef(false);
+  const prefetchOffsetsRef = useRef<Record<string, number>>({});
+  const lastPrefetchKeyRef = useRef<string>("");
+  const selectionKey = useMemo(() => selectedDictionaryUris.slice().sort().join('|'), [selectedDictionaryUris]);
   const [showFilters, setShowFilters] = useState(false);
   const [dictionaryQuery, setDictionaryQuery] = useState("");
 
@@ -113,7 +122,9 @@ export function BsddDialog({ open, onOpenChange, onAdd, existingCodes, onRemove 
   const [dictSortAsc, setDictSortAsc] = useState<boolean>(true);
 
   // Current results
-  const currentResults = searchResults;
+  const currentResults = useMemo(() => (query.trim() ? searchResults : prefetchedResults), [query, searchResults, prefetchedResults]);
+  const overallLoading = query.trim() ? loading : prefetchLoading;
+  const overallError = query.trim() ? error : prefetchError;
 
   // Extract unique dictionaries from current results for filtering
   const availableDictionariesInResults = useMemo(() => {
@@ -288,8 +299,10 @@ export function BsddDialog({ open, onOpenChange, onAdd, existingCodes, onRemove 
 
   // Search effect across selected dictionaries
   useEffect(() => {
-    if (!open || !query.trim()) {
-      setSearchResults([]);
+    if (!open) return;
+    if (!query.trim()) {
+      // switching back to empty query: use prefetched list, stop loading
+      setLoading(false);
       setError(null);
       return;
     }
@@ -352,6 +365,143 @@ export function BsddDialog({ open, onOpenChange, onAdd, existingCodes, onRemove 
       controller.abort();
     };
   }, [query, selectedDictionaryUris, typeFilter, searchInFilter, open]);
+
+  // Prefetch classes from selected dictionaries when entering search step with empty query
+  useEffect(() => {
+    if (!open) return;
+    if (step !== 'search') return;
+    if (query.trim()) return; // if user already typed, don't prefetch
+    if (selectedDictionaryUris.length === 0) {
+      setPrefetchedResults([]);
+      setPrefetchError(null);
+      return;
+    }
+
+    // If selection unchanged and we already have data, don't reload
+    if (lastPrefetchKeyRef.current === selectionKey && prefetchedResults.length > 0) {
+      setPrefetchLoading(false);
+      return;
+    }
+
+    const controller = new AbortController();
+    setPrefetchLoading(true);
+    setPrefetchError(null);
+    prefetchOffsetsRef.current = Object.fromEntries(selectedDictionaryUris.map(u => [u, 0]));
+    lastPrefetchKeyRef.current = selectionKey;
+
+    Promise.allSettled(selectedDictionaryUris.map(async (uri) => {
+      // Fetch first page (up to 1000) of classes per dictionary for initial browse
+      const data = await fetchDictionaryClasses({ uri, limit: 1000, offset: 0, signal: controller.signal });
+      const classes = (data.classes ?? []);
+      // Map to BsddClass
+      return classes.map((cls: any) => {
+        let finalCode = cls.referenceCode ?? cls.code ?? "";
+        if (!finalCode.trim()) {
+          const name = cls.name || "";
+          if (name) {
+            finalCode = name.split(' ').slice(0, 3).map((w: string) => w.substring(0, 3).toUpperCase()).join('-').replace(/[^A-Z0-9\-]/g, '');
+          }
+        }
+        const dict = availableDictionaries.find(d => d.uri === uri);
+        return {
+          uri: cls.uri,
+          code: finalCode,
+          name: cls.name ?? "",
+          classType: cls.classType ?? "",
+          referenceCode: cls.referenceCode,
+          dictionaryName: dict?.name,
+          dictionaryUri: uri,
+          definition: cls.definition ?? cls.descriptionPart,
+          synonyms: cls.synonyms,
+        } as BsddClass;
+      }).filter((c: BsddClass) => c.name && c.name.trim().length > 0);
+    }))
+      .then((results) => {
+        const agg: BsddClass[] = [];
+        const seen = new Set<string>();
+        for (const r of results) {
+          if (r.status === 'fulfilled') {
+            for (const c of r.value) {
+              const key = c.uri || `${c.dictionaryUri}::${c.code}`;
+              if (!seen.has(key)) {
+                seen.add(key);
+                agg.push(c);
+              }
+            }
+          }
+        }
+        setPrefetchedResults(agg);
+      })
+      .catch((e) => {
+        if (!controller.signal.aborted) setPrefetchError(e instanceof Error ? e.message : String(e));
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setPrefetchLoading(false);
+      });
+
+    return () => controller.abort();
+  }, [open, step, query, selectedDictionaryUris, availableDictionaries]);
+
+  const maybeLoadMorePrefetch = useCallback(async () => {
+    if (!open) return;
+    if (step !== 'search') return;
+    if (query.trim()) return;
+    if (isLoadingMore || loadingMoreRef.current) return;
+    loadingMoreRef.current = true;
+    setIsLoadingMore(true);
+
+    const controller = new AbortController();
+    try {
+      const results = await Promise.allSettled(selectedDictionaryUris.map(async (uri) => {
+        const currentOffset = prefetchOffsetsRef.current[uri] ?? 0;
+        const nextOffset = currentOffset + 1000;
+        prefetchOffsetsRef.current[uri] = nextOffset;
+        const data = await fetchDictionaryClasses({ uri, limit: 1000, offset: nextOffset, signal: controller.signal });
+        const classes = (data.classes ?? []);
+        const dict = availableDictionaries.find(d => d.uri === uri);
+        return classes.map((cls: any) => {
+          let finalCode = cls.referenceCode ?? cls.code ?? "";
+          if (!finalCode.trim()) {
+            const name = cls.name || "";
+            if (name) {
+              finalCode = name.split(' ').slice(0, 3).map((w: string) => w.substring(0, 3).toUpperCase()).join('-').replace(/[^A-Z0-9\-]/g, '');
+            }
+          }
+          return {
+            uri: cls.uri,
+            code: finalCode,
+            name: cls.name ?? "",
+            classType: cls.classType ?? "",
+            referenceCode: cls.referenceCode,
+            dictionaryName: dict?.name,
+            dictionaryUri: uri,
+            definition: cls.definition ?? cls.descriptionPart,
+            synonyms: cls.synonyms,
+          } as BsddClass;
+        }).filter((c: BsddClass) => c.name && c.name.trim().length > 0);
+      }));
+
+      const more: BsddClass[] = [];
+      const seen = new Set<string>(prefetchedResults.map(c => c.uri || `${c.dictionaryUri}::${c.code}`));
+      for (const r of results) {
+        if (r.status === 'fulfilled') {
+          for (const c of r.value) {
+            const key = c.uri || `${c.dictionaryUri}::${c.code}`;
+            if (!seen.has(key)) {
+              seen.add(key);
+              more.push(c);
+            }
+          }
+        }
+      }
+      if (more.length > 0) setPrefetchedResults(prev => [...prev, ...more]);
+    } catch (e) {
+      // ignore
+    } finally {
+      setIsLoadingMore(false);
+      loadingMoreRef.current = false;
+    }
+  }, [open, step, query, selectedDictionaryUris, prefetchedResults, availableDictionaries, isLoadingMore]);
 
   // No local selection state needed; rely on existingCodes from parent
 
@@ -888,23 +1038,30 @@ export function BsddDialog({ open, onOpenChange, onAdd, existingCodes, onRemove 
                 {/* No bulk actions */}
 
                 <div className="flex-1 border rounded-b-lg overflow-hidden">
-                  <ScrollArea className="h-[60vh]">
-                    {loading && (
+                  <ScrollArea className="h-[60vh]" viewportProps={{
+                    onScroll: (e) => {
+                      const tgt = e.currentTarget;
+                      if (tgt.scrollHeight - tgt.scrollTop - tgt.clientHeight < 200) {
+                        maybeLoadMorePrefetch();
+                      }
+                    }
+                  }}>
+                    {overallLoading && (
                       <div className="flex items-center justify-center p-8">
                         <Loader2 className="h-6 w-6 animate-spin mr-2" />
                         <span className="text-muted-foreground">
-                          {t("buttons.loadingBSDD", "Searching bSDD...")}
+                          {query.trim() ? t("buttons.loadingBSDD", "Searching bSDD...") : 'Loading dictionary content...'}
                         </span>
                       </div>
                     )}
 
-                    {error && (
+                    {overallError && (
                       <div className="p-4 text-sm text-destructive flex items-center gap-2">
-                        <AlertCircle className="h-4 w-4" /> {error}
+                        <AlertCircle className="h-4 w-4" /> {overallError}
                       </div>
                     )}
 
-                    {!loading && !error && !query.trim() && (
+                    {!overallLoading && !overallError && !query.trim() && (
                       <div className="p-8 text-center text-muted-foreground">
                         <Search className="h-12 w-12 mx-auto mb-3 opacity-50" />
                         <p className="text-lg font-medium mb-1">Search the bSDD</p>
@@ -912,7 +1069,7 @@ export function BsddDialog({ open, onOpenChange, onAdd, existingCodes, onRemove 
                       </div>
                     )}
 
-                    {!loading && !error && query.trim() && filteredAndSortedResults.length === 0 && (
+                    {!overallLoading && !overallError && query.trim() && filteredAndSortedResults.length === 0 && (
                       <div className="p-8 text-center text-muted-foreground">
                         <AlertCircle className="h-12 w-12 mx-auto mb-3 opacity-50" />
                         <p className="text-lg font-medium mb-1">No results found</p>
@@ -922,7 +1079,7 @@ export function BsddDialog({ open, onOpenChange, onAdd, existingCodes, onRemove 
                       </div>
                     )}
 
-                    {!loading && !error && filteredAndSortedResults.length > 0 && (
+                    {!overallLoading && !overallError && filteredAndSortedResults.length > 0 && (
                       <div className="divide-y">
                         {filteredAndSortedResults.map((cls) => {
                           const isAdded = existingCodes.has(cls.code);
