@@ -63,7 +63,10 @@
   "createRulesDescription": "Create rules to automatically classify elements based on their properties.",
   "applicationSettings": "Application Settings",
   "footer": {
-    "license": "License"
+    "license": "License",
+    "madeBy": "Made by Louis Trümpler",
+    "buyMeCoffee": "Buy me a coffee",
+    "coffeeBillMessage": "If you enjoy using this free and open software, consider a contribution towards my coffee bill"
   },
   "alerts": {
     "pleaseSelectModel": "Please select a model to export.",
