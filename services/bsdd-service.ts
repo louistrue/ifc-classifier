@@ -10,6 +10,13 @@ export interface BsddClass {
   synonyms?: string[];
 }
 
+export interface BsddProperty {
+  uri: string;
+  code: string;
+  name: string;
+  descriptionPart?: string;
+}
+
 export interface BsddDictionary {
   uri: string;
   name: string;
@@ -555,5 +562,153 @@ export async function getBSDDDictionaries(signal?: AbortSignal): Promise<BsddDic
       throw new Error('Dictionary request was cancelled');
     }
     throw error;
+  }
+}
+
+// Fetch classes for a dictionary (supports nested or paginated flat)
+export async function fetchDictionaryClasses(options: {
+  uri: string;
+  useNested?: boolean;
+  classType?: 'Class' | 'GroupOfProperties' | 'AlternativeUse' | 'Material';
+  relatedIfcEntity?: string;
+  offset?: number;
+  limit?: number;
+  languageCode?: string;
+  signal?: AbortSignal;
+}): Promise<{
+  classes: any[];
+  classesTotalCount?: number;
+  classesOffset?: number;
+  classesCount?: number;
+  totalCount?: number;
+  offset?: number;
+  count?: number;
+}> {
+  const params = new URLSearchParams();
+  params.set('Uri', options.uri);
+  if (options.useNested) params.set('UseNestedClasses', 'true');
+  if (options.classType) params.set('ClassType', options.classType);
+  if (options.relatedIfcEntity) params.set('RelatedIfcEntity', options.relatedIfcEntity);
+  if (options.offset !== undefined) params.set('Offset', String(options.offset));
+  if (options.limit !== undefined) params.set('Limit', String(options.limit));
+  if (options.languageCode) params.set('languageCode', options.languageCode);
+
+  const res = await fetch(`/api/bsdd/dictionary-classes?${params.toString()}`, {
+    headers: { 'Accept': 'application/json' },
+    signal: options.signal,
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || `Failed to fetch dictionary classes: ${res.statusText}`);
+  }
+  return res.json();
+}
+
+// Fetch properties for a dictionary (paginated)
+export async function fetchDictionaryProperties(options: {
+  uri: string;
+  searchText?: string;
+  offset?: number;
+  limit?: number;
+  languageCode?: string;
+  signal?: AbortSignal;
+}): Promise<{
+  properties: BsddProperty[];
+  propertiesTotalCount?: number;
+  propertiesOffset?: number;
+  propertiesCount?: number;
+}> {
+  const params = new URLSearchParams();
+  params.set('Uri', options.uri);
+  if (options.searchText) params.set('SearchText', options.searchText);
+  if (options.offset !== undefined) params.set('Offset', String(options.offset));
+  if (options.limit !== undefined) params.set('Limit', String(options.limit));
+  if (options.languageCode) params.set('languageCode', options.languageCode);
+
+  const res = await fetch(`/api/bsdd/dictionary-properties?${params.toString()}`, {
+    headers: { 'Accept': 'application/json' },
+    signal: options.signal,
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || `Failed to fetch dictionary properties: ${res.statusText}`);
+  }
+  const data = await res.json();
+  const properties = (data.properties ?? []).map((p: any) => ({
+    uri: p.uri,
+    code: p.code,
+    name: p.name,
+    descriptionPart: p.descriptionPart,
+  })) as BsddProperty[];
+  return { ...data, properties };
+}
+
+// Convenience: fetch many pages of classes (flat) and build a simple parent map
+export async function fetchAllDictionaryClassesFlat(options: {
+  uri: string;
+  classType?: 'Class' | 'GroupOfProperties' | 'AlternativeUse' | 'Material';
+  languageCode?: string;
+  maxPages?: number; // safety cap
+  signal?: AbortSignal;
+}): Promise<any[]> {
+  const pageSize = 1000;
+  const maxPages = options.maxPages ?? 5;
+  const out: any[] = [];
+  let offset = 0;
+  for (let i = 0; i < maxPages; i++) {
+    const page = await fetchDictionaryClasses({
+      uri: options.uri,
+      classType: options.classType,
+      offset,
+      limit: pageSize,
+      languageCode: options.languageCode,
+      signal: options.signal,
+    });
+    const batch = page.classes ?? [];
+    out.push(...batch);
+    const count = page.classesCount ?? batch.length;
+    if (count < pageSize) break;
+    offset += count;
+  }
+  return out;
+}
+
+// Try nested, fallback to flat if fails
+export async function fetchDictionaryClassesTree(options: {
+  uri: string;
+  classType?: 'Class' | 'GroupOfProperties' | 'AlternativeUse' | 'Material';
+  languageCode?: string;
+  signal?: AbortSignal;
+}): Promise<{ root: any[]; byCode: Map<string, any> }> {
+  try {
+    const nested = await fetchDictionaryClasses({
+      uri: options.uri,
+      useNested: true,
+      classType: options.classType,
+      languageCode: options.languageCode,
+      signal: options.signal,
+    });
+    // When nested, items may include children identifiers; pass through
+    const byCode = new Map<string, any>();
+    (nested.classes ?? []).forEach((c: any) => { if (c.code) byCode.set(c.code, c); });
+    return { root: nested.classes ?? [], byCode };
+  } catch {
+    const flat = await fetchAllDictionaryClassesFlat({
+      uri: options.uri,
+      classType: options.classType,
+      languageCode: options.languageCode,
+      signal: options.signal,
+    });
+    // Build tree from parentClassCode
+    const byCode = new Map<string, any>();
+    flat.forEach((c: any) => { if (c.code) { byCode.set(c.code, { ...c, children: [] }); } });
+    const roots: any[] = [];
+    flat.forEach((c: any) => {
+      const node = byCode.get(c.code);
+      const parent = c.parentClassCode ? byCode.get(c.parentClassCode) : null;
+      if (parent && node) parent.children.push(node);
+      else if (node) roots.push(node);
+    });
+    return { root: roots, byCode };
   }
 }
