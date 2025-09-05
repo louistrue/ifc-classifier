@@ -63,7 +63,10 @@
   "createRulesDescription": "Erstellen Sie Regeln, um Elemente automatisch anhand ihrer Eigenschaften zu klassifizieren.",
   "applicationSettings": "Anwendungseinstellungen",
   "footer": {
-    "license": "Lizenz"
+    "license": "Lizenz",
+    "madeBy": "Erstellt von Louis Trümpler",
+    "buyMeCoffee": "Kaufen Sie mir einen Kaffee",
+    "coffeeBillMessage": "Wenn Ihnen diese kostenlose Open-Source-Software gefällt, ziehen Sie doch einen Beitrag an meine Kaffee-Rechnung in Betracht"
   },
   "alerts": {
     "pleaseSelectModel": "Bitte wählen Sie ein Modell zum Exportieren aus.",

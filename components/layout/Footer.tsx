@@ -34,15 +34,25 @@ const Footer: React.FC = () => {
             </a>
           </div>
           <div className="text-xs text-[var(--color-text-muted)] mt-1 lg:mt-0 text-center">
-            <span>Made with ❤️ by </span>
             <a
               href="https://buymeacoffee.com/louistrue"
               target="_blank"
               rel="noopener noreferrer"
-              aria-label="Buy me a coffee"
-              className="hover:text-[var(--color-primary)] transition-colors duration-300"
+              aria-label={t('footer.buyMeCoffee')}
+              className="hover:text-[var(--color-primary)] transition-colors duration-300 inline-flex items-center"
             >
-              Louis Trümpler
+              <span>{t('footer.madeBy')}</span>
+              <img
+                src="/icons8-buy-me-a-coffee-100.png"
+                alt={t('footer.buyMeCoffee')}
+                className="w-6 h-6 mx-1"
+              />
+              <span>{t('footer.coffeeBillMessage')}</span>
+              <img
+                src="/icons8-buy-me-a-coffee-100.png"
+                alt={t('footer.buyMeCoffee')}
+                className="w-6 h-6 ml-1"
+              />
             </a>
           </div>
           <div className="text-xs text-[var(--color-text-muted)] mt-1 lg:mt-0 text-center lg:text-right">

@@ -63,7 +63,10 @@
     "createRulesDescription": "Crea regole per classificare automaticamente gli elementi in base alle loro proprietà.",
     "applicationSettings": "Impostazioni applicazione",
     "footer": {
-        "license": "Licenza"
+        "license": "Licenza",
+        "madeBy": "Creato da Louis Trümpler",
+        "buyMeCoffee": "Offrimi un caffè",
+        "coffeeBillMessage": "Se ti piace usare questo software gratuito e open source, considera un contributo per il mio conto del caffè"
     },
     "alerts": {
         "pleaseSelectModel": "Seleziona un modello da esportare.",
