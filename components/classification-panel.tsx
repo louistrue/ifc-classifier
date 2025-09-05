@@ -146,6 +146,7 @@ export function ClassificationPanel() {
   const { t } = useTranslation();
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isBsddDialogOpen, setIsBsddDialogOpen] = useState(false);
+  const [bsddFeatureSeen, setBsddFeatureSeen] = useState(false);
   const [newClassification, setNewClassification] = useState({
     code: "",
     name: "",
@@ -416,6 +417,13 @@ export function ClassificationPanel() {
   }, [exportableModels, selectedModelIdForExport]);
 
   useEffect(() => {
+    // Feature highlight: show pulse on 3-dot menu until user opens it once
+    try {
+      const seen = localStorage.getItem("bsddFeatureSeen");
+      setBsddFeatureSeen(seen === "true");
+    } catch (e) {
+      // ignore
+    }
     const fetchUniclassData = async () => {
       setIsLoadingUniclass(true);
       setErrorLoadingUniclass(null);
@@ -1134,12 +1142,28 @@ export function ClassificationPanel() {
               </div>
             </TooltipProvider>
             {/* 3-dot Manage Menu */}
-            <DropdownMenu>
+            <DropdownMenu onOpenChange={(open) => {
+              if (open && !bsddFeatureSeen) {
+                try { localStorage.setItem("bsddFeatureSeen", "true"); } catch { }
+                setBsddFeatureSeen(true);
+              }
+            }}>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="sm" className="p-1.5 h-auto">
+                <Button variant="ghost" size="sm" className={`p-1.5 h-auto relative overflow-visible`}>
                   {" "}
                   {/* Subtle look */}
                   <MoreHorizontal className="w-5 h-5 text-muted-foreground" />
+                  {!bsddFeatureSeen && (
+                    <>
+                      {/* Glow ping dot */}
+                      <span className="pointer-events-none absolute -top-1.5 -right-1.5 w-3.5 h-3.5 rounded-full bg-primary/70 animate-ping" />
+                      <span className="pointer-events-none absolute -top-1.5 -right-1.5 w-3.5 h-3.5 rounded-full bg-primary shadow-sm" />
+                      {/* Floating label */}
+                      <span className="pointer-events-none select-none absolute right-6 top-full mt-1 bg-primary text-primary-foreground text-[10px] leading-none px-2 py-1 rounded-full shadow-md animate-bounce">
+                        bSDD search
+                      </span>
+                    </>
+                  )}
                   <span className="sr-only">{t("classifications.manageClassifications")}</span>
                 </Button>
               </DropdownMenuTrigger>
@@ -1148,14 +1172,15 @@ export function ClassificationPanel() {
                   <Plus className="mr-2 h-4 w-4" />
                   {t("classifications.addNew")}
                 </DropdownMenuItem>
-                <DropdownMenuItem onSelect={() => setIsBsddDialogOpen(true)}>
-                  <Search className="mr-2 h-4 w-4" />
-                  {t("buttons.browseBSDD", "Browse bSDD")}
-                </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuLabel className="text-xs font-semibold text-muted-foreground px-2 py-1.5">
                   {t("sections.defaultSets")}
                 </DropdownMenuLabel>
+                <DropdownMenuItem onSelect={() => setIsBsddDialogOpen(true)}>
+                  <Search className="mr-2 h-4 w-4" />
+                  {t("buttons.browseBSDD", "Browse bSDD")}
+                  <Badge className="ml-2" variant="secondary">New</Badge>
+                </DropdownMenuItem>
                 {isLoadingEBKPH && (
                   <DropdownMenuItem disabled>
                     {t("buttons.loadingEbkph")}
@@ -1433,6 +1458,7 @@ export function ClassificationPanel() {
             elements: [] // Ensure elements array is present for BSDD classifications
           } as ClassificationItem)}
           existingCodes={new Set(Object.keys(classifications))}
+          onRemove={(code) => removeClassification(code)}
         />
         {/* The old "Row 2 Management Dropdown section" is now fully replaced by the 3-dot menu in the header and this restored dialog. */}
         {/* The hidden file input for import is kept at the end of the component. */}
