@@ -1419,23 +1419,26 @@ export function ClassificationPanel() {
               >
                 {t("buttons.cancel")}
               </Button>
-          <Button onClick={handleAddClassification}>
-            {t("buttons.add")}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-    <BsddDialog
-      open={isBsddDialogOpen}
-      onOpenChange={setIsBsddDialogOpen}
-      onAdd={(item) => addClassification(item)}
-      existingCodes={new Set(Object.keys(classifications))}
-    />
-    {/* The old "Row 2 Management Dropdown section" is now fully replaced by the 3-dot menu in the header and this restored dialog. */}
-    {/* The hidden file input for import is kept at the end of the component. */}
-    <Dialog
-      open={isMapFromModelDialogOpen}
-      onOpenChange={(open) => {
+              <Button onClick={handleAddClassification}>
+                {t("buttons.add")}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+        <BsddDialog
+          open={isBsddDialogOpen}
+          onOpenChange={setIsBsddDialogOpen}
+          onAdd={(item) => addClassification({
+            ...item,
+            elements: [] // Ensure elements array is present for BSDD classifications
+          } as ClassificationItem)}
+          existingCodes={new Set(Object.keys(classifications))}
+        />
+        {/* The old "Row 2 Management Dropdown section" is now fully replaced by the 3-dot menu in the header and this restored dialog. */}
+        {/* The hidden file input for import is kept at the end of the component. */}
+        <Dialog
+          open={isMapFromModelDialogOpen}
+          onOpenChange={(open) => {
             setIsMapFromModelDialogOpen(open);
             if (!open) {
               // Reset form state when closing

@@ -87,7 +87,26 @@ export function BsddDialog({ open, onOpenChange, onAdd, existingCodes }: BsddDia
   }, [query, open]);
 
   const handleAdd = (cls: BsddClass) => {
-    onAdd({ code: cls.code, name: cls.name, color: generateRandomColor() });
+    // Validate the classification object before adding
+    if (!cls.code || !cls.name) {
+      console.warn('Invalid BSDD classification: missing code or name', cls);
+      setError('Invalid classification data from BSDD');
+      return;
+    }
+
+    // Ensure code is trimmed and not empty after trimming
+    const trimmedCode = cls.code.trim();
+    if (!trimmedCode) {
+      console.warn('Invalid BSDD classification: empty code after trimming', cls);
+      setError('Classification code cannot be empty');
+      return;
+    }
+
+    onAdd({
+      code: trimmedCode,
+      name: cls.name.trim() || cls.name,
+      color: generateRandomColor()
+    });
     onOpenChange(false);
   };
 
