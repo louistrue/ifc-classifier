@@ -143,6 +143,11 @@ interface IFCContextType {
     modelID: number,
     expressID: number,
   ) => Promise<ParsedElementProperties | null>;
+  selectElementsByProperty: (
+    modelID: number,
+    path: string[],
+    value: any,
+  ) => Promise<void>;
   toggleShowAllClassificationColors: () => void; // Added new toggle function
 
   // Classification and Rule methods (can remain global or be refactored later if needed per model)
@@ -1716,6 +1721,42 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
     [ifcApiInternal],
   );
 
+  const selectElementsByProperty = useCallback(
+    async (modelID: number, path: string[], value: any) => {
+      if (!ifcApiInternal) return;
+      const elements = IFCElementExtractor.getAllElements(ifcApiInternal, modelID);
+      const matches: SelectedElementInfo[] = [];
+
+      const getValueByPath = (obj: any, p: string[]): any => {
+        return p.reduce((acc, key) => (acc ? acc[key] : undefined), obj);
+      };
+
+      for (const el of elements) {
+        let candidate: any;
+        if (path.length === 1 && path[0] === "ifcType") {
+          candidate = el.type;
+        } else {
+          const props = await getElementPropertiesCached(modelID, el.expressID);
+          if (!props) continue;
+          candidate = getValueByPath(props, path);
+          if (candidate && typeof candidate === "object" && "value" in candidate) {
+            candidate = candidate.value;
+          }
+        }
+        if (
+          candidate !== undefined &&
+          JSON.stringify(candidate) === JSON.stringify(value)
+        ) {
+          matches.push({ modelID, expressID: el.expressID });
+        }
+      }
+      if (matches.length > 0) {
+        selectElements(matches);
+      }
+    },
+    [ifcApiInternal, getElementPropertiesCached, selectElements],
+  );
+
   const showElements = useCallback((elements: SelectedElementInfo[]) => {
     setUserHiddenElements((prev) =>
       prev.filter(
@@ -2304,6 +2345,7 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
         setAvailableProperties,
         setIfcApi,
         getElementPropertiesCached,
+        selectElementsByProperty,
         toggleShowAllClassificationColors,
         toggleIsolateUnclassified,
         baseCoordinationMatrix,

@@ -23,6 +23,7 @@
   "emptyList": "Leere Liste",
   "listCount": "Liste ({{count}} Elemente)",
   "complexData": "Komplexe Daten",
+  "selectAllWithValue": "Alle mit diesem Wert auswählen",
   "loadingSchemaPreview": "Schema-Vorschau wird geladen...",
   "clickToExploreFullDocumentation": "Klicken Sie, um die vollständige Dokumentation zu erkunden",
   "materials": "Materialien",

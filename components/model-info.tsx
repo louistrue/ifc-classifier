@@ -23,6 +23,7 @@ import {
   Box,
   Tag,
   MousePointer2,
+  MousePointerClick,
 } from "lucide-react";
 import React, { useState, useMemo, useEffect } from "react";
 import { MaterialSectionDisplay } from "./material-section-display";
@@ -203,6 +204,7 @@ interface PropertyRowProps {
   icon?: React.ReactNode;
   copyValue?: string;
   t?: (key: string, options?: any) => string;
+  onSelectAll?: () => void;
 }
 
 const PropertyRow: React.FC<PropertyRowProps> = ({
@@ -211,6 +213,7 @@ const PropertyRow: React.FC<PropertyRowProps> = ({
   icon,
   copyValue,
   t,
+  onSelectAll,
 }) => {
   const { ifcApi } = useIFCContext();
   const handleCopy = () => {
@@ -237,6 +240,23 @@ const PropertyRow: React.FC<PropertyRowProps> = ({
           <button onClick={handleCopy} className="opacity-60 hover:opacity-100">
             <Copy className="w-3 h-3" />
           </button>
+        )}
+        {onSelectAll && (
+          <TooltipProvider delayDuration={300}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={onSelectAll}
+                  className="opacity-60 hover:opacity-100"
+                >
+                  <MousePointerClick className="w-3 h-3" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="left">
+                {t?.("selectAllWithValue") || "Select all with this value"}
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         )}
       </div>
     </div>
@@ -361,6 +381,7 @@ export function ModelInfo() {
     getNaturalIfcClassName,
     getClassificationsForElement,
     getElementPropertiesCached,
+    selectElementsByProperty,
   } = useIFCContext();
   const { t, i18n } = useTranslation();
 
@@ -577,6 +598,9 @@ export function ModelInfo() {
 
   const naturalIfcInfo = getNaturalIfcClassName(ifcType, lang);
 
+  const createSelectAllHandler = (path: string[], value: any) => () =>
+    selectElementsByProperty(modelID, path, value);
+
   // Render the detailed property information
   return (
     <div className="space-y-2">
@@ -594,8 +618,26 @@ export function ModelInfo() {
                   <Box className="w-3.5 h-3.5 mr-1.5 opacity-80" />
                   <span>{t('IFC Class')}:</span>
                 </div>
-                <div className="text-xs truncate text-right font-medium">
+                <div className="text-xs truncate text-right font-medium flex items-center justify-end gap-1">
                   {ifcType || 'Unknown'}
+                  <TooltipProvider delayDuration={300}>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            createSelectAllHandler(["ifcType"], ifcType)();
+                          }}
+                          className="opacity-60 hover:opacity-100"
+                        >
+                          <MousePointerClick className="w-3 h-3" />
+                        </button>
+                      </TooltipTrigger>
+                      <TooltipContent side="left">
+                        {t("selectAllWithValue") || "Select all with this value"}
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
                 </div>
               </div>
             </TooltipTrigger>
@@ -654,6 +696,10 @@ export function ModelInfo() {
             propValue={rawAttributes.Name.value || rawAttributes.Name}
             icon={<Info className="w-3.5 h-3.5" />}
             t={t}
+            onSelectAll={createSelectAllHandler([
+              "attributes",
+              "Name",
+            ], rawAttributes.Name.value || rawAttributes.Name)}
           />
         )}
         {rawAttributes.Description && (
@@ -664,6 +710,10 @@ export function ModelInfo() {
             }
             icon={<Info className="w-3.5 h-3.5" />}
             t={t}
+            onSelectAll={createSelectAllHandler(
+              ["attributes", "Description"],
+              rawAttributes.Description.value || rawAttributes.Description,
+            )}
           />
         )}
         {rawAttributes.ObjectType && (
@@ -674,6 +724,10 @@ export function ModelInfo() {
             }
             icon={<Info className="w-3.5 h-3.5" />}
             t={t}
+            onSelectAll={createSelectAllHandler(
+              ["attributes", "ObjectType"],
+              rawAttributes.ObjectType.value || rawAttributes.ObjectType,
+            )}
           />
         )}
         <PropertyRow
@@ -681,12 +735,14 @@ export function ModelInfo() {
           propValue={`${expressID}`}
           icon={<Hash className="w-3.5 h-3.5" />}
           t={t}
+          onSelectAll={createSelectAllHandler(["expressID"], expressID)}
         />
         <PropertyRow
           propKey="Model"
           propValue={modelDisplayName}
           icon={<Info className="w-3.5 h-3.5" />}
           t={t}
+          onSelectAll={createSelectAllHandler(["modelID"], modelID)}
         />
         {rawAttributes.GlobalId && (
           <PropertyRow
@@ -695,6 +751,10 @@ export function ModelInfo() {
             icon={<Hash className="w-3.5 h-3.5" />}
             copyValue={rawAttributes.GlobalId.value || rawAttributes.GlobalId}
             t={t}
+            onSelectAll={createSelectAllHandler(
+              ["attributes", "GlobalId"],
+              rawAttributes.GlobalId.value || rawAttributes.GlobalId,
+            )}
           />
         )}
         {Object.entries(displayableAttributes).map(([key, value]) => (
@@ -704,6 +764,10 @@ export function ModelInfo() {
             propValue={value}
             icon={getPropertyIcon(key)}
             t={t}
+            onSelectAll={createSelectAllHandler([
+              "attributes",
+              key,
+            ], value)}
           />
         ))}
       </CollapsibleSection>
@@ -779,16 +843,21 @@ export function ModelInfo() {
             >
               {props && typeof props === "object"
                 ? Object.entries(props as Record<string, any>).map(
-                  ([propName, propValue]) => (
-                    <PropertyRow
-                      key={propName}
-                      propKey={propName}
-                      propValue={propValue}
-                      icon={getPropertyIcon(propName)}
-                      t={t}
-                    />
-                  ),
-                )
+                    ([propName, propValue]) => (
+                      <PropertyRow
+                        key={propName}
+                        propKey={propName}
+                        propValue={propValue}
+                        icon={getPropertyIcon(propName)}
+                        t={t}
+                        onSelectAll={createSelectAllHandler([
+                          "propertySets",
+                          psetName,
+                          propName,
+                        ], propValue)}
+                      />
+                    ),
+                  )
                 : null}
             </CollapsibleSection>
           ))}
@@ -821,6 +890,11 @@ export function ModelInfo() {
                   propValue={propValue}
                   icon={getPropertyIcon(propName)}
                   t={t}
+                  onSelectAll={createSelectAllHandler([
+                    "typeSets",
+                    psetName,
+                    propName,
+                  ], propValue)}
                 />
               ))}
             </CollapsibleSection>

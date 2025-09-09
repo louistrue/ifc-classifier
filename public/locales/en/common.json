@@ -23,6 +23,7 @@
   "emptyList": "Empty list",
   "listCount": "List ({{count}} items)",
   "complexData": "Complex data",
+  "selectAllWithValue": "Select all with this value",
   "loadingSchemaPreview": "Loading schema preview...",
   "clickToExploreFullDocumentation": "Click to explore full documentation",
   "materials": "Materials",
