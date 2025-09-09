@@ -34,7 +34,8 @@ const SheetContent = React.forwardRef<
       ref={ref}
       className={cn(
         "fixed inset-x-0 bottom-0 z-50 mt-24 flex flex-col border border-border bg-background rounded-t-md animate-in slide-in-from-bottom-10",
-        className
+        className,
+        "pr-10"
       )}
       {...props}
     >
