@@ -144,6 +144,13 @@ interface IFCContextType {
     expressID: number,
   ) => Promise<ParsedElementProperties | null>;
   toggleShowAllClassificationColors: () => void; // Added new toggle function
+  /**
+   * Select all elements that have the same value at the given property path
+   * within ParsedElementProperties.
+   * Path segments should match the structure returned by getElementPropertiesCached
+   * e.g. ['ifcType'] or ['propertySets', 'Pset_WallCommon', 'IsExternal']
+   */
+  selectElementsByProperty: (path: string[], value: any) => Promise<void>;
 
   // Classification and Rule methods (can remain global or be refactored later if needed per model)
   addClassification: (classification: any) => void;
@@ -1559,6 +1566,49 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
     ],
   );
 
+  const selectElementsByProperty = useCallback(
+    async (path: string[], value: any) => {
+      if (!ifcApiInternal) return;
+      const matches: SelectedElementInfo[] = [];
+
+      const getValue = (obj: any, p: string[]) => p.reduce((acc, key) => (acc ? acc[key] : undefined), obj);
+
+      for (const model of loadedModels) {
+        if (model.modelID == null) continue;
+        const elements = IFCElementExtractor.getAllElements(ifcApiInternal, model.modelID);
+
+        if (path.length === 1 && path[0] === "ifcType") {
+          for (const el of elements) {
+            if (String(el.type).toLowerCase() === String(value).toLowerCase()) {
+              matches.push({ modelID: model.modelID, expressID: el.expressID });
+            }
+          }
+        } else {
+          for (const el of elements) {
+            try {
+              const props = await PropertyCache.getProperties(
+                ifcApiInternal,
+                model.modelID,
+                el.expressID,
+              );
+              const v = getValue(props, path);
+              if (v !== undefined && JSON.stringify(v) === JSON.stringify(value)) {
+                matches.push({ modelID: model.modelID, expressID: el.expressID });
+              }
+            } catch (e) {
+              // ignore errors for individual elements
+            }
+          }
+        }
+      }
+
+      if (matches.length) {
+        selectElements(matches);
+      }
+    },
+    [ifcApiInternal, loadedModels, selectElements],
+  );
+
   const clearSelection = useCallback(() => {
     setSelectedElements([]);
     setSelectedElement(null);
@@ -2296,6 +2346,7 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
         setRawBufferForModel,
         selectElement,
         selectElements,
+        selectElementsByProperty,
         toggleElementSelection,
         clearSelection,
         toggleClassificationHighlight,

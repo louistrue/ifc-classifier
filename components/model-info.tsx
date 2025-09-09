@@ -203,6 +203,7 @@ interface PropertyRowProps {
   icon?: React.ReactNode;
   copyValue?: string;
   t?: (key: string, options?: any) => string;
+  propertyPath?: string[];
 }
 
 const PropertyRow: React.FC<PropertyRowProps> = ({
@@ -211,10 +212,16 @@ const PropertyRow: React.FC<PropertyRowProps> = ({
   icon,
   copyValue,
   t,
+  propertyPath,
 }) => {
-  const { ifcApi } = useIFCContext();
+  const { ifcApi, selectElementsByProperty } = useIFCContext();
   const handleCopy = () => {
     if (copyValue !== undefined) navigator.clipboard.writeText(copyValue);
+  };
+  const handleSelect = async () => {
+    if (propertyPath) {
+      await selectElementsByProperty(propertyPath, propValue);
+    }
   };
   return (
     <div className="grid grid-cols-[auto_1fr] gap-x-3 items-start py-1.5 border-b border-border/50 last:border-b-0">
@@ -233,6 +240,23 @@ const PropertyRow: React.FC<PropertyRowProps> = ({
         }
       >
         {renderPropertyValue(propValue, propKey, ifcApi, t)}
+        {propertyPath && (
+          <TooltipProvider delayDuration={100}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={handleSelect}
+                  className="opacity-60 hover:opacity-100"
+                >
+                  <MousePointer2 className="w-3 h-3" />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent>
+                {t ? t("selectAll") : "Select all"}
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        )}
         {copyValue !== undefined && (
           <button onClick={handleCopy} className="opacity-60 hover:opacity-100">
             <Copy className="w-3 h-3" />
@@ -361,6 +385,7 @@ export function ModelInfo() {
     getNaturalIfcClassName,
     getClassificationsForElement,
     getElementPropertiesCached,
+    selectElementsByProperty,
   } = useIFCContext();
   const { t, i18n } = useTranslation();
 
@@ -594,8 +619,27 @@ export function ModelInfo() {
                   <Box className="w-3.5 h-3.5 mr-1.5 opacity-80" />
                   <span>{t('IFC Class')}:</span>
                 </div>
-                <div className="text-xs truncate text-right font-medium">
+                <div className="text-xs truncate text-right font-medium flex items-center justify-end gap-1">
                   {ifcType || 'Unknown'}
+                  {ifcType && (
+                    <TooltipProvider delayDuration={100}>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <button
+                            onClick={() =>
+                              selectElementsByProperty(['ifcType'], ifcType)
+                            }
+                            className="opacity-60 hover:opacity-100"
+                          >
+                            <MousePointer2 className="w-3 h-3" />
+                          </button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          {t('selectAll')}
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  )}
                 </div>
               </div>
             </TooltipTrigger>
@@ -654,6 +698,7 @@ export function ModelInfo() {
             propValue={rawAttributes.Name.value || rawAttributes.Name}
             icon={<Info className="w-3.5 h-3.5" />}
             t={t}
+            propertyPath={["attributes", "Name"]}
           />
         )}
         {rawAttributes.Description && (
@@ -664,6 +709,7 @@ export function ModelInfo() {
             }
             icon={<Info className="w-3.5 h-3.5" />}
             t={t}
+            propertyPath={["attributes", "Description"]}
           />
         )}
         {rawAttributes.ObjectType && (
@@ -674,6 +720,7 @@ export function ModelInfo() {
             }
             icon={<Info className="w-3.5 h-3.5" />}
             t={t}
+            propertyPath={["attributes", "ObjectType"]}
           />
         )}
         <PropertyRow
@@ -704,6 +751,7 @@ export function ModelInfo() {
             propValue={value}
             icon={getPropertyIcon(key)}
             t={t}
+            propertyPath={["attributes", key]}
           />
         ))}
       </CollapsibleSection>
@@ -786,6 +834,7 @@ export function ModelInfo() {
                       propValue={propValue}
                       icon={getPropertyIcon(propName)}
                       t={t}
+                      propertyPath={["propertySets", psetName, propName]}
                     />
                   ),
                 )
@@ -821,6 +870,7 @@ export function ModelInfo() {
                   propValue={propValue}
                   icon={getPropertyIcon(propName)}
                   t={t}
+                  propertyPath={["typeSets", psetName, propName]}
                 />
               ))}
             </CollapsibleSection>
