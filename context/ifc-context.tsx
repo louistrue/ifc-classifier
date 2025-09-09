@@ -143,6 +143,7 @@ interface IFCContextType {
     modelID: number,
     expressID: number,
   ) => Promise<ParsedElementProperties | null>;
+  selectAllByProperty: (path: string, value: any) => Promise<void>;
   toggleShowAllClassificationColors: () => void; // Added new toggle function
 
   // Classification and Rule methods (can remain global or be refactored later if needed per model)
@@ -1716,6 +1717,51 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
     [ifcApiInternal],
   );
 
+  const selectAllByProperty = useCallback(
+    async (path: string, value: any) => {
+      if (!ifcApiInternal) return;
+      const matches: SelectedElementInfo[] = [];
+      for (const model of loadedModels) {
+        if (model.modelID == null) continue;
+        const elements = IFCElementExtractor.getAllElements(ifcApiInternal, model.modelID);
+        const propsMap = await PropertyCache.getBatchProperties(
+          ifcApiInternal,
+          model.modelID,
+          elements.map((e) => e.expressID),
+        );
+        for (const el of elements) {
+          let elementVal: any;
+          if (path === 'ifcType') {
+            elementVal = el.type;
+          } else {
+            const props = propsMap.get(el.expressID);
+            if (!props) continue;
+            const parts = path.split('.');
+            if (parts[0] === 'attributes') {
+              elementVal = props.attributes?.[parts[1]];
+            } else if (parts[0] === 'propertySets') {
+              elementVal = props.propertySets?.[parts[1]]?.[parts[2]];
+            } else if (parts[0] === 'typeSets') {
+              elementVal = props.typeSets?.[parts[1]]?.[parts[2]];
+            } else if (parts[0] === 'materialSets') {
+              elementVal = props.materialSets?.[parts[1]]?.[parts[2]];
+            }
+          }
+          if (
+            elementVal !== undefined &&
+            JSON.stringify(elementVal) === JSON.stringify(value)
+          ) {
+            matches.push({ modelID: model.modelID, expressID: el.expressID });
+          }
+        }
+      }
+      if (matches.length) {
+        selectElements(matches);
+      }
+    },
+    [ifcApiInternal, loadedModels, selectElements],
+  );
+
   const showElements = useCallback((elements: SelectedElementInfo[]) => {
     setUserHiddenElements((prev) =>
       prev.filter(
@@ -2304,6 +2350,7 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
         setAvailableProperties,
         setIfcApi,
         getElementPropertiesCached,
+        selectAllByProperty,
         toggleShowAllClassificationColors,
         toggleIsolateUnclassified,
         baseCoordinationMatrix,
