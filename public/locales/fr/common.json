@@ -21,6 +21,7 @@
     "no": "Non",
     "notSet": "Non défini",
     "emptyList": "Liste vide",
+    "selectAllMatching": "Sélectionner tous les éléments avec la même valeur",
     "listCount": "Liste ({{count}} éléments)",
     "complexData": "Données complexes",
     "loadingSchemaPreview": "Chargement de l'aperçu du schéma...",

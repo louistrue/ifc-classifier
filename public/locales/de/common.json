@@ -21,6 +21,7 @@
   "no": "Nein",
   "notSet": "Nicht gesetzt",
   "emptyList": "Leere Liste",
+  "selectAllMatching": "Alle Elemente mit gleichem Wert auswählen",
   "listCount": "Liste ({{count}} Elemente)",
   "complexData": "Komplexe Daten",
   "loadingSchemaPreview": "Schema-Vorschau wird geladen...",

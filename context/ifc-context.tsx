@@ -21,6 +21,10 @@ import { exportClassificationsToExcel } from "@/services/classification-export-s
 import { parseClassificationsFromExcel } from "@/services/classification-import-service";
 import { getBufferedConsole, type ConsoleUpdate } from "@/services/buffered-console-service";
 
+function deepEqual(a: any, b: any) {
+  return JSON.stringify(a) === JSON.stringify(b);
+}
+
 // Define interfaces for progress tracking
 export interface RuleProgress {
   active: boolean;
@@ -132,6 +136,7 @@ interface IFCContextType {
   selectElements: (selection: SelectedElementInfo[]) => void;
   toggleElementSelection: (element: SelectedElementInfo, additive: boolean) => void;
   clearSelection: () => void;
+  selectElementsByProperty: (path: string[], value: any) => Promise<void>;
   toggleClassificationHighlight: (classificationCode: string) => void;
   setElementProperties: (properties: any | null) => void;
   setAvailableCategoriesForModel: (
@@ -1577,6 +1582,40 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
     setElementPropertiesInternal,
   ]);
 
+  const selectElementsByProperty = useCallback(
+    async (path: string[], value: any) => {
+      if (!ifcApiInternal) return;
+      const matches: SelectedElementInfo[] = [];
+      for (const model of loadedModels) {
+        if (model.modelID == null) continue;
+        const elements = IFCElementExtractor.getAllElements(ifcApiInternal, model.modelID);
+        for (const el of elements) {
+          try {
+            const props = await PropertyCache.getProperties(
+              ifcApiInternal,
+              model.modelID,
+              el.expressID,
+            );
+            let current: any = props;
+            for (const part of path) {
+              if (current == null) break;
+              current = current[part as keyof typeof current];
+            }
+            if (current !== undefined && deepEqual(current, value)) {
+              matches.push({ modelID: model.modelID, expressID: el.expressID });
+            }
+          } catch {
+            // Ignore property fetch errors
+          }
+        }
+      }
+      if (matches.length > 0) {
+        selectElements(matches);
+      }
+    },
+    [ifcApiInternal, loadedModels, selectElements],
+  );
+
   const toggleElementSelection = useCallback(
     (element: SelectedElementInfo, additive: boolean) => {
       setSelectedElements((prev) => {
@@ -2298,6 +2337,7 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
         selectElements,
         toggleElementSelection,
         clearSelection,
+        selectElementsByProperty,
         toggleClassificationHighlight,
         setElementProperties,
         setAvailableCategoriesForModel,
