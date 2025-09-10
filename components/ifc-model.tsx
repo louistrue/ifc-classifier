@@ -8,6 +8,8 @@ import {
   LoadedModelData,
   SelectedElementInfo,
 } from "@/context/ifc-context";
+import { IFCElementExtractor } from "@/services/ifc-element-extractor";
+import { PropertyIndex } from "@/services/property-index";
 import * as THREE from "three";
 import {
   IfcAPI,
@@ -913,6 +915,19 @@ export function IFCModel({ modelData, outlineLayer }: IFCModelProps) {
           console.log(
             `IFCModel (${modelData.id}): Spatial structure extraction failed or empty.`
           );
+
+        // Build property index for fast property-based selections
+        try {
+          console.log(`IFCModel (${modelData.id}): Building property index for fast selections...`);
+          const allElements = IFCElementExtractor.getAllElements(ifcApi, newIfcModelID);
+          await PropertyIndex.buildIndex(ifcApi, newIfcModelID, allElements, (progress) => {
+            console.log(`IFCModel (${modelData.id}): Property index building progress: ${progress}%`);
+          });
+          console.log(`IFCModel (${modelData.id}): Property index built successfully`);
+        } catch (indexError) {
+          console.warn(`IFCModel (${modelData.id}): Failed to build property index:`, indexError);
+          // Continue without index - selections will use fallback method
+        }
 
         const allTypesResult = ifcApi.GetIfcEntityList(newIfcModelID);
         const allTypesArray: number[] = Array.isArray(allTypesResult)

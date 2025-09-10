@@ -938,6 +938,7 @@ function ViewerContent() {
     addIFCModel,
     clearSelection,
     ruleProgress,
+    selectionProgress,
     showAllClassificationColors,
     toggleShowAllClassificationColors,
     isolateUnclassified,
@@ -2182,6 +2183,28 @@ function ViewerContent() {
                 </div>
               </div>
             )}
+
+            {/* Selection Processing Progress */}
+            {selectionProgress?.active && (
+              <div
+                className="pointer-events-none absolute z-50 w-[min(400px,45vw)]"
+                style={{
+                  bottom: `${Math.max(10, consolePosition.y - dragOffset.y + (ruleProgress?.active ? 120 : 0))}px`,
+                  right: `${Math.max(10, consolePosition.x - dragOffset.x)}px`,
+                  transform: isDragging ? 'scale(1.02)' : 'scale(1)',
+                  transition: isDragging ? 'none' : 'transform 0.2s ease-out'
+                }}
+              >
+                <div className="pointer-events-auto rounded-xl border border-border bg-background/95 backdrop-blur-md shadow-xl overflow-hidden animate-in slide-in-from-bottom-2 duration-300">
+                  <SimpleProgress
+                    percent={selectionProgress.percent}
+                    status={selectionProgress.status}
+                    matchCount={selectionProgress.matchCount}
+                    active={selectionProgress.active}
+                  />
+                </div>
+              </div>
+            )}
           </div>
         </Panel>
 
@@ -2440,7 +2463,7 @@ function FileUpload({ isAdding = false }: FileUploadProps) {
             <UploadCloud className="h-12 w-12 text-foreground/30" />
           </div>
           <p className="text-base font-medium text-foreground/80 mb-2">{t('ifcModelViewer')}</p>
-          <p className="text-sm text-foreground/60 mb-6">
+          <p className="text-sm text-muted-foreground mb-6">
             {t('uploadIFCFile')}
           </p>
           <input
@@ -2470,7 +2493,7 @@ function FileUpload({ isAdding = false }: FileUploadProps) {
             <UploadCloud className="h-12 w-12 text-foreground/30" />
           </div>
           <p className="text-base font-medium text-foreground/80 mb-2">{t('ifcModelViewer')}</p>
-          <p className="text-sm text-foreground/60 mb-6">
+          <p className="text-sm text-muted-foreground mb-6">
             {t('uploadIFCFile')}
           </p>
           <input

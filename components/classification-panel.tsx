@@ -146,7 +146,7 @@ export function ClassificationPanel() {
   const { t } = useTranslation();
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isBsddDialogOpen, setIsBsddDialogOpen] = useState(false);
-  const [bsddFeatureSeen, setBsddFeatureSeen] = useState(false);
+  const [bsddFeatureSeen, setBsddFeatureSeen] = useState(true); // Default to true to prevent initial layout shift
   const [newClassification, setNewClassification] = useState({
     code: "",
     name: "",
@@ -417,10 +417,13 @@ export function ClassificationPanel() {
   }, [exportableModels, selectedModelIdForExport]);
 
   useEffect(() => {
-    // Feature highlight: show pulse on 3-dot menu until user opens it once
+    // Feature highlight: show subtle indicator until user opens it once
     try {
       const seen = localStorage.getItem("bsddFeatureSeen");
-      setBsddFeatureSeen(seen === "true");
+      // Only update state if it's actually false, to prevent unnecessary re-renders
+      if (seen !== "true") {
+        setBsddFeatureSeen(false);
+      }
     } catch (e) {
       // ignore
     }
@@ -1153,13 +1156,15 @@ export function ClassificationPanel() {
                   {" "}
                   {/* Subtle look */}
                   <MoreHorizontal className="w-5 h-5 text-muted-foreground" />
+                  {/* BSDD feature indicator with nice animations */}
                   {!bsddFeatureSeen && (
                     <>
-                      {/* Glow ping dot */}
+                      {/* Glow ping dot with smooth animation */}
                       <span className="pointer-events-none absolute -top-1.5 -right-1.5 w-3.5 h-3.5 rounded-full bg-primary/70 animate-ping" />
                       <span className="pointer-events-none absolute -top-1.5 -right-1.5 w-3.5 h-3.5 rounded-full bg-primary shadow-sm" />
-                      {/* Floating label */}
-                      <span className="pointer-events-none select-none absolute right-6 top-full mt-1 bg-primary text-primary-foreground text-[10px] leading-none px-2 py-1 rounded-full shadow-md animate-bounce">
+
+                      {/* Floating label with bounce animation - positioned to not affect layout */}
+                      <span className="pointer-events-none select-none absolute right-6 top-full mt-1 bg-primary text-primary-foreground text-[10px] leading-none px-2 py-1 rounded-full shadow-md animate-bounce whitespace-nowrap z-10">
                         bSDD search
                       </span>
                     </>
@@ -1725,58 +1730,28 @@ export function ClassificationPanel() {
         </div>
       )}
       {sortedClassificationEntries.length === 0 ? (
-        <div className="text-center py-8 flex-grow flex flex-col items-center justify-center">
-          {searchQuery ? (
-            <p className="text-base font-medium text-foreground/80">
+        <div className="text-center py-8 flex-grow flex flex-col items-center justify-center min-h-[200px] relative">
+          {/* Always render both states with consistent structure to prevent layout shifts */}
+          <div className={`flex flex-col items-center justify-center transition-opacity duration-200 ${searchQuery ? 'opacity-100' : 'opacity-0'} absolute inset-0`}>
+            <p className="text-base font-medium text-foreground/80 min-h-[1.5rem] flex items-center">
               {t("classifications.noSearchResults")}
             </p>
-          ) : (
-            <>
-              <div className="flex justify-center mb-4">
-                <Cuboid className="h-12 w-12 text-foreground/30" />
-              </div>
-              <p className="text-base font-medium text-foreground/80 mb-2">
-                {t("noClassificationsAdded")}
-              </p>
-              <p className="text-sm text-foreground/60 mb-4">
-                {t("addClassification")}
-              </p>
-              <div className="flex flex-col sm:flex-row items-center justify-center gap-2">
-                {isLoadingUniclass ? (
-                  <Button disabled>{t("buttons.loadingUniclass")}</Button>
-                ) : errorLoadingUniclass ? (
-                  <Button variant="destructive" disabled>
-                    {t("buttons.uniclassError", { message: errorLoadingUniclass })}
-                  </Button>
-                ) : defaultUniclassPr.length > 0 ? (
-                  <Button
-                    onClick={handleAddAllUniclassPr}
-                    disabled={areAllUniclassAdded()}
-                  >
-                    {t("buttons.loadUniclass", { count: defaultUniclassPr.length })}
-                  </Button>
-                ) : (
-                  <Button disabled>{t("buttons.noUniclassFound")}</Button>
-                )}
-                {isLoadingEBKPH ? (
-                  <Button disabled>{t("buttons.loadingEbkph")}</Button>
-                ) : errorLoadingEBKPH ? (
-                  <Button variant="destructive" disabled>
-                    {t("buttons.ebkphError", { message: errorLoadingEBKPH })}
-                  </Button>
-                ) : defaultEBKPH.length > 0 ? (
-                  <Button
-                    onClick={handleAddAlleBKPH}
-                    disabled={areAlleBKPHAdded()}
-                  >
-                    {t("buttons.loadEbkph", { count: defaultEBKPH.length })}
-                  </Button>
-                ) : (
-                  <Button disabled>{t("buttons.noEbkphFound")}</Button>
-                )}
-              </div>
-            </>
-          )}
+          </div>
+
+          <div className={`flex flex-col items-center justify-center transition-opacity duration-200 ${searchQuery ? 'opacity-0' : 'opacity-100'} absolute inset-0`}>
+            <div className="flex justify-center mb-4">
+              <Cuboid className="h-12 w-12 text-foreground/30" />
+            </div>
+            <p className="text-base font-medium text-foreground/80 mb-2 min-h-[1.5rem] flex items-center">
+              {t("noClassificationsAdded")}
+            </p>
+            <p className="text-sm text-muted-foreground mb-4">
+              {t("addClassification")}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              Use the + button above to create your first classification
+            </p>
+          </div>
         </div>
       ) : (
         <div className="flex-grow overflow-hidden bg-card shadow-sm rounded-lg flex flex-col min-h-0 border border-border">

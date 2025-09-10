@@ -15,6 +15,7 @@ import { Properties } from "web-ifc"; // Ensure Properties is imported
 import { getAllElementProperties, ParsedElementProperties } from "@/services/ifc-properties";
 import { IFCElementExtractor } from "@/services/ifc-element-extractor";
 import { PropertyCache } from "@/services/property-cache";
+import { PropertyIndex } from "@/services/property-index";
 import { parseRulesFromExcel } from "@/services/rule-import-service";
 import { exportRulesToExcel } from "@/services/rule-export-service";
 import { exportClassificationsToExcel } from "@/services/classification-export-service";
@@ -200,6 +201,12 @@ interface IFCContextType {
 
   // Rule application progress (for UX feedback)
   ruleProgress: RuleProgress;
+  selectionProgress: {
+    active: boolean;
+    percent: number;
+    status: string;
+    matchCount: number;
+  };
 
 
 }
@@ -250,6 +257,19 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
     percent: 0,
     status: "",
     logs: [],
+    matchCount: 0,
+  });
+
+  // Selection progress state (for UI feedback during large selections)
+  const [selectionProgress, setSelectionProgress] = useState<{
+    active: boolean;
+    percent: number;
+    status: string;
+    matchCount: number;
+  }>({
+    active: false,
+    percent: 0,
+    status: "",
     matchCount: 0,
   });
 
@@ -1585,30 +1605,137 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
   const selectElementsByProperty = useCallback(
     async (path: string[], value: any) => {
       if (!ifcApiInternal) return;
+
+      console.log(`[selectElementsByProperty] Searching for ${path.join('.')} = ${value}`);
       const matches: SelectedElementInfo[] = [];
+
+      // Check if this will be a large selection that needs progress indication
+      let totalElements = 0;
       for (const model of loadedModels) {
         if (model.modelID == null) continue;
+        if (PropertyIndex.hasIndex(ifcApiInternal, model.modelID)) {
+          // For indexed models, we can estimate the total quickly
+          const allIndexed = PropertyIndex.getAllIndexedExpressIDs(ifcApiInternal, model.modelID);
+          totalElements += allIndexed.length;
+        } else {
+          // For non-indexed models, use element extractor
+          const elements = IFCElementExtractor.getAllElements(ifcApiInternal, model.modelID);
+          totalElements += elements.length;
+        }
+      }
+
+      // Show progress for large selections (>1000 elements)
+      const showProgress = totalElements > 1000;
+      if (showProgress) {
+        setSelectionProgress({
+          active: true,
+          percent: 0,
+          status: `Searching ${totalElements.toLocaleString()} elements for ${path.join('.')} = ${value}`,
+          matchCount: 0,
+        });
+      }
+
+      for (const model of loadedModels) {
+        if (model.modelID == null) continue;
+
+        // Try using the property index first (much faster)
+        if (PropertyIndex.hasIndex(ifcApiInternal, model.modelID)) {
+          console.log(`[selectElementsByProperty] Using property index for model ${model.modelID}`);
+          const indexedExpressIDs = PropertyIndex.findElementsByProperty(ifcApiInternal, model.modelID, path, value);
+
+          for (const expressID of indexedExpressIDs) {
+            matches.push({ modelID: model.modelID, expressID });
+          }
+
+          if (showProgress) {
+            setSelectionProgress(prev => ({
+              ...prev,
+              matchCount: matches.length,
+            }));
+          }
+
+          console.log(`[selectElementsByProperty] Found ${indexedExpressIDs.length} matches using index`);
+          continue;
+        }
+
+        // Fallback to the old method if no index exists
+        console.log(`[selectElementsByProperty] No index available for model ${model.modelID}, using fallback method`);
         const elements = IFCElementExtractor.getAllElements(ifcApiInternal, model.modelID);
-        for (const el of elements) {
+
+        // For large models, batch process to improve performance
+        const batchSize = 500;
+        for (let i = 0; i < elements.length; i += batchSize) {
+          const batch = elements.slice(i, i + batchSize);
+          const expressIDs = batch.map(el => el.expressID);
+
           try {
-            const props = await PropertyCache.getProperties(
-              ifcApiInternal,
-              model.modelID,
-              el.expressID,
-            );
-            let current: any = props;
-            for (const part of path) {
-              if (current == null) break;
-              current = current[part as keyof typeof current];
+            // Use batch property fetching for better performance
+            const batchProperties = await PropertyCache.getBatchProperties(ifcApiInternal, model.modelID, expressIDs);
+
+            for (const [expressID, props] of Array.from(batchProperties)) {
+              let current: any = props;
+              for (const part of path) {
+                if (current == null) break;
+                current = current[part as keyof typeof current];
+              }
+              if (current !== undefined && deepEqual(current, value)) {
+                matches.push({ modelID: model.modelID, expressID });
+              }
             }
-            if (current !== undefined && deepEqual(current, value)) {
-              matches.push({ modelID: model.modelID, expressID: el.expressID });
+          } catch (error) {
+            console.warn(`[selectElementsByProperty] Batch processing failed for model ${model.modelID}:`, error);
+            // Fall back to individual processing for this batch
+            for (const el of batch) {
+              try {
+                const props = await PropertyCache.getProperties(ifcApiInternal, model.modelID, el.expressID);
+                let current: any = props;
+                for (const part of path) {
+                  if (current == null) break;
+                  current = current[part as keyof typeof current];
+                }
+                if (current !== undefined && deepEqual(current, value)) {
+                  matches.push({ modelID: model.modelID, expressID: el.expressID });
+                }
+              } catch {
+                // Ignore individual property fetch errors
+              }
             }
-          } catch {
-            // Ignore property fetch errors
+          }
+
+          // Update progress for large selections
+          if (showProgress) {
+            const percent = Math.round((i + batch.length) / elements.length * 100);
+            setSelectionProgress(prev => ({
+              ...prev,
+              percent,
+              matchCount: matches.length,
+            }));
           }
         }
       }
+
+      console.log(`[selectElementsByProperty] Total matches found: ${matches.length}`);
+
+      // Clear progress and select elements
+      if (showProgress) {
+        setSelectionProgress({
+          active: false,
+          percent: 100,
+          status: `Found ${matches.length} matching elements`,
+          matchCount: matches.length,
+        });
+
+        // Clear progress after a short delay
+        setTimeout(() => {
+          setSelectionProgress({
+            active: false,
+            percent: 0,
+            status: "",
+            matchCount: 0,
+          });
+        }, 2000);
+      }
+
       if (matches.length > 0) {
         selectElements(matches);
       }
@@ -2380,6 +2507,7 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
         naturalIfcClassNames,
         getNaturalIfcClassName,
         ruleProgress,
+        selectionProgress,
       }}
     >
       {children}
