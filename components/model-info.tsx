@@ -1,6 +1,7 @@
 "use client";
 
 import { useIFCContext } from "@/context/ifc-context";
+import type { IndexKey } from "@/services/selection-index";
 import type { IfcAPI } from "web-ifc";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -382,6 +383,8 @@ export function ModelInfo() {
     getClassificationsForElement,
     getElementPropertiesCached,
     selectElementsByProperty,
+    selectElementsByIndex,
+    selectionIndexReadyByModel,
   } = useIFCContext();
   const { t, i18n } = useTranslation();
 
@@ -598,8 +601,33 @@ export function ModelInfo() {
 
   const naturalIfcInfo = getNaturalIfcClassName(ifcType, lang);
 
-  const createSelectAllHandler = (path: string[], value: any) => () =>
-    selectElementsByProperty(modelID, path, value);
+  // Map allowed properties to index keys; return null if unsupported
+  const toIndexKey = (path: string[], value: any): IndexKey | null => {
+    if (path.length === 1 && path[0] === "ifcType") return { kind: "IFC_CLASS" };
+    if (path.length >= 2 && path[0] === "attributes" && path[1] === "Name") return { kind: "NAME" };
+    if (path.length >= 2 && path[0] === "typeSets" && /Type Attributes:/.test(path[1]) && path[path.length - 1] === "Name") {
+      return { kind: "TYPE_NAME" };
+    }
+    if (path.length >= 3 && path[0] === "propertySets" && /^PSet_.*Common$/i.test(path[1])) {
+      const psetName = path[1];
+      const propName = path[2];
+      return { kind: "PSET_COMMON", psetName, propName };
+    }
+    return null;
+  };
+
+  const createSelectAllHandler = (path: string[], value: any) => () => {
+    const key = toIndexKey(path, value);
+    if (key) {
+      if (selectionIndexReadyByModel[modelID]) {
+        selectElementsByIndex(modelID, key, value);
+      } else {
+        console.warn("Selection index not ready; ignoring Select All to avoid slow path.");
+      }
+      return;
+    }
+    console.warn("Select All unsupported for path", path.join("."));
+  };
 
   // Render the detailed property information
   return (
@@ -629,12 +657,15 @@ export function ModelInfo() {
                             createSelectAllHandler(["ifcType"], ifcType)();
                           }}
                           className="opacity-60 hover:opacity-100"
+                          disabled={!selectionIndexReadyByModel[modelID]}
                         >
                           <MousePointerClick className="w-3 h-3" />
                         </button>
                       </TooltipTrigger>
                       <TooltipContent side="left">
-                        {t("selectAllWithValue") || "Select all with this value"}
+                        {selectionIndexReadyByModel[modelID]
+                          ? (t("selectAllWithValue") || "Select all with this value")
+                          : (t('messages.loading') || 'Loading...')}
                       </TooltipContent>
                     </Tooltip>
                   </TooltipProvider>
@@ -843,21 +874,21 @@ export function ModelInfo() {
             >
               {props && typeof props === "object"
                 ? Object.entries(props as Record<string, any>).map(
-                    ([propName, propValue]) => (
-                      <PropertyRow
-                        key={propName}
-                        propKey={propName}
-                        propValue={propValue}
-                        icon={getPropertyIcon(propName)}
-                        t={t}
-                        onSelectAll={createSelectAllHandler([
-                          "propertySets",
-                          psetName,
-                          propName,
-                        ], propValue)}
-                      />
-                    ),
-                  )
+                  ([propName, propValue]) => (
+                    <PropertyRow
+                      key={propName}
+                      propKey={propName}
+                      propValue={propValue}
+                      icon={getPropertyIcon(propName)}
+                      t={t}
+                      onSelectAll={createSelectAllHandler([
+                        "propertySets",
+                        psetName,
+                        propName,
+                      ], propValue)}
+                    />
+                  ),
+                )
                 : null}
             </CollapsibleSection>
           ))}

@@ -20,6 +20,7 @@ import { exportRulesToExcel } from "@/services/rule-export-service";
 import { exportClassificationsToExcel } from "@/services/classification-export-service";
 import { parseClassificationsFromExcel } from "@/services/classification-import-service";
 import { getBufferedConsole, type ConsoleUpdate } from "@/services/buffered-console-service";
+import { SelectionIndex, type IndexKey } from "@/services/selection-index";
 
 // Define interfaces for progress tracking
 export interface RuleProgress {
@@ -148,6 +149,9 @@ interface IFCContextType {
     path: string[],
     value: any,
   ) => Promise<void>;
+  // Indexed selection for instant Select All (IfcClass, Name, Type Name, PSet_*Common)
+  selectElementsByIndex: (modelID: number, key: IndexKey, value: any) => void;
+  selectionIndexReadyByModel: Record<number, boolean>;
   toggleShowAllClassificationColors: () => void; // Added new toggle function
 
   // Classification and Rule methods (can remain global or be refactored later if needed per model)
@@ -243,6 +247,7 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
   const [baseCoordinationMatrix, setBaseCoordinationMatrix] = useState<
     number[] | null
   >(null);
+  const [selectionIndexReadyByModel, setSelectionIndexReadyByModel] = useState<Record<number, boolean>>({});
 
   // Rule application progress state (for UI feedback)
   const [ruleProgress, setRuleProgress] = useState<RuleProgress>({
@@ -1432,6 +1437,7 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
       IFCElementExtractor.clearCache();
       PropertyCache.clearCache();
       elementPropsCache.current.clear();
+      try { SelectionIndex.clear(); } catch { }
       setLoadedModels([commonLoadLogic(url, name, fileId)]);
       return null;
     },
@@ -1447,6 +1453,8 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
               ifcApiInternal.CloseModel(m.modelID);
               // Clear element cache for this model to prevent stale data
               IFCElementExtractor.clearCache(m.modelID);
+              // Clear selection index for this model
+              try { SelectionIndex.clear(ifcApiInternal, m.modelID); } catch { }
             } catch (e) {
               console.error("Error closing model:", e);
             }
@@ -1471,6 +1479,13 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
         setSelectedElement(null);
         setElementPropertiesInternal(null);
       }
+      // Drop readiness flag for removed model IDs
+      setSelectionIndexReadyByModel(prev => {
+        const next = { ...prev } as Record<number, boolean>;
+        const removedModel = loadedModels.find((m) => m.id === id);
+        if (removedModel?.modelID != null) delete next[removedModel.modelID];
+        return next;
+      });
     },
     [
       ifcApiInternal,
@@ -1513,6 +1528,30 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
     },
     [],
   );
+
+  // Build selection index in background once a model is open (modelID) and ifcApi available
+  useEffect(() => {
+    const buildIndices = async () => {
+      if (!ifcApiInternal) return;
+      const modelsWithId = loadedModels.filter(m => m.modelID != null) as Array<LoadedModelData & { modelID: number }>;
+      for (const m of modelsWithId) {
+        const mid = m.modelID as number;
+        if (selectionIndexReadyByModel[mid]) continue;
+        try {
+          bufferedConsole.current.updateProgress(`Indexing model ${mid}…`, 1);
+          await SelectionIndex.build(ifcApiInternal, mid, (percent, message) => {
+            bufferedConsole.current.updateProgress(message || `Indexing…`, Math.max(1, Math.min(90, percent)));
+          });
+          setSelectionIndexReadyByModel(prev => ({ ...prev, [mid]: true }));
+          bufferedConsole.current.updateProgress(`Index ready`, 92);
+        } catch (e) {
+          console.warn(`Selection index build failed for model ${mid}`, e);
+        }
+      }
+    };
+    buildIndices();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ifcApiInternal, loadedModels.map(m => m.modelID).join(',')]);
 
   const selectElement = useCallback(
     (selection: SelectedElementInfo | null) => {
@@ -1721,9 +1760,24 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
     [ifcApiInternal],
   );
 
+  // Instant selection using prebuilt index (IfcClass, Name, Type Name, PSet_*Common)
+  const selectElementsByIndex = useCallback(
+    (modelID: number, key: IndexKey, value: any) => {
+      if (!ifcApiInternal) return;
+      if (!SelectionIndex.isReady(ifcApiInternal, modelID)) {
+        console.warn("Selection index not ready for model", modelID);
+        return;
+      }
+      const results = SelectionIndex.query(ifcApiInternal, modelID, key, value);
+      if (results.length > 0) selectElements(results);
+    },
+    [ifcApiInternal, selectElements]
+  );
+
   const selectElementsByProperty = useCallback(
     async (modelID: number, path: string[], value: any) => {
       if (!ifcApiInternal) return;
+
       const elements = IFCElementExtractor.getAllElements(ifcApiInternal, modelID);
       const matches: SelectedElementInfo[] = [];
 
@@ -1731,28 +1785,100 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
         return p.reduce((acc, key) => (acc ? acc[key] : undefined), obj);
       };
 
-      for (const el of elements) {
-        let candidate: any;
-        if (path.length === 1 && path[0] === "ifcType") {
-          candidate = el.type;
-        } else {
-          const props = await getElementPropertiesCached(modelID, el.expressID);
+      const valuesEqual = (a: any, b: any) => {
+        if (a === b) return true;
+        if (typeof a === 'object' || typeof b === 'object') {
+          try {
+            return JSON.stringify(a) === JSON.stringify(b);
+          } catch {
+            return false;
+          }
+        }
+        return false;
+      };
+
+      // Special cases for ultra-fast paths
+      if (path.length === 1) {
+        const key = path[0];
+        if (key === "ifcType") {
+          for (const el of elements) {
+            if (valuesEqual(el.type, value)) {
+              matches.push({ modelID, expressID: el.expressID });
+            }
+          }
+          if (matches.length > 0) selectElements(matches);
+          return;
+        }
+        if (key === "expressID" && typeof value === 'number') {
+          // Direct select by ID
+          selectElements([{ modelID, expressID: value }]);
+          return;
+        }
+        if (key === "modelID" && typeof value === 'number') {
+          // Select all elements in this model
+          const all = elements.map((el) => ({ modelID, expressID: el.expressID }));
+          if (all.length > 0) selectElements(all);
+          return;
+        }
+      }
+
+      // Fast path for direct element attributes (e.g., ["attributes","Name"]) using GetLine without expensive property extraction
+      if (path.length >= 2 && path[0] === "attributes") {
+        const attrPath = path.slice(1); // e.g., ["Name"]
+        let processed = 0;
+        for (const el of elements) {
+          try {
+            const line = await ifcApiInternal.GetLine(modelID, el.expressID, false);
+            let candidate = getValueByPath(line, attrPath);
+            if (candidate && typeof candidate === "object" && "value" in candidate) {
+              candidate = candidate.value;
+            }
+            if (candidate !== undefined && valuesEqual(candidate, value)) {
+              matches.push({ modelID, expressID: el.expressID });
+            }
+          } catch {
+            // Ignore individual element errors
+          }
+          processed++;
+          // Yield periodically to keep UI responsive on large models
+          if (processed % 250 === 0) {
+            await yieldToMainThread();
+          }
+        }
+        if (matches.length > 0) selectElements(matches);
+        return;
+      }
+
+      // Fallback: full property fetch path (chunked with yields)
+      const CHUNK_SIZE = 32;
+      for (let i = 0; i < elements.length; i += CHUNK_SIZE) {
+        const chunk = elements.slice(i, i + CHUNK_SIZE);
+        const propsList = await Promise.all(
+          chunk.map(async (el) => {
+            try {
+              const props = await getElementPropertiesCached(modelID, el.expressID);
+              return { el, props } as const;
+            } catch {
+              return { el, props: null } as const;
+            }
+          })
+        );
+
+        for (const { el, props } of propsList) {
           if (!props) continue;
-          candidate = getValueByPath(props, path);
+          let candidate: any = getValueByPath(props, path);
           if (candidate && typeof candidate === "object" && "value" in candidate) {
             candidate = candidate.value;
           }
+          if (candidate !== undefined && valuesEqual(candidate, value)) {
+            matches.push({ modelID, expressID: el.expressID });
+          }
         }
-        if (
-          candidate !== undefined &&
-          JSON.stringify(candidate) === JSON.stringify(value)
-        ) {
-          matches.push({ modelID, expressID: el.expressID });
-        }
+
+        await yieldToMainThread();
       }
-      if (matches.length > 0) {
-        selectElements(matches);
-      }
+
+      if (matches.length > 0) selectElements(matches);
     },
     [ifcApiInternal, getElementPropertiesCached, selectElements],
   );
@@ -2346,6 +2472,9 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
         setIfcApi,
         getElementPropertiesCached,
         selectElementsByProperty,
+        // New: indexed selection and readiness
+        selectElementsByIndex,
+        selectionIndexReadyByModel,
         toggleShowAllClassificationColors,
         toggleIsolateUnclassified,
         baseCoordinationMatrix,
