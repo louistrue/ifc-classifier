@@ -682,10 +682,10 @@ export function SpatialTreePanel() {
   ]);
 
   useEffect(() => {
-    if (selectedNodeRef.current && selectedNodeKeyForScroll) {
+    if (selectedNodeKeyForScroll) {
       console.log(`Attempting to scroll to node with key: ${selectedNodeKeyForScroll}`);
-      // Add a small delay to ensure DOM has been updated after expansion
-      const scrollTimeout = setTimeout(() => {
+      
+      const attemptScroll = (retryCount = 0) => {
         if (selectedNodeRef.current) {
           console.log(`Scrolling to element:`, selectedNodeRef.current);
           selectedNodeRef.current.scrollIntoView({
@@ -693,12 +693,20 @@ export function SpatialTreePanel() {
             block: "center", // This centers the element vertically
             inline: "nearest"
           });
+        } else if (retryCount < 5) {
+          console.log(`Ref not available, retrying scroll in 100ms (attempt ${retryCount + 1})`);
+          setTimeout(() => attemptScroll(retryCount + 1), 100);
+        } else {
+          console.log(`Failed to scroll after 5 attempts for: ${selectedNodeKeyForScroll}`);
         }
-      }, 100); // Small delay to ensure expansion animation is complete
+      };
+
+      // Initial delay to ensure DOM has been updated after expansion
+      const scrollTimeout = setTimeout(() => attemptScroll(), 200);
 
       return () => clearTimeout(scrollTimeout);
     }
-  }, [selectedNodeKeyForScroll]);
+  }, [selectedNodeKeyForScroll, expandedNodeKeys]);
 
   const handleNodeSelection = (selection: SelectedElementInfo) => {
     console.log(

@@ -130,6 +130,7 @@ interface IFCContextType {
 
   selectElement: (selection: SelectedElementInfo | null) => void;
   selectElements: (selection: SelectedElementInfo[]) => void;
+  selectElementsByProperty: (propertyKey: string, propertyValue: any) => Promise<void>;
   toggleElementSelection: (element: SelectedElementInfo, additive: boolean) => void;
   clearSelection: () => void;
   toggleClassificationHighlight: (classificationCode: string) => void;
@@ -1559,6 +1560,108 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
     ],
   );
 
+  const selectElementsByProperty = useCallback(
+    async (propertyKey: string, propertyValue: any) => {
+      if (!ifcApiInternal) {
+        console.warn("IFC API not available for property selection");
+        return;
+      }
+
+      const matchingElements: SelectedElementInfo[] = [];
+
+      for (const model of loadedModels) {
+        if (model.modelID === null || !model.spatialTree) continue;
+
+        // Get all elements from the spatial tree
+        const getAllElementsRecursive = (node: SpatialStructureNode): SpatialStructureNode[] => {
+          let elements: SpatialStructureNode[] = [node];
+          if (node.children && node.children.length > 0) {
+            for (const child of node.children) {
+              elements = elements.concat(getAllElementsRecursive(child));
+            }
+          }
+          return elements;
+        };
+
+        const allElements = getAllElementsRecursive(model.spatialTree);
+
+        for (const element of allElements) {
+          try {
+            let elementValue: any;
+
+            if (propertyKey === "Ifc Class" || propertyKey === "ifcType") {
+              elementValue = element.type;
+            } else {
+              // Get element properties
+              const itemProps = await PropertyCache.getProperties(
+                ifcApiInternal,
+                model.modelID,
+                element.expressID
+              );
+
+              if (!itemProps) continue;
+
+              if (propertyKey.includes(".")) {
+                // Handle PSet properties
+                const [psetName, propName] = propertyKey.split(".");
+                const propertySets = itemProps.propertySets || {};
+                
+                let candidate: any = propertySets[psetName]?.[propName];
+                
+                // Try type-derived PSets if not found
+                if (candidate === undefined) {
+                  for (const [groupName, groupProps] of Object.entries(propertySets)) {
+                    if (groupName === psetName || groupName.startsWith(psetName + " (from Type:")) {
+                      const val = (groupProps as any)?.[propName];
+                      if (val !== undefined) {
+                        candidate = val;
+                        break;
+                      }
+                    }
+                  }
+                }
+
+                elementValue = candidate;
+              } else {
+                // Handle direct attributes
+                const attributes = itemProps.attributes || itemProps.propertySets?.["Element Attributes"];
+                if (attributes && attributes[propertyKey] !== undefined) {
+                  elementValue = attributes[propertyKey];
+                } else if (element[propertyKey]) {
+                  elementValue = element[propertyKey];
+                }
+              }
+            }
+
+            // Extract clean value for comparison
+            if (typeof elementValue === 'object' && elementValue !== null && 'value' in elementValue) {
+              elementValue = elementValue.value;
+            }
+
+            // Compare values (case-insensitive for strings)
+            const normalizeValue = (val: any) => {
+              if (typeof val === 'string') return val.toLowerCase();
+              return val;
+            };
+
+            if (normalizeValue(elementValue) === normalizeValue(propertyValue)) {
+              matchingElements.push({
+                modelID: model.modelID,
+                expressID: element.expressID,
+              });
+            }
+          } catch (error) {
+            console.debug(`Error checking element ${element.expressID}:`, error);
+          }
+        }
+      }
+
+      console.log(`Found ${matchingElements.length} elements matching ${propertyKey} = ${propertyValue}`);
+      selectElements(matchingElements);
+    },
+    [ifcApiInternal, loadedModels, selectElements]
+  );
+
   const clearSelection = useCallback(() => {
     setSelectedElements([]);
     setSelectedElement(null);
@@ -2296,6 +2399,7 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
         setRawBufferForModel,
         selectElement,
         selectElements,
+        selectElementsByProperty,
         toggleElementSelection,
         clearSelection,
         toggleClassificationHighlight,
