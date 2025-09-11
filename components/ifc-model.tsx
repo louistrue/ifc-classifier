@@ -74,10 +74,14 @@ async function isElementContainedInStorey(ifcApi: IfcAPI, modelID: number, store
 }
 
 // Helper function to get all element IDs contained in a specific storey (optimized)
-async function getContainedElementsInStorey(ifcApi: IfcAPI, modelID: number, storeyID: number): Promise<Set<number>> {
+async function getContainedElementsInSpatialStructure(ifcApi: IfcAPI, modelID: number, spatialElementID: number): Promise<Set<number>> {
   const containedElements = new Set<number>();
   const relType = ifcApi.GetTypeCodeFromName("IFCRELCONTAINEDINSPATIALSTRUCTURE");
   const relIds = await ifcApi.GetLineIDsWithType(modelID, relType);
+
+  if (process.env.NODE_ENV !== "production") {
+    console.log(`[getContainedElements] Found ${relIds.size()} IFCRELCONTAINEDINSPATIALSTRUCTURE relationships for spatial element ${spatialElementID}`);
+  }
 
   for (let i = 0; i < relIds.size(); i++) {
     const rid = relIds.get(i);
@@ -88,7 +92,11 @@ async function getContainedElementsInStorey(ifcApi: IfcAPI, modelID: number, sto
         rel.RelatingStructure?.expressID ??
         rel.RelatingStructure;
 
-      if (relating === storeyID && Array.isArray(rel.RelatedElements)) {
+      if (relating === spatialElementID && Array.isArray(rel.RelatedElements)) {
+        if (process.env.NODE_ENV !== "production") {
+          console.log(`[getContainedElements] Found relationship for spatial element ${spatialElementID} with ${rel.RelatedElements.length} related elements`);
+        }
+
         for (const re of rel.RelatedElements) {
           const elemID = re?.value ?? re;
           if (typeof elemID === 'number') {
@@ -96,10 +104,17 @@ async function getContainedElementsInStorey(ifcApi: IfcAPI, modelID: number, sto
           }
         }
       }
-    } catch {
-      // Continue on error
+    } catch (e) {
+      if (process.env.NODE_ENV !== "production") {
+        console.log(`[getContainedElements] Error processing relationship ${rid}:`, e);
+      }
     }
   }
+
+  if (process.env.NODE_ENV !== "production") {
+    console.log(`[getContainedElements] Returning ${containedElements.size} contained elements for spatial element ${spatialElementID}`);
+  }
+
   return containedElements;
 }
 
@@ -112,6 +127,8 @@ async function buildSpatialTree(
 ): Promise<SpatialStructureNode | null> {
   const element = await getElementData(ifcApi, modelID, elementID);
   if (!element.type) return null;
+
+  console.log(`[buildSpatialTree] FUNCTION CALLED for ${element.type} (ID: ${elementID})`);
 
   const node: SpatialStructureNode = {
     expressID: elementID,
@@ -258,89 +275,102 @@ async function buildSpatialTree(
       console.log(`[buildSpatialTree] Found ${foundRelationships} relationships for ${element.type} (ID: ${elementID})`);
     }
 
-    // Also get all building elements directly if this is a building storey
-    // This handles cases where the new web-ifc version might structure things differently
-    // Only run fallback if no containment relationships were found for this storey
-    if (element.type === "IFCBUILDINGSTOREY" && foundRelationships === 0) {
-      if (process.env.NODE_ENV !== "production") {
-        console.log(`[buildSpatialTree] Fallback: No containment relationships found, directly querying for building elements in building storey`);
-      }
+    // SIMPLE & FAST: Add contained elements without recursion
+    if ((element.type === "IfcBuildingStorey" || element.type === "IfcSpace") && node.children.length < 10) {
+      try {
+        const containedElementsSet = await getContainedElementsInSpatialStructure(ifcApi, modelID, elementID);
 
-      // Pre-compute Set of all element IDs contained in this storey for fast lookups
-      const containedElementsSet = await getContainedElementsInStorey(ifcApi, modelID, elementID);
+        if (containedElementsSet.size > 0) {
+          let addedCount = 0;
 
-      if (process.env.NODE_ENV !== "production") {
-        console.log(`[buildSpatialTree] Pre-computed containment set with ${containedElementsSet.size} elements`);
-      }
+          for (const elemID of containedElementsSet) {
+            if (node.children.some(child => child.expressID === elemID)) continue;
 
-      // Get common building element types directly
-      const elementTypes = [
-        IFCWALL, IFCWALLSTANDARDCASE, IFCDOOR, IFCWINDOW, IFCSLAB,
-        IFCCOLUMN, IFCBEAM, IFCSTAIR, IFCROOF, IFCCOVERING, IFCRAILING,
-        IFCPLATE, IFCMEMBER, IFCCURTAINWALL
-      ];
-
-      const elementTypeNames = [
-        'IFCWALL', 'IFCWALLSTANDARDCASE', 'IFCDOOR', 'IFCWINDOW', 'IFCSLAB',
-        'IFCCOLUMN', 'IFCBEAM', 'IFCSTAIR', 'IFCROOF', 'IFCCOVERING', 'IFCRAILING',
-        'IFCPLATE', 'IFCMEMBER', 'IFCCURTAINWALL'
-      ];
-
-      let totalElementsAdded = 0;
-
-      for (let typeIdx = 0; typeIdx < elementTypes.length; typeIdx++) {
-        const elementType = elementTypes[typeIdx];
-        const typeName = elementTypeNames[typeIdx];
-
-        try {
-          const elementIDs = await ifcApi.GetLineIDsWithType(modelID, elementType);
-
-          if (process.env.NODE_ENV !== "production" && elementIDs.size() > 0) {
-            console.log(`[buildSpatialTree] Found ${elementIDs.size()} elements of type ${typeName}`);
-          }
-
-          for (let i = 0; i < elementIDs.size(); i++) {
-            const elemID = elementIDs.get(i);
-
-            // Check if this element is already in our children
-            const alreadyAdded = node.children.some(child => child.expressID === elemID);
-
-            // Fast containment check using pre-computed Set (replaces repeated scans)
-            const containedHere = containedElementsSet.has(elemID);
-
-            if (!alreadyAdded && containedHere) {
+            try {
               const elemData = await getElementData(ifcApi, modelID, elemID);
 
-              if (elemData.type) {
+              // Add ALL contained elements (spaces and building elements)
+              if (elemData.type &&
+                elemData.type !== "IfcBuildingStorey" &&
+                elemData.type !== "IfcBuilding" &&
+                elemData.type !== "IfcSite" &&
+                elemData.type !== "IfcProject") {
+
                 node.children.push({
                   expressID: elemID,
                   type: elemData.type,
                   Name: elemData.Name,
                   GlobalId: elemData.GlobalId,
-                  children: [],
+                  children: [], // No recursion - keep it flat
                   ...elemData,
                 });
-
-                totalElementsAdded++;
-                if (process.env.NODE_ENV !== "production") {
-                  console.log(`[buildSpatialTree] ✓ Fallback: Added validated ${elemData.type} (ID: ${elemID}) to building storey`);
-                }
+                addedCount++;
               }
+            } catch (e) {
+              // Skip failed elements
             }
           }
-        } catch (e) {
-          if (process.env.NODE_ENV !== "production") {
-            console.log(`[buildSpatialTree] No ${typeName} elements found or error: ${e}`);
-          }
-          continue;
-        }
-      }
 
-      if (process.env.NODE_ENV !== "production") {
-        console.log(`[buildSpatialTree] Fallback: Added ${totalElementsAdded} validated building elements to building storey`);
+          if (process.env.NODE_ENV !== "production" && addedCount > 0) {
+            console.log(`[buildSpatialTree] Added ${addedCount} elements to ${element.type}`);
+          }
+        }
+      } catch (e) {
+        // Skip on error
       }
     }
   }
+
+  // SIMPLE EMERGENCY FALLBACK: Only for completely empty first storey
+  if (element.type === "IfcBuildingStorey" && node.children.length === 0) {
+    const cacheKey = `simple_${modelID}`;
+    if (!buildSpatialTree[cacheKey]) {
+      buildSpatialTree[cacheKey] = true;
+
+      try {
+        const allElementIds = await ifcApi.GetAllLines(modelID);
+        let addedCount = 0;
+
+        // Simple type check - just look for common building elements
+        for (let i = 0; i < allElementIds.size() && addedCount < 200; i++) {
+          const elemID = allElementIds.get(i);
+
+          try {
+            const elemData = await getElementData(ifcApi, modelID, elemID);
+
+            // Simple check for building elements
+            if (elemData.type &&
+              (elemData.type.includes("Wall") ||
+                elemData.type.includes("Door") ||
+                elemData.type.includes("Window") ||
+                elemData.type.includes("Slab") ||
+                elemData.type.includes("Column") ||
+                elemData.type.includes("Beam"))) {
+
+              node.children.push({
+                expressID: elemID,
+                type: elemData.type,
+                Name: elemData.Name,
+                GlobalId: elemData.GlobalId,
+                children: [],
+                ...elemData,
+              });
+              addedCount++;
+            }
+          } catch (e) {
+            // Skip failed elements
+          }
+        }
+
+        if (process.env.NODE_ENV !== "production") {
+          console.log(`⚡ Simple fallback: Added ${addedCount} elements for scroll functionality`);
+        }
+      } catch (e) {
+        // Fail silently
+      }
+    }
+  }
+
   return node;
 }
 
