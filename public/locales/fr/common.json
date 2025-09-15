@@ -173,7 +173,18 @@
         "useLoadButton": "Sélectionnez un fichier ou un modèle à charger.",
         "search": "Rechercher",
         "searchTreePlaceholder": "Rechercher dans l'arbre du modèle...",
-        "searchCanvasPlaceholder": "Rechercher des éléments..."
+        "searchTypesPlaceholder": "Rechercher types et instances...",
+        "searchCanvasPlaceholder": "Rechercher des éléments...",
+        "view": {
+            "spatial": "Spatial",
+            "types": "Types"
+        },
+        "types": {
+            "noTypeGroup": "(Aucun Type)",
+            "powerUser": "Utilisateur Avancé",
+            "powerUserOn": "Affichage de toutes les classes IFC y compris celles sans définitions de type",
+            "powerUserOff": "Masquer les classes qui ne contiennent que des instances sans définitions de type"
+        }
     },
     "tooltips": {
         "defaultClassification": "Définit le système de classification par défaut. Ce système sera utilisé si l'application automatique est activée ci-dessous.",

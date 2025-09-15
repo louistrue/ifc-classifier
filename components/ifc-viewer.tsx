@@ -840,15 +840,19 @@ const ResizeHandleHorizontal = ({
   collapsed = false,
   onToggle,
   isLeftSide = false,
+  onDragging,
 }: {
   className?: string;
   collapsed?: boolean;
   onToggle?: () => void;
   isLeftSide?: boolean;
+  onDragging?: (dragging: boolean) => void;
 }) => (
   <PanelResizeHandle
+    hitAreaMargins={{ coarse: 16, fine: 8 }}
+    onDragging={onDragging}
     className={cn(
-      "w-2 flex items-center justify-center group transition-colors hover:bg-muted/80 active:bg-muted rounded cursor-col-resize",
+      "z-10 w-3 touch-none select-none flex items-center justify-center group transition-colors hover:bg-muted/80 active:bg-muted rounded cursor-col-resize",
       className
     )}
   >
@@ -957,6 +961,7 @@ function ViewerContent() {
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+  const [isResizing, setIsResizing] = useState(false);
 
   // Handle rule completion and show completion message
   useEffect(() => {
@@ -1924,7 +1929,7 @@ function ViewerContent() {
             <ambientLight intensity={0.5} />
             <directionalLight position={[10, 10, 5]} intensity={1} />
             <Environment preset="city" />
-            <OrbitControls makeDefault enableDamping={false} />
+            <OrbitControls makeDefault enableDamping={false} enabled={!isResizing} />
             <GlobalInteractionHandler />
             <SceneCapture onSceneCapture={captureScene} />
             {loadedModels.map((modelEntry) => (
@@ -1946,7 +1951,6 @@ function ViewerContent() {
         style={{
           zIndex: 1,
           position: "relative",
-          pointerEvents: "none",
           height: "calc(100% - 4rem)",
           marginTop: "4rem",
         }}
@@ -1959,6 +1963,8 @@ function ViewerContent() {
           minSize={15}
           maxSize={40}
           collapsible
+          onCollapse={() => setLeftPanelCollapsed(true)}
+          onExpand={() => setLeftPanelCollapsed(false)}
           className="hidden bg-transparent pointer-events-auto md:block" // hide on mobile
         >
           {/* Inner div has the gradient */}
@@ -1996,6 +2002,10 @@ function ViewerContent() {
           onToggle={handleToggleLeftPanel}
           collapsed={leftPanelCollapsed}
           isLeftSide={true}
+          onDragging={(d) => {
+            setIsResizing(d);
+            document.documentElement.classList.toggle("resizing", d);
+          }}
           className="hidden pointer-events-auto md:block"
         />
 
@@ -2189,6 +2199,10 @@ function ViewerContent() {
           onToggle={handleToggleRightPanel}
           collapsed={rightPanelCollapsed}
           isLeftSide={false}
+          onDragging={(d) => {
+            setIsResizing(d);
+            document.documentElement.classList.toggle("resizing", d);
+          }}
           className="hidden pointer-events-auto md:block"
         />
 
@@ -2200,6 +2214,8 @@ function ViewerContent() {
           minSize={15}
           maxSize={40}
           collapsible
+          onCollapse={() => setRightPanelCollapsed(true)}
+          onExpand={() => setRightPanelCollapsed(false)}
           className="hidden bg-transparent pointer-events-auto md:block"
         >
           <ResponsiveTabs onSettingsChanged={handleSettingsChanged} />

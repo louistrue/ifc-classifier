@@ -173,7 +173,18 @@
     "useLoadButton": "Wählen Sie eine Datei oder ein Modell zum Laden aus.",
     "search": "Suchen",
     "searchTreePlaceholder": "Modellbaum durchsuchen...",
-    "searchCanvasPlaceholder": "3D-Elemente suchen..."
+    "searchTypesPlaceholder": "Typen und Instanzen suchen...",
+    "searchCanvasPlaceholder": "3D-Elemente suchen...",
+    "view": {
+      "spatial": "Räumlich",
+      "types": "Typen"
+    },
+    "types": {
+      "noTypeGroup": "(Kein Typ)",
+      "powerUser": "Power-User",
+      "powerUserOn": "Zeigt alle IFC-Klassen einschließlich derer ohne Typdefinitionen an",
+      "powerUserOff": "Versteckt Klassen, die nur Instanzen ohne Typdefinitionen enthalten"
+    }
   },
   "tooltips": {
     "defaultClassification": "Legt das Standard-Klassifizierungssystem fest. Dieses System wird verwendet, wenn die automatische Anwendung unten aktiviert ist.",
