@@ -1605,9 +1605,9 @@ export function IFCContextProvider({ children }: { children: ReactNode }) {
                 // Handle PSet properties
                 const [psetName, propName] = propertyKey.split(".");
                 const propertySets = itemProps.propertySets || {};
-                
+
                 let candidate: any = propertySets[psetName]?.[propName];
-                
+
                 // Try type-derived PSets if not found
                 if (candidate === undefined) {
                   for (const [groupName, groupProps] of Object.entries(propertySets)) {

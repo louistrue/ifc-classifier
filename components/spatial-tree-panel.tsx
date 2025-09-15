@@ -165,7 +165,6 @@ const TreeNode: React.FC<TreeNodeProps> = ({
   // Debug logging for ref attachment
   useEffect(() => {
     if (shouldScrollToThisNode) {
-      console.log(`Ref should be attached to node: ${nodeKey}, expressID: ${node.expressID}, type: ${node.type}`);
     }
   }, [shouldScrollToThisNode, nodeKey, node.expressID, node.type]);
 
@@ -220,28 +219,54 @@ const TreeNode: React.FC<TreeNodeProps> = ({
     return <HelpCircle className="w-4 h-4 mr-2 text-gray-400" />;
   };
 
-  const handleToggleExpansion = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    toggleNodeExpansion(nodeKey);
-  };
+  // No separate expand handler needed - clicking anywhere on the row handles both expand and select
 
   const handleSelect = () => {
     if (isRootModelNode || modelFileInfo.modelID === null) return;
 
-    if (
-      node.type.includes("ELEMENT") ||
-      node.type.includes("PROXY") ||
+    const nodeTypeUpper = node.type.toUpperCase();
+    const isSelectableElement = (
+      nodeTypeUpper.includes("ELEMENT") ||
+      nodeTypeUpper.includes("PROXY") ||
       node.children.length === 0 ||
-      node.type.includes("SPACE") ||
-      node.type.includes("STOREY") ||
-      node.type.includes("BUILDING") ||
-      node.type.includes("SITE") ||
-      node.type.includes("PROJECT")
-    ) {
-      onSelectNode({
-        modelID: modelFileInfo.modelID,
-        expressID: node.expressID,
-      });
+      nodeTypeUpper.includes("SPACE") ||
+      nodeTypeUpper.includes("STOREY") ||
+      nodeTypeUpper.includes("BUILDING") ||
+      nodeTypeUpper.includes("SITE") ||
+      nodeTypeUpper.includes("PROJECT")
+    );
+
+    const hasChildren = node.children && node.children.length > 0;
+    const isCurrentlySelected = (
+      selectedElementInfo?.modelID === modelFileInfo.modelID &&
+      selectedElementInfo?.expressID === node.expressID
+    );
+
+    if (hasChildren) {
+      // For elements with children: Smart interaction
+      if (isCurrentlySelected && isExpanded) {
+        // If already selected and expanded, just collapse (don't re-select)
+        toggleNodeExpansion(nodeKey);
+      } else {
+        // If not selected or not expanded, expand AND select
+        if (!isExpanded) {
+          toggleNodeExpansion(nodeKey);
+        }
+        if (isSelectableElement) {
+          onSelectNode({
+            modelID: modelFileInfo.modelID,
+            expressID: node.expressID,
+          });
+        }
+      }
+    } else {
+      // For leaf elements: Just select
+      if (isSelectableElement) {
+        onSelectNode({
+          modelID: modelFileInfo.modelID,
+          expressID: node.expressID,
+        });
+      }
     }
   };
 
@@ -313,10 +338,17 @@ const TreeNode: React.FC<TreeNodeProps> = ({
       <div
         ref={shouldScrollToThisNode ? selectedNodeActualRef : null}
         className={cn(
-          "flex items-center py-1.5 px-2 rounded-md hover:bg-accent group",
+          "flex items-center py-1.5 px-2 rounded-md hover:bg-accent group transition-colors",
           isSelected && "bg-accent text-accent-foreground font-semibold",
           !isSelected && matchesSearch && "bg-primary/10",
           isRootModelNode ? "cursor-default" : "cursor-pointer",
+          // Add subtle visual indicator for selectable spatial structure elements
+          !isRootModelNode && (
+            node.type.includes("PROJECT") ||
+            node.type.includes("SITE") ||
+            node.type.includes("BUILDING") ||
+            node.type.includes("STOREY")
+          ) && "hover:bg-accent/70",
         )}
         style={{
           paddingLeft: `${level * 1.25 + (isRootModelNode ? 0.25 : 0.5)}rem`,
@@ -324,18 +356,13 @@ const TreeNode: React.FC<TreeNodeProps> = ({
         onClick={handleSelect}
       >
         {node.children && node.children.length > 0 ? (
-          <Button
-            variant="ghost"
-            size="icon"
-            className="w-6 h-6 mr-1"
-            onClick={handleToggleExpansion}
-          >
+          <div className="w-6 h-6 mr-1 flex items-center justify-center">
             {isExpanded ? (
               <ChevronDown className="w-4 h-4" />
             ) : (
               <ChevronRight className="w-4 h-4" />
             )}
-          </Button>
+          </div>
         ) : (
           <span className="w-6 h-6 mr-1"></span>
         )}
@@ -843,9 +870,7 @@ function TypesTreePanel({
       const instanceKey = findPathToInstanceInTypes(targetModelID, targetExpressID);
       if (instanceKey && isActuallyNewSelection && !isUserBrowsingTree) {
         setSelectedNodeKeyForScroll(instanceKey);
-        console.log(`Types view: Setting scroll target to: ${instanceKey}`);
       } else if (instanceKey) {
-        console.log(`Types view: Skipping auto-scroll - user browsing: ${isUserBrowsingTree}, new selection: ${isActuallyNewSelection}`);
       }
     } else {
       setSelectedNodeKeyForScroll(null);
@@ -1175,7 +1200,6 @@ export function SpatialTreePanel() {
       }
 
       if (currentNode.expressID === targetExpressID) {
-        console.log(`Found target node: expressID=${targetExpressID}, nodeKey=${nodeKey}, path:`, currentPathKeys);
         return {
           pathKeys: [...currentPathKeys],
           storeyKey: newStoreyKey,
@@ -1299,7 +1323,6 @@ export function SpatialTreePanel() {
       const model = loadedModels.find((m) => m.modelID === targetModelID);
 
       if (model && model.spatialTree) {
-        console.log(`Finding path to element: modelID=${targetModelID}, expressID=${targetExpressID}`);
         const pathResult = findPathToNodeRecursive(
           model.spatialTree,
           targetExpressID,
@@ -1309,7 +1332,6 @@ export function SpatialTreePanel() {
         );
 
         if (pathResult) {
-          console.log(`Path found, expanding keys:`, pathResult.pathKeys);
           const exclusiveKeys = new Set<string>();
           loadedModels.forEach((m) => {
             if (m.modelID !== null) {
@@ -1328,12 +1350,8 @@ export function SpatialTreePanel() {
           // Only set scroll target if it's a new selection and user isn't browsing
           if (isActuallyNewSelection && !isUserBrowsingTree) {
             newScrollKey = pathResult.selectedNodeKey;
-            console.log(`Setting scroll target to: ${newScrollKey}`);
           } else {
-            console.log(`Skipping auto-scroll - user browsing: ${isUserBrowsingTree}, new selection: ${isActuallyNewSelection}`);
           }
-        } else {
-          console.log(`No path found for element: modelID=${targetModelID}, expressID=${targetExpressID}`);
         }
       }
     }
@@ -1365,21 +1383,16 @@ export function SpatialTreePanel() {
 
   useEffect(() => {
     if (selectedNodeKeyForScroll) {
-      console.log(`Attempting to scroll to node with key: ${selectedNodeKeyForScroll}`);
 
       const attemptScroll = (retryCount = 0) => {
         if (selectedNodeRef.current) {
-          console.log(`Scrolling to element:`, selectedNodeRef.current);
           selectedNodeRef.current.scrollIntoView({
             behavior: "smooth",
             block: "center", // This centers the element vertically
             inline: "nearest"
           });
         } else if (retryCount < 5) {
-          console.log(`Ref not available, retrying scroll in 100ms (attempt ${retryCount + 1})`);
           setTimeout(() => attemptScroll(retryCount + 1), 100);
-        } else {
-          console.log(`Failed to scroll after 5 attempts for: ${selectedNodeKeyForScroll}`);
         }
       };
 
@@ -1391,9 +1404,6 @@ export function SpatialTreePanel() {
   }, [selectedNodeKeyForScroll, expandedNodeKeys]);
 
   const handleNodeSelection = (selection: SelectedElementInfo) => {
-    console.log(
-      `SpatialTree: Node selected - ModelID: ${selection.modelID}, ExpressID: ${selection.expressID}`,
-    );
     selectElement(selection);
   };
 

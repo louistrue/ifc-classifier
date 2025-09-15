@@ -80,7 +80,6 @@ async function getContainedElementsInSpatialStructure(ifcApi: IfcAPI, modelID: n
   const relIds = await ifcApi.GetLineIDsWithType(modelID, relType);
 
   if (process.env.NODE_ENV !== "production") {
-    console.log(`[getContainedElements] Found ${relIds.size()} IFCRELCONTAINEDINSPATIALSTRUCTURE relationships for spatial element ${spatialElementID}`);
   }
 
   for (let i = 0; i < relIds.size(); i++) {
@@ -94,7 +93,6 @@ async function getContainedElementsInSpatialStructure(ifcApi: IfcAPI, modelID: n
 
       if (relating === spatialElementID && Array.isArray(rel.RelatedElements)) {
         if (process.env.NODE_ENV !== "production") {
-          console.log(`[getContainedElements] Found relationship for spatial element ${spatialElementID} with ${rel.RelatedElements.length} related elements`);
         }
 
         for (const re of rel.RelatedElements) {
@@ -106,13 +104,11 @@ async function getContainedElementsInSpatialStructure(ifcApi: IfcAPI, modelID: n
       }
     } catch (e) {
       if (process.env.NODE_ENV !== "production") {
-        console.log(`[getContainedElements] Error processing relationship ${rid}:`, e);
       }
     }
   }
 
   if (process.env.NODE_ENV !== "production") {
-    console.log(`[getContainedElements] Returning ${containedElements.size} contained elements for spatial element ${spatialElementID}`);
   }
 
   return containedElements;
@@ -124,16 +120,17 @@ const modelRelationshipCache = new Map<number, {
   contained: Map<number, number[]>,
 }>();
 
-// Cache to track if the simple emergency fallback has executed per model
-const modelFallbackExecutionCache = new Map<number, boolean>();
+// Cache to track if the emergency fallback has executed per storey (not just per model)
+const modelFallbackExecutionCache = new Map<string, boolean>();
+
+// Global element tracker to prevent duplication across storeys
+const modelUsedElements = new Map<number, Set<number>>();
 
 // Function to build relationship cache for the entire model (FAST!)
 async function buildModelRelationshipCache(ifcApi: IfcAPI, modelID: number) {
   if (modelRelationshipCache.has(modelID)) {
     return modelRelationshipCache.get(modelID)!;
   }
-
-  console.log(`[buildModelRelationshipCache] Building cache for model ${modelID}`);
 
   const aggregates = new Map<number, number[]>();
   const contained = new Map<number, number[]>();
@@ -212,15 +209,16 @@ async function buildModelRelationshipCache(ifcApi: IfcAPI, modelID: number) {
 
   const cache = { aggregates, contained };
   modelRelationshipCache.set(modelID, cache);
-  console.log(`[buildModelRelationshipCache] Cache built - aggregates: ${aggregates.size}, contained: ${contained.size}`);
   return cache;
 }
 
 // Function to clear relationship cache for a model
 function clearModelRelationshipCache(modelID: number) {
   modelRelationshipCache.delete(modelID);
-  modelFallbackExecutionCache.delete(modelID);
-  console.log(`[clearModelRelationshipCache] Cleared cache for model ${modelID}`);
+  modelUsedElements.delete(modelID);
+  // Clear fallback execution cache for this model (using new per-storey keys)
+  const keysToDelete = Array.from(modelFallbackExecutionCache.keys()).filter(key => key.startsWith(`${modelID}-`));
+  keysToDelete.forEach(key => modelFallbackExecutionCache.delete(key));
 }
 
 // Function to recursively build the spatial structure tree (OPTIMIZED!)
@@ -234,7 +232,6 @@ async function buildSpatialTree(
   const element = await getElementData(ifcApi, modelID, elementID);
   if (!element.type) return null;
 
-  console.log(`[buildSpatialTree] FUNCTION CALLED for ${element.type} (ID: ${elementID})`);
 
   const node: SpatialStructureNode = {
     expressID: elementID,
@@ -251,10 +248,24 @@ async function buildSpatialTree(
     cache = await buildModelRelationshipCache(ifcApi, modelID);
   }
 
+  // Initialize element tracker for this model
+  if (!modelUsedElements.has(modelID)) {
+    modelUsedElements.set(modelID, new Set());
+  }
+  const usedElements = modelUsedElements.get(modelID)!;
+
   // 1. Decomposed elements (IfcRelAggregates) - CACHED VERSION
   const aggregatedChildren = cache.aggregates.get(elementID);
   if (aggregatedChildren) {
     for (const childId of aggregatedChildren) {
+      // Prevent duplicate elements in aggregation as well
+      if (usedElements.has(childId)) {
+        continue;
+      }
+
+      // Mark as used before processing to prevent duplication in contained elements
+      usedElements.add(childId);
+
       const childNode = await buildSpatialTree(
         ifcApi,
         modelID,
@@ -262,13 +273,14 @@ async function buildSpatialTree(
         element.type,
         cache
       );
-      if (childNode) node.children.push(childNode);
+      if (childNode) {
+        node.children.push(childNode);
+      }
     }
   }
 
   // 2. Contained elements (IfcRelContainedInSpatialStructure) - CACHED & OPTIMIZED
   if (process.env.NODE_ENV !== "production") {
-    console.log(`[buildSpatialTree] Processing element: ${element.type} (ID: ${elementID})`);
   }
 
   // OPTIMIZATION: Only process contained elements for main spatial structure, not spaces
@@ -282,19 +294,25 @@ async function buildSpatialTree(
     const containedChildren = cache.contained.get(elementID);
     if (containedChildren) {
       if (process.env.NODE_ENV !== "production") {
-        console.log(`[buildSpatialTree] Found ${containedChildren.length} contained elements for ${element.type} (ID: ${elementID})`);
       }
 
       for (const childExpressID of containedChildren) {
+        // Prevent duplicate elements across different storeys
+        if (usedElements.has(childExpressID)) {
+          continue;
+        }
+
         try {
           // Get the full element data
           const childData = await getElementData(ifcApi, modelID, childExpressID);
 
           if (process.env.NODE_ENV !== "production") {
-            console.log(`[buildSpatialTree] Child element: ${childData.type} (ID: ${childExpressID})`);
           }
 
           if (childData.type) {
+            // Mark element as used to prevent duplication
+            usedElements.add(childExpressID);
+
             // Always add the element to the tree, regardless of type
             const childNode: SpatialStructureNode = {
               expressID: childExpressID,
@@ -324,7 +342,6 @@ async function buildSpatialTree(
             if (process.env.NODE_ENV !== "production" &&
               (childData.type.includes("WALL") || childData.type.includes("DOOR") ||
                 childData.type.includes("WINDOW") || childData.type.includes("SLAB"))) {
-              console.log(`[buildSpatialTree] ✓ Added building element to spatial tree: ${childData.type} (ID: ${childExpressID})`);
             }
           }
         } catch (error) {
@@ -335,30 +352,41 @@ async function buildSpatialTree(
   }
 
 
-  // SIMPLE EMERGENCY FALLBACK: Only for completely empty first storey
+  // IMPROVED EMERGENCY FALLBACK: Only add unassigned elements to empty storeys
   if ((element.type === "IFCBUILDINGSTOREY" || element.type === "IfcBuildingStorey") && node.children.length === 0) {
-    if (!modelFallbackExecutionCache.get(modelID)) {
-      modelFallbackExecutionCache.set(modelID, true);
+    const fallbackKey = `${modelID}-${elementID}`;
+    if (!modelFallbackExecutionCache.get(fallbackKey)) {
+      modelFallbackExecutionCache.set(fallbackKey, true);
 
       try {
         const allElementIds = await ifcApi.GetAllLines(modelID);
         let addedCount = 0;
 
-        // Simple type check - just look for common building elements
-        for (let i = 0; i < allElementIds.size() && addedCount < 200; i++) {
+        // Simple type check - only add elements that haven't been used elsewhere
+        for (let i = 0; i < allElementIds.size() && addedCount < 50; i++) {
           const elemID = allElementIds.get(i);
+
+          // Skip if element is already used in the spatial tree
+          if (usedElements.has(elemID)) {
+            continue;
+          }
 
           try {
             const elemData = await getElementData(ifcApi, modelID, elemID);
 
-            // Simple check for building elements
+            // Simple check for building elements (exclude type definitions)
             if (elemData.type &&
               (elemData.type.includes("Wall") ||
                 elemData.type.includes("Door") ||
                 elemData.type.includes("Window") ||
                 elemData.type.includes("Slab") ||
                 elemData.type.includes("Column") ||
-                elemData.type.includes("Beam"))) {
+                elemData.type.includes("Beam")) &&
+              // Exclude type definitions - only include actual instances
+              !elemData.type.includes("Type")) {
+
+              // Mark as used to prevent future duplication
+              usedElements.add(elemID);
 
               node.children.push({
                 expressID: elemID,
@@ -368,6 +396,7 @@ async function buildSpatialTree(
                 children: [],
                 ...elemData,
               });
+
               addedCount++;
             }
           } catch (e) {
@@ -375,9 +404,6 @@ async function buildSpatialTree(
           }
         }
 
-        if (process.env.NODE_ENV !== "production") {
-          console.log(`⚡ Simple fallback: Added ${addedCount} elements for scroll functionality`);
-        }
       } catch (e) {
         // Fail silently
       }
@@ -391,6 +417,11 @@ async function fetchFullSpatialStructure(
   ifcApi: IfcAPI,
   modelID: number
 ): Promise<SpatialStructureNode | null> {
+  // Reset used elements cache for this model to ensure clean start
+  if (modelUsedElements.has(modelID)) {
+    modelUsedElements.delete(modelID);
+  }
+
   const projectIDs = await ifcApi.GetLineIDsWithType(modelID, IFCPROJECT);
   if (projectIDs.size() === 0) {
     console.error("IFCModel: No IFCPROJECT found in the model.");
@@ -401,14 +432,23 @@ async function fetchFullSpatialStructure(
   const cache = await buildModelRelationshipCache(ifcApi, modelID);
 
   const projectID = projectIDs.get(0); // Assume single project
-  const tree = await buildSpatialTree(ifcApi, modelID, projectID, undefined, cache);
 
-  // FALLBACK: Ensure all building storeys are discovered even if not properly linked
-  if (tree) {
+  try {
+    const tree = await buildSpatialTree(ifcApi, modelID, projectID, undefined, cache);
+
+    if (!tree) {
+      return null;
+    }
+
+
+    // FALLBACK: Ensure all building storeys are discovered even if not properly linked
     await ensureAllStoreysIncluded(ifcApi, modelID, tree);
-  }
 
-  return tree;
+    return tree;
+  } catch (error) {
+    console.error(`Error building spatial structure for model ${modelID}:`, error);
+    return null;
+  }
 }
 
 // Helper function to ensure all building storeys are included in the tree
@@ -441,12 +481,10 @@ async function ensureAllStoreysIncluded(
     }
 
     if (missingStoreyIds.length > 0) {
-      console.log(`[ensureAllStoreysIncluded] Found ${missingStoreyIds.length} missing storeys, adding them to tree`);
 
       // Find the first building in the tree to attach missing storeys
       const findFirstBuilding = (node: SpatialStructureNode): SpatialStructureNode | null => {
         if (process.env.NODE_ENV !== "production") {
-          console.log(`[ensureAllStoreysIncluded] Checking node type: ${node.type} (ID: ${node.expressID})`);
         }
         if (node.type === "IFCBUILDING" || node.type === "IfcBuilding") return node;
         for (const child of node.children || []) {
@@ -464,7 +502,6 @@ async function ensureAllStoreysIncluded(
           const storeyNode = await buildSpatialTree(ifcApi, modelID, storeyId, undefined, cache);
           if (storeyNode) {
             firstBuilding.children.push(storeyNode);
-            console.log(`[ensureAllStoreysIncluded] Added missing storey: ${storeyNode.type} (ID: ${storeyId})`);
           }
         }
       } else {
@@ -932,8 +969,7 @@ export function IFCModel({ modelData, outlineLayer }: IFCModelProps) {
   useEffect(() => {
     if (!modelData.url || !ifcApi) {
       if (!ifcApi)
-        console.log(`IFCModel (${modelData.id}): Waiting for ifcApi...`);
-      return;
+        return;
     }
     setIsLoading(true);
     setModelMeshesProcessedForInitialView(false); // <<< RESET FLAG FOR NEW MODEL LOAD
@@ -1043,7 +1079,6 @@ export function IFCModel({ modelData, outlineLayer }: IFCModelProps) {
           newIfcModelID,
           allTypesArray.map(String)
         );
-        console.log(`IFCModel (${modelData.id}): Available categories set.`);
         setIsLoading(false);
       } catch (error) {
         console.error(`IFCModel (${modelData.id}): Error loading:`, error);
@@ -1103,19 +1138,6 @@ export function IFCModel({ modelData, outlineLayer }: IFCModelProps) {
 
   // Highlighting and Classification Effects
   useEffect(() => {
-    if (process.env.NODE_ENV !== "production") {
-      console.log(
-        `IFCModel (${modelData.id}) - Highlighting Effect Triggered. Dependencies:`,
-        {
-          selectedElement,
-          highlightedElementsCount: highlightedElements.length,
-          classificationsKeys: Object.keys(classifications),
-          internalApiIdForEffects,
-          ifcApiAvailable: !!ifcApi,
-          meshesRefAvailable: !!meshesRef.current,
-        }
-      );
-    }
 
     if (!meshesRef.current || internalApiIdForEffects === null || !ifcApi) {
       if (process.env.NODE_ENV !== "production") {
@@ -1365,7 +1387,6 @@ export function IFCModel({ modelData, outlineLayer }: IFCModelProps) {
       const totalMeshes = Array.from(meshesRef.current.children).filter((child) =>
         child instanceof THREE.Mesh
       ).length;
-      console.log(`IFCModel (${modelData.id}) - Highlighting Effect Complete: ${visibleMeshes}/${totalMeshes} meshes visible`);
     }
   }, [
     selectedElements,
@@ -1404,6 +1425,7 @@ export function IFCModel({ modelData, outlineLayer }: IFCModelProps) {
       if (!selectedElement) setElementProperties(null);
       return;
     }
+
     const props = await getElementPropertiesCached(internalApiIdForEffects, selectedElement.expressID);
     if (props) {
       setElementProperties(props);
