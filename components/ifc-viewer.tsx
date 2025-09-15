@@ -70,28 +70,9 @@ import {
   ImperativePanelHandle,
 } from "react-resizable-panels";
 import { useTranslation } from "react-i18next";
-// import { EffectComposer, Outline } from "@react-three/postprocessing"; // Comment out post-processing imports
 
 // Define the layer for outlines
 const OUTLINE_SELECTION_LAYER = 10;
-
-// Simple spinning box component for testing - keep enabled
-function SpinningBox() {
-  const meshRef = useRef<THREE.Mesh>(null!);
-  useFrame(() => {
-    if (meshRef.current) {
-      meshRef.current.rotation.x += 0.01;
-      meshRef.current.rotation.y += 0.01;
-    }
-  });
-  return (
-    <mesh ref={meshRef}>
-      <boxGeometry args={[1, 1, 1]} />
-      <meshStandardMaterial color="magenta" />{" "}
-      {/* Different color for this test */}
-    </mesh>
-  );
-}
 
 // GlobalInteractionHandler - re-enable
 function GlobalInteractionHandler() {
@@ -111,27 +92,13 @@ function GlobalInteractionHandler() {
 
   useEffect(() => {
     if (!gl.domElement || !toggleElementSelection) return;
-    console.log("GlobalInteractionHandler: Attaching mouse event listeners.");
 
     const handleMouseDown = (event: MouseEvent) => {
-      console.log(
-        "GlobalInteractionHandler: Mouse down",
-        event.clientX,
-        event.clientY
-      );
       mouseDownPos.current = { x: event.clientX, y: event.clientY };
     };
 
     const handleMouseUp = (event: MouseEvent) => {
-      console.log(
-        "GlobalInteractionHandler: Mouse up",
-        event.clientX,
-        event.clientY
-      );
       if (!mouseDownPos.current) {
-        console.log(
-          "GlobalInteractionHandler: Mouse up without mousedown recorded."
-        );
         return;
       }
 
@@ -140,18 +107,10 @@ function GlobalInteractionHandler() {
       mouseDownPos.current = null;
 
       if (deltaX < DRAG_THRESHOLD && deltaY < DRAG_THRESHOLD) {
-        console.log(
-          "GlobalInteractionHandler: Click detected (within drag threshold)."
-        );
         const rect = gl.domElement.getBoundingClientRect();
         const mouse = new THREE.Vector2();
         mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
         mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
-        console.log(
-          "GlobalInteractionHandler: Raycasting with mouse coords:",
-          mouse.x,
-          mouse.y
-        );
 
         raycaster.setFromCamera(mouse, camera);
 
@@ -168,9 +127,6 @@ function GlobalInteractionHandler() {
           clearSelection();
           return;
         }
-        console.log(
-          `GlobalInteractionHandler: Found ${modelMeshGroups.length} model groups for raycasting.`
-        );
 
         const allIntersects = raycaster.intersectObjects(modelMeshGroups, true);
 
@@ -179,9 +135,6 @@ function GlobalInteractionHandler() {
           (intersect) => intersect.object.visible
         );
 
-        console.log(
-          `GlobalInteractionHandler: Raycast allIntersects: ${allIntersects.length}, visibleIntersects: ${visibleIntersects.length}`
-        );
 
         if (visibleIntersects.length > 0) {
           const firstIntersect = visibleIntersects[0].object;
@@ -196,10 +149,6 @@ function GlobalInteractionHandler() {
               modelID: clickedModelID,
               expressID: clickedExpressID,
             };
-            console.log(
-              "GlobalInteractionHandler: Clicked on element:",
-              selectionInfo
-            );
 
             // Check if this element is user-hidden. If so, do not select it.
             // (Though it shouldn't be in visibleIntersects if mesh.visible was set correctly by IFCModel)
@@ -214,39 +163,22 @@ function GlobalInteractionHandler() {
             // }
 
             const additive = event.ctrlKey || event.metaKey;
-            console.log(
-              "GlobalInteractionHandler: Toggling selection:",
-              selectionInfo,
-              "additive",
-              additive
-            );
             toggleElementSelection(selectionInfo, additive);
           } else {
-            console.log(
-              "GlobalInteractionHandler: Clicked on object without valid IFC user data. Deselecting."
-            );
             clearSelection();
           }
         } else {
-          console.log(
-            "GlobalInteractionHandler: Clicked on empty space. Deselecting."
-          );
           clearSelection();
         }
       } else {
-        console.log(
-          "GlobalInteractionHandler: Drag detected (exceeded drag threshold). No selection change."
-        );
       }
     };
 
     const canvasElement = gl.domElement;
     canvasElement.addEventListener("mousedown", handleMouseDown);
     canvasElement.addEventListener("mouseup", handleMouseUp);
-    console.log("GlobalInteractionHandler: Mouse event listeners attached.");
 
     return () => {
-      console.log("GlobalInteractionHandler: Removing mouse event listeners.");
       canvasElement.removeEventListener("mousedown", handleMouseDown);
       canvasElement.removeEventListener("mouseup", handleMouseUp);
       mouseDownPos.current = null;
@@ -256,11 +188,8 @@ function GlobalInteractionHandler() {
     camera,
     raycaster,
     toggleElementSelection,
-    selectedElements,
     clearSelection,
     scene,
-    loadedModels,
-    userHiddenElements,
     DRAG_THRESHOLD,
   ]);
 
@@ -518,7 +447,6 @@ const SceneCapture = ({ onSceneCapture }: { onSceneCapture: (scene: THREE.Scene)
   const { scene } = useThree();
 
   useEffect(() => {
-    console.log("SceneCapture: Capturing scene");
     onSceneCapture(scene);
   }, [scene, onSceneCapture]);
 
@@ -1137,17 +1065,14 @@ function ViewerContent() {
   }, []);
 
   const handleZoomExtents = useCallback(() => {
-    console.log("ViewerContent: handleZoomExtents called");
     cameraActionsRef.current?.zoomToExtents();
   }, []);
 
   const handleZoomSelected = useCallback(() => {
-    console.log("ViewerContent: handleZoomSelected called");
     cameraActionsRef.current?.zoomToSelected(selectedElement);
   }, [selectedElement]);
 
   const handleSelectAllVisible = useCallback(() => {
-    console.log("ViewerContent: handleSelectAllVisible called");
 
     if (!scene.current) return;
 
@@ -1242,9 +1167,8 @@ function ViewerContent() {
     }, 1500);
   }, []);
 
-  // DEBUG: Log userHiddenElements when it changes
   useEffect(() => {
-    console.log("userHiddenElements changed:", userHiddenElements.length, userHiddenElements.slice(0, 5));
+    // userHiddenElements changes are handled by visibility effects
   }, [userHiddenElements]);
 
   // Apply search filtering on 3D elements - now depends on isSearchRunning instead of confirmedSearch
@@ -1684,13 +1608,8 @@ function ViewerContent() {
     }
   }, [ifcEngineReady, hasAutoLoadedModels, loadedModels, addIFCModel]);
 
-  // Re-enable selectedElement logging if desired, or keep it minimal
   useEffect(() => {
-    if (selectedElement) {
-      console.log("ViewerContent: Selected element changed: ", selectedElement);
-    } else {
-      console.log("ViewerContent: No element selected / selection cleared.");
-    }
+    // Element selection changes are handled elsewhere
   }, [selectedElement]);
 
   const customUnhideAllElements = useCallback(() => {
@@ -1787,7 +1706,6 @@ function ViewerContent() {
   useEffect(() => {
     if (!scene.current) return;
 
-    console.log("Direct visibility effect: Processing userHiddenElements", userHiddenElements.length);
 
     // Track which elements should be hidden
     const hiddenElements = new Map<number, Set<number>>();
@@ -1820,7 +1738,6 @@ function ViewerContent() {
       }
     });
 
-    console.log(`Direct visibility effect: Applied visibility=false to ${appliedHideCount} meshes`);
   }, [userHiddenElements, scene]);
 
   if (!ifcEngineReady && !SKIP_IFC_INITIALIZATION_FOR_TEST) {
@@ -1953,6 +1870,7 @@ function ViewerContent() {
           position: "relative",
           height: "calc(100% - 4rem)",
           marginTop: "4rem",
+          pointerEvents: "none", // Allow events to pass through to canvas below
         }}
       >
         {/* Left sidebar */}
