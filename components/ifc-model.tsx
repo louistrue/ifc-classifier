@@ -124,6 +124,9 @@ const modelRelationshipCache = new Map<number, {
   contained: Map<number, number[]>,
 }>();
 
+// Cache to track if the simple emergency fallback has executed per model
+const modelFallbackExecutionCache = new Map<number, boolean>();
+
 // Function to build relationship cache for the entire model (FAST!)
 async function buildModelRelationshipCache(ifcApi: IfcAPI, modelID: number) {
   if (modelRelationshipCache.has(modelID)) {
@@ -216,6 +219,7 @@ async function buildModelRelationshipCache(ifcApi: IfcAPI, modelID: number) {
 // Function to clear relationship cache for a model
 function clearModelRelationshipCache(modelID: number) {
   modelRelationshipCache.delete(modelID);
+  modelFallbackExecutionCache.delete(modelID);
   console.log(`[clearModelRelationshipCache] Cleared cache for model ${modelID}`);
 }
 
@@ -333,9 +337,8 @@ async function buildSpatialTree(
 
   // SIMPLE EMERGENCY FALLBACK: Only for completely empty first storey
   if ((element.type === "IFCBUILDINGSTOREY" || element.type === "IfcBuildingStorey") && node.children.length === 0) {
-    const cacheKey = `simple_${modelID}`;
-    if (!(buildSpatialTree as any)[cacheKey]) {
-      (buildSpatialTree as any)[cacheKey] = true;
+    if (!modelFallbackExecutionCache.get(modelID)) {
+      modelFallbackExecutionCache.set(modelID, true);
 
       try {
         const allElementIds = await ifcApi.GetAllLines(modelID);
