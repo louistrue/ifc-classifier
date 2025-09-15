@@ -173,7 +173,18 @@
     "useLoadButton": "Select a file or model to load.",
     "search": "Search",
     "searchTreePlaceholder": "Search model tree...",
-    "searchCanvasPlaceholder": "Search elements..."
+    "searchTypesPlaceholder": "Search types and instances...",
+    "searchCanvasPlaceholder": "Search elements...",
+    "view": {
+      "spatial": "Spatial",
+      "types": "Types"
+    },
+    "types": {
+      "noTypeGroup": "(No Type)",
+      "powerUser": "Power User",
+      "powerUserOn": "Showing all IFC classes including those without type definitions",
+      "powerUserOff": "Hiding classes that only contain instances without type definitions"
+    }
   },
   "tooltips": {
     "defaultClassification": "Sets the default classification system. This system will be used if automatic application is enabled below.",

@@ -29,6 +29,7 @@ import {
   AlertTriangle,
   ExternalLink,
   MousePointer2,
+  Settings,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -48,9 +49,32 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Switch } from "@/components/ui/switch";
 import { useSchemaPreview } from "@/lib/useSchemaPreview";
 import { useTranslation, Trans } from "react-i18next";
 import { SchemaReader } from "./schema-reader";
+
+// Types for the types view
+type ViewMode = 'spatial' | 'types';
+
+type TypeGroup = {
+  typeId: number | 'UNDEFINED';
+  typeName: string;
+  typeData?: any;
+  instances: SelectedElementInfo[];
+};
+
+type ClassIndex = Map<string, {
+  totalCount: number;
+  typeGroups: Map<TypeGroup['typeId'], TypeGroup>;
+}>;
+
+type RelDefinesByType = {
+  relId: number;
+  relatingTypeId: number;
+  relatedInstanceIds: number[];
+};
 
 // Helper function to generate a unique key for a node
 const getNodeKey = (
@@ -456,6 +480,595 @@ const TreeNode: React.FC<TreeNodeProps> = ({
   );
 };
 
+// TypesTreePanel component for the types view
+interface TypesTreePanelProps {
+  loadedModels: LoadedModelData[];
+  ifcApi: any;
+  selectElement: (selection: SelectedElementInfo) => void;
+  selectedElement: SelectedElementInfo | null;
+  getNaturalIfcClassName: (type: string, lang?: "de" | "en") => { name: string; schemaUrl?: string } | null;
+  hideElements: (elements: SelectedElementInfo[]) => void;
+  showElements: (elements: SelectedElementInfo[]) => void;
+  searchQuery: string;
+  expandedNodeKeys: Set<string>;
+  toggleNodeExpansion: (key: string) => void;
+  selectedNodeRef: React.RefObject<HTMLDivElement>;
+  selectedNodeKeyForScroll: string | null;
+  setSelectedNodeKeyForScroll: (key: string | null) => void;
+  isUserBrowsingTree: boolean;
+  isNewSelection: (current: SelectedElementInfo | null, previous: SelectedElementInfo | null) => boolean;
+  lastSelectedElement: SelectedElementInfo | null;
+  setLastSelectedElement: (element: SelectedElementInfo | null) => void;
+  t: (key: string, options?: any) => string;
+  lang: string;
+}
+
+function TypesTreePanel({
+  loadedModels,
+  ifcApi,
+  selectElement,
+  selectedElement,
+  getNaturalIfcClassName,
+  hideElements,
+  showElements,
+  searchQuery,
+  expandedNodeKeys,
+  toggleNodeExpansion,
+  selectedNodeRef,
+  selectedNodeKeyForScroll,
+  setSelectedNodeKeyForScroll,
+  isUserBrowsingTree,
+  isNewSelection,
+  lastSelectedElement,
+  setLastSelectedElement,
+  t,
+  lang,
+}: TypesTreePanelProps) {
+  // Power user mode state with localStorage persistence
+  const [showClassesWithoutTypes, setShowClassesWithoutTypes] = useState<boolean>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('typesViewPowerUser');
+      return saved === 'true';
+    }
+    return false;
+  });
+
+  useEffect(() => {
+    localStorage.setItem('typesViewPowerUser', showClassesWithoutTypes.toString());
+  }, [showClassesWithoutTypes]);
+
+  // Cache for RelDefinesByType relationships per model
+  const relDefinesByTypeCache = useRef<Map<number, RelDefinesByType[]>>(new Map());
+
+  // Cache for class to instances mapping per model
+  const classToInstancesCache = useRef<Map<number, Map<string, SelectedElementInfo[]>>>(new Map());
+
+  // Build RelDefinesByType relationships for a model
+  const buildRelDefinesByType = useCallback(async (modelID: number): Promise<RelDefinesByType[]> => {
+    if (relDefinesByTypeCache.current.has(modelID)) {
+      return relDefinesByTypeCache.current.get(modelID)!;
+    }
+
+    if (!ifcApi) return [];
+
+    try {
+      const relDefinesByTypeCode = ifcApi.GetTypeCodeFromName('IFCRELDEFINESBYTYPE');
+      const relIds = await ifcApi.GetLineIDsWithType(modelID, relDefinesByTypeCode);
+      const relationships: RelDefinesByType[] = [];
+
+      for (let i = 0; i < relIds.size(); i++) {
+        const relId = relIds.get(i);
+        try {
+          const rel = await ifcApi.GetLine(modelID, relId, false);
+          const relatingTypeId = rel.RelatingType?.value || rel.RelatingType?.expressID || rel.RelatingType;
+          const relatedObjects = rel.RelatedObjects;
+
+          if (relatingTypeId && relatedObjects && Array.isArray(relatedObjects)) {
+            const relatedInstanceIds = relatedObjects
+              .map((obj: any) => obj?.value || obj?.expressID || obj)
+              .filter((id: any) => typeof id === 'number');
+
+            if (relatedInstanceIds.length > 0) {
+              relationships.push({
+                relId,
+                relatingTypeId,
+                relatedInstanceIds,
+              });
+            }
+          }
+        } catch (error) {
+          console.warn(`Error processing RelDefinesByType ${relId}:`, error);
+        }
+      }
+
+      relDefinesByTypeCache.current.set(modelID, relationships);
+      return relationships;
+    } catch (error) {
+      console.error(`Error building RelDefinesByType for model ${modelID}:`, error);
+      return [];
+    }
+  }, [ifcApi]);
+
+  // Build class index for a model
+  const buildClassIndex = useCallback(async (modelID: number): Promise<ClassIndex> => {
+    if (!ifcApi) return new Map();
+
+    const classIndex: ClassIndex = new Map();
+    const relDefinesByType = await buildRelDefinesByType(modelID);
+
+    // Create a map of instance ID to type ID
+    const instanceToTypeMap = new Map<number, number>();
+    for (const rel of relDefinesByType) {
+      for (const instanceId of rel.relatedInstanceIds) {
+        instanceToTypeMap.set(instanceId, rel.relatingTypeId);
+      }
+    }
+
+    try {
+      // Get all entity types in the model
+      const allTypes = ifcApi.GetIfcEntityList(modelID);
+
+      for (const typeCode of allTypes) {
+        const typeName = ifcApi.GetNameFromTypeCode(typeCode);
+        if (!typeName || typeName.startsWith('IFC_') || typeName === 'IFCROOT') continue;
+
+        try {
+          const instanceIds = await ifcApi.GetLineIDsWithType(modelID, typeCode);
+          if (instanceIds.size() === 0) continue;
+
+          const instances: SelectedElementInfo[] = [];
+          for (let i = 0; i < instanceIds.size(); i++) {
+            instances.push({ modelID, expressID: instanceIds.get(i) });
+          }
+
+          // Group instances by type
+          const typeGroups = new Map<TypeGroup['typeId'], TypeGroup>();
+          const undefinedInstances: SelectedElementInfo[] = [];
+
+          for (const instance of instances) {
+            const typeId = instanceToTypeMap.get(instance.expressID);
+            if (typeId) {
+              if (!typeGroups.has(typeId)) {
+                // Fetch type data
+                try {
+                  const typeData = await ifcApi.GetLine(modelID, typeId, false);
+                  const typeName = typeData.Name?.value || typeData.ObjectType?.value || `Type ${typeId}`;
+                  typeGroups.set(typeId, {
+                    typeId,
+                    typeName,
+                    typeData,
+                    instances: [],
+                  });
+                } catch (error) {
+                  console.warn(`Error fetching type data for ${typeId}:`, error);
+                  typeGroups.set(typeId, {
+                    typeId,
+                    typeName: `Type ${typeId}`,
+                    instances: [],
+                  });
+                }
+              }
+              typeGroups.get(typeId)!.instances.push(instance);
+            } else {
+              undefinedInstances.push(instance);
+            }
+          }
+
+          // Add undefined group if there are instances without types
+          if (undefinedInstances.length > 0) {
+            typeGroups.set('UNDEFINED', {
+              typeId: 'UNDEFINED',
+              typeName: t('modelViewer.types.noTypeGroup', { defaultValue: '(No Type)' }),
+              instances: undefinedInstances,
+            });
+          }
+
+          if (typeGroups.size > 0) {
+            classIndex.set(typeName, {
+              totalCount: instances.length,
+              typeGroups,
+            });
+          }
+        } catch (error) {
+          console.warn(`Error processing class ${typeName}:`, error);
+        }
+      }
+    } catch (error) {
+      console.error(`Error building class index for model ${modelID}:`, error);
+    }
+
+    return classIndex;
+  }, [ifcApi, buildRelDefinesByType, t]);
+
+  // Memoized class indexes per model
+  const [classIndexes, setClassIndexes] = useState<Map<number, ClassIndex>>(new Map());
+
+  // Build class indexes when models change
+  useEffect(() => {
+    const buildIndexes = async () => {
+      const newIndexes = new Map<number, ClassIndex>();
+
+      for (const model of loadedModels) {
+        if (model.modelID !== null) {
+          const index = await buildClassIndex(model.modelID);
+          newIndexes.set(model.modelID, index);
+        }
+      }
+
+      setClassIndexes(newIndexes);
+    };
+
+    if (loadedModels.length > 0 && ifcApi) {
+      buildIndexes();
+    }
+  }, [loadedModels, ifcApi, buildClassIndex]);
+
+  // Helper function to check if a class has actual types (not just UNDEFINED)
+  const hasActualTypes = useCallback((classData: { totalCount: number; typeGroups: Map<TypeGroup['typeId'], TypeGroup> }) => {
+    // If there's only one type group and it's UNDEFINED, then it has no actual types
+    if (classData.typeGroups.size === 1 && classData.typeGroups.has('UNDEFINED')) {
+      return false;
+    }
+    // If there are multiple type groups or the single group is not UNDEFINED, it has actual types
+    return classData.typeGroups.size > 1 || !classData.typeGroups.has('UNDEFINED');
+  }, []);
+
+  // Filter classes based on search query and power user mode
+  const filteredModels = useMemo(() => {
+    const baseModels = loadedModels.map(model => {
+      const classIndex = classIndexes.get(model.modelID!) || new Map();
+      let filteredIndex: ClassIndex = new Map();
+      const matchedKeys = new Set<string>();
+
+      // Apply power user filtering first
+      if (!showClassesWithoutTypes) {
+        // Filter out classes that only have UNDEFINED type groups
+        for (const [className, classData] of Array.from(classIndex.entries())) {
+          if (hasActualTypes(classData)) {
+            filteredIndex.set(className, classData);
+          }
+        }
+      } else {
+        filteredIndex = new Map(classIndex);
+      }
+
+      // Apply search filtering if there's a query
+      if (searchQuery.trim()) {
+        const query = searchQuery.toLowerCase();
+        const searchFilteredIndex: ClassIndex = new Map();
+
+        for (const [className, classData] of Array.from(filteredIndex.entries())) {
+          const naturalResult = getNaturalIfcClassName(className, lang as "de" | "en");
+          const naturalName = naturalResult?.name || '';
+
+          if (
+            className.toLowerCase().includes(query) ||
+            naturalName.toLowerCase().includes(query)
+          ) {
+            searchFilteredIndex.set(className, classData);
+            matchedKeys.add(`${model.modelID}-class-${className}`);
+          }
+        }
+        filteredIndex = searchFilteredIndex;
+      }
+
+      return {
+        model,
+        classIndex: filteredIndex,
+        matchedKeys,
+      };
+    });
+
+    return baseModels;
+  }, [loadedModels, classIndexes, searchQuery, getNaturalIfcClassName, lang, showClassesWithoutTypes, hasActualTypes]);
+
+  // Find path to an instance in the types view
+  const findPathToInstanceInTypes = useCallback((targetModelID: number, targetExpressID: number): string | null => {
+    const classIndex = classIndexes.get(targetModelID);
+    if (!classIndex) return null;
+
+    // Search through all classes and type groups to find the target instance
+    for (const [className, classData] of Array.from(classIndex.entries())) {
+      for (const [typeId, typeGroup] of Array.from(classData.typeGroups.entries())) {
+        const foundInstance = typeGroup.instances.find(
+          (instance: SelectedElementInfo) => instance.modelID === targetModelID && instance.expressID === targetExpressID
+        );
+
+        if (foundInstance) {
+          // Return the instance key for scrolling
+          return `${targetModelID}-instance-${targetExpressID}`;
+        }
+      }
+    }
+
+    return null;
+  }, [classIndexes]);
+
+  // Expand path to show an instance in the types view
+  const expandPathToInstance = useCallback((targetModelID: number, targetExpressID: number) => {
+    const classIndex = classIndexes.get(targetModelID);
+    if (!classIndex) return;
+
+    // Search through all classes and type groups to find the target instance
+    for (const [className, classData] of Array.from(classIndex.entries())) {
+      for (const [typeId, typeGroup] of Array.from(classData.typeGroups.entries())) {
+        const foundInstance = typeGroup.instances.find(
+          (instance: SelectedElementInfo) => instance.modelID === targetModelID && instance.expressID === targetExpressID
+        );
+
+        if (foundInstance) {
+          // Expand the class and type nodes to show the instance
+          const classKey = `${targetModelID}-class-${className}`;
+          const typeKey = `${targetModelID}-type-${typeId}`;
+
+          // Add both keys to expanded nodes
+          const newExpandedKeys = new Set(expandedNodeKeys);
+          newExpandedKeys.add(classKey);
+          newExpandedKeys.add(typeKey);
+
+          // Update expanded keys if they changed
+          if (newExpandedKeys.size !== expandedNodeKeys.size ||
+            !Array.from(newExpandedKeys).every(key => expandedNodeKeys.has(key))) {
+            // We need to call the toggleNodeExpansion for each key that's not already expanded
+            if (!expandedNodeKeys.has(classKey)) {
+              toggleNodeExpansion(classKey);
+            }
+            if (!expandedNodeKeys.has(typeKey)) {
+              toggleNodeExpansion(typeKey);
+            }
+          }
+
+          return;
+        }
+      }
+    }
+  }, [classIndexes, expandedNodeKeys, toggleNodeExpansion]);
+
+  // Handle selection changes - expand path to selected element in types view
+  useEffect(() => {
+    // Check if this is a new selection
+    const isActuallyNewSelection = isNewSelection(selectedElement, lastSelectedElement);
+
+    // Update last selected element
+    setLastSelectedElement(selectedElement);
+
+    if (selectedElement && selectedElement.modelID !== null) {
+      const targetModelID = selectedElement.modelID;
+      const targetExpressID = selectedElement.expressID;
+
+      // Find and expand path to the selected instance
+      expandPathToInstance(targetModelID, targetExpressID);
+
+      // Set scroll target only if it's a new selection and user isn't browsing
+      const instanceKey = findPathToInstanceInTypes(targetModelID, targetExpressID);
+      if (instanceKey && isActuallyNewSelection && !isUserBrowsingTree) {
+        setSelectedNodeKeyForScroll(instanceKey);
+        console.log(`Types view: Setting scroll target to: ${instanceKey}`);
+      } else if (instanceKey) {
+        console.log(`Types view: Skipping auto-scroll - user browsing: ${isUserBrowsingTree}, new selection: ${isActuallyNewSelection}`);
+      }
+    } else {
+      setSelectedNodeKeyForScroll(null);
+    }
+  }, [selectedElement, expandPathToInstance, findPathToInstanceInTypes, setSelectedNodeKeyForScroll, isNewSelection, lastSelectedElement, setLastSelectedElement, isUserBrowsingTree]);
+
+  // Render a class node
+  const renderClassNode = (
+    model: LoadedModelData,
+    className: string,
+    classData: { totalCount: number; typeGroups: Map<TypeGroup['typeId'], TypeGroup> }
+  ) => {
+    const classKey = `${model.modelID}-class-${className}`;
+    const isExpanded = expandedNodeKeys.has(classKey);
+    const naturalResult = getNaturalIfcClassName(className, lang as "de" | "en");
+    const naturalName = naturalResult?.name || className;
+
+    return (
+      <div key={classKey}>
+        <div
+          className="flex items-center py-1.5 px-2 rounded-md hover:bg-accent group cursor-pointer"
+          style={{ paddingLeft: '1rem' }}
+          onClick={() => toggleNodeExpansion(classKey)}
+        >
+          <Button
+            variant="ghost"
+            size="icon"
+            className="w-6 h-6 mr-1"
+          >
+            {isExpanded ? (
+              <ChevronDown className="w-4 h-4" />
+            ) : (
+              <ChevronRight className="w-4 h-4" />
+            )}
+          </Button>
+          <Cuboid className="w-4 h-4 mr-2 text-blue-500" />
+          <span className="truncate flex-grow">{naturalName}</span>
+          <Badge variant="secondary" className="ml-2">
+            {classData.totalCount}
+          </Badge>
+        </div>
+
+        {isExpanded && (
+          <div>
+            {Array.from(classData.typeGroups.values()).map(typeGroup =>
+              renderTypeNode(model, typeGroup)
+            )}
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  // Render a type node
+  const renderTypeNode = (model: LoadedModelData, typeGroup: TypeGroup) => {
+    const typeKey = `${model.modelID}-type-${typeGroup.typeId}`;
+    const isExpanded = expandedNodeKeys.has(typeKey);
+
+    return (
+      <div key={typeKey}>
+        <div
+          className="flex items-center py-1.5 px-2 rounded-md hover:bg-accent group cursor-pointer"
+          style={{ paddingLeft: '2.5rem' }}
+          onClick={() => toggleNodeExpansion(typeKey)}
+        >
+          <Button
+            variant="ghost"
+            size="icon"
+            className="w-6 h-6 mr-1"
+          >
+            {isExpanded ? (
+              <ChevronDown className="w-4 h-4" />
+            ) : (
+              <ChevronRight className="w-4 h-4" />
+            )}
+          </Button>
+          <LayersIcon className="w-4 h-4 mr-2 text-green-500" />
+          <span className="truncate flex-grow">{typeGroup.typeName}</span>
+          <Badge variant="secondary" className="ml-2">
+            {typeGroup.instances.length}
+          </Badge>
+        </div>
+
+        {isExpanded && (
+          <div>
+            {typeGroup.instances.map(instance =>
+              renderInstanceNode(model, instance)
+            )}
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  // Render an instance node
+  const renderInstanceNode = (model: LoadedModelData, instance: SelectedElementInfo) => {
+    const instanceKey = `${model.modelID}-instance-${instance.expressID}`;
+    const isSelected = selectedElement?.modelID === instance.modelID &&
+      selectedElement?.expressID === instance.expressID;
+    const shouldScrollToThisNode = selectedNodeKeyForScroll === instanceKey;
+
+    return (
+      <div
+        key={instanceKey}
+        ref={shouldScrollToThisNode ? selectedNodeRef : null}
+        className={cn(
+          "flex items-center py-1.5 px-2 rounded-md hover:bg-accent group cursor-pointer",
+          isSelected && "bg-accent text-accent-foreground font-semibold"
+        )}
+        style={{ paddingLeft: '4rem' }}
+        onClick={() => selectElement(instance)}
+      >
+        <span className="w-6 h-6 mr-1"></span>
+        <Cuboid className="w-4 h-4 mr-2 text-gray-500" />
+        <span className="truncate flex-grow">
+          {`Element ${instance.expressID}`}
+        </span>
+      </div>
+    );
+  };
+
+  if (!ifcApi) {
+    return (
+      <div className="p-4 text-sm text-muted-foreground h-full flex items-center justify-center">
+        {t('apiNotReady')}
+      </div>
+    );
+  }
+
+  if (loadedModels.length === 0) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <div className="text-center p-6">
+          <div className="flex justify-center mb-4">
+            <FileText className="h-8 w-8 text-foreground/30" />
+          </div>
+          <p className="text-base font-medium text-foreground/80 mb-2">
+            {t("noModelsLoaded")}
+          </p>
+          <p className="text-sm text-foreground/60">
+            {t("modelViewer.useLoadButton")}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex-1 overflow-auto flex flex-col">
+      {/* Power User Toggle Header */}
+      <div className="px-2 py-1 border-b border-border/50 bg-muted/20">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Settings className="w-3 h-3 text-muted-foreground" />
+            <span className="text-xs text-muted-foreground">
+              {t('modelViewer.types.powerUser', { defaultValue: 'Power User' })}
+            </span>
+          </div>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="flex items-center gap-2">
+                  <Switch
+                    checked={showClassesWithoutTypes}
+                    onCheckedChange={setShowClassesWithoutTypes}
+                    className="scale-75"
+                  />
+                </div>
+              </TooltipTrigger>
+              <TooltipContent side="left" className="max-w-xs">
+                <p className="text-xs">
+                  {showClassesWithoutTypes
+                    ? t('modelViewer.types.powerUserOn', { defaultValue: 'Showing all IFC classes including those without type definitions' })
+                    : t('modelViewer.types.powerUserOff', { defaultValue: 'Hiding classes that only contain instances without type definitions' })
+                  }
+                </p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </div>
+      </div>
+
+      <div className="flex-1 p-0 space-y-0 overflow-y-auto text-xs">
+        {filteredModels.map(({ model, classIndex }) => {
+          if (!classIndex || classIndex.size === 0) {
+            return (
+              <div
+                key={model.id}
+                className="p-2 text-sm text-foreground/80 flex items-center gap-2"
+              >
+                <span className="animate-pulse block w-2 h-2 bg-foreground/40 rounded-full"></span>
+                <span className="text-base font-medium">
+                  {t('modelLoadingStructure', { name: model.name })}
+                </span>
+              </div>
+            );
+          }
+
+          // Model root node
+          return (
+            <div key={model.id}>
+              <div
+                className="flex items-center py-1.5 px-2 rounded-md hover:bg-accent group cursor-default"
+                style={{ paddingLeft: '0.25rem' }}
+              >
+                <FileText className="w-4 h-4 mr-2 text-sky-500" />
+                <span className="truncate flex-grow font-medium">{model.name}</span>
+                <Badge variant="outline" className="ml-2">
+                  {Array.from(classIndex.values()).reduce((sum, data) => sum + data.totalCount, 0)}
+                </Badge>
+              </div>
+
+              {Array.from(classIndex.entries()).map(([className, classData]) =>
+                renderClassNode(model, className, classData)
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 export function SpatialTreePanel() {
   const {
     loadedModels,
@@ -464,9 +1077,25 @@ export function SpatialTreePanel() {
     ifcApi,
     removeIFCModel,
     getNaturalIfcClassName,
+    hideElements,
+    showElements,
   } = useIFCContext();
   const { t, i18n } = useTranslation();
   const lang = i18n.language === "de" ? "de" : "en";
+
+  // View mode state with localStorage persistence
+  const [viewMode, setViewMode] = useState<ViewMode>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('spatialTreeViewMode');
+      return (saved as ViewMode) || 'spatial';
+    }
+    return 'spatial';
+  });
+
+  useEffect(() => {
+    localStorage.setItem('spatialTreeViewMode', viewMode);
+  }, [viewMode]);
+
   const [isConfirmRemoveOpen, setIsConfirmRemoveOpen] = useState(false);
   const [modelToRemove, setModelToRemove] = useState<{
     id: string;
@@ -483,7 +1112,34 @@ export function SpatialTreePanel() {
   const [searchQuery, setSearchQuery] = useState("");
   const deferredSearchQuery = useDeferredValue(searchQuery);
 
+  // Track user interaction to prevent auto-scroll during tree browsing
+  const [isUserBrowsingTree, setIsUserBrowsingTree] = useState(false);
+  const [lastSelectedElement, setLastSelectedElement] = useState<SelectedElementInfo | null>(null);
+  const userInteractionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (userInteractionTimeoutRef.current) {
+        clearTimeout(userInteractionTimeoutRef.current);
+      }
+    };
+  }, []);
+
   const toggleNodeExpansion = useCallback((nodeKeyToToggle: string) => {
+    // Mark that user is actively browsing the tree
+    setIsUserBrowsingTree(true);
+
+    // Clear any existing timeout
+    if (userInteractionTimeoutRef.current) {
+      clearTimeout(userInteractionTimeoutRef.current);
+    }
+
+    // Reset browsing state after 2 seconds of no interaction
+    userInteractionTimeoutRef.current = setTimeout(() => {
+      setIsUserBrowsingTree(false);
+    }, 2000);
+
     setExpandedNodeKeys((prevKeys) => {
       const newKeys = new Set(prevKeys);
       if (newKeys.has(nodeKeyToToggle)) {
@@ -493,6 +1149,13 @@ export function SpatialTreePanel() {
       }
       return newKeys;
     });
+  }, []);
+
+  // Check if this is a new selection (from 3D interaction) vs just a re-render
+  const isNewSelection = useCallback((current: SelectedElementInfo | null, previous: SelectedElementInfo | null): boolean => {
+    if (!current && !previous) return false;
+    if (!current || !previous) return true;
+    return current.modelID !== previous.modelID || current.expressID !== previous.expressID;
   }, []);
 
   const findPathToNodeRecursive = useCallback(
@@ -598,6 +1261,15 @@ export function SpatialTreePanel() {
   }, [loadedModels, deferredSearchQuery, filterTree]);
 
   useEffect(() => {
+    // Only handle spatial tree selection when in spatial view mode
+    if (viewMode !== 'spatial') return;
+
+    // Check if this is a new selection
+    const isActuallyNewSelection = isNewSelection(selectedElement, lastSelectedElement);
+
+    // Update last selected element
+    setLastSelectedElement(selectedElement);
+
     const newCalculatedKeys = new Set<string>();
     let newScrollKey: string | null = null;
 
@@ -652,8 +1324,14 @@ export function SpatialTreePanel() {
           }
           newCalculatedKeys.clear();
           exclusiveKeys.forEach((k) => newCalculatedKeys.add(k));
-          newScrollKey = pathResult.selectedNodeKey;
-          console.log(`Setting scroll target to: ${newScrollKey}`);
+
+          // Only set scroll target if it's a new selection and user isn't browsing
+          if (isActuallyNewSelection && !isUserBrowsingTree) {
+            newScrollKey = pathResult.selectedNodeKey;
+            console.log(`Setting scroll target to: ${newScrollKey}`);
+          } else {
+            console.log(`Skipping auto-scroll - user browsing: ${isUserBrowsingTree}, new selection: ${isActuallyNewSelection}`);
+          }
         } else {
           console.log(`No path found for element: modelID=${targetModelID}, expressID=${targetExpressID}`);
         }
@@ -679,12 +1357,16 @@ export function SpatialTreePanel() {
     findPathToNodeRecursive,
     filteredModels,
     deferredSearchQuery,
+    viewMode,
+    isNewSelection,
+    lastSelectedElement,
+    isUserBrowsingTree,
   ]);
 
   useEffect(() => {
     if (selectedNodeKeyForScroll) {
       console.log(`Attempting to scroll to node with key: ${selectedNodeKeyForScroll}`);
-      
+
       const attemptScroll = (retryCount = 0) => {
         if (selectedNodeRef.current) {
           console.log(`Scrolling to element:`, selectedNodeRef.current);
@@ -755,85 +1437,125 @@ export function SpatialTreePanel() {
   }
 
   return (
-    <div className="flex-1 overflow-auto">
+    <div className="flex-1 overflow-auto flex flex-col">
+      {/* View Switcher Tabs */}
+      <div className="p-2 border-b">
+        <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as ViewMode)}>
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="spatial">{t('modelViewer.view.spatial', { defaultValue: 'Spatial' })}</TabsTrigger>
+            <TabsTrigger value="types">{t('modelViewer.view.types', { defaultValue: 'Types' })}</TabsTrigger>
+          </TabsList>
+        </Tabs>
+      </div>
+
+      {/* Search Input */}
       <div className="p-2">
         <Input
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder={t("modelViewer.searchTreePlaceholder")}
+          placeholder={viewMode === 'spatial'
+            ? t("modelViewer.searchTreePlaceholder")
+            : t("modelViewer.searchTypesPlaceholder", { defaultValue: "Search types and instances..." })
+          }
           className="mb-2"
         />
       </div>
-      <div className="p-0 space-y-0 h-full overflow-y-auto text-xs">
-        {filteredModels.map((modelEntry) => {
-          if (!modelEntry.spatialTree && modelEntry.modelID === null) {
-            return (
-              <div
-                key={modelEntry.id}
-                className="p-2 text-sm text-foreground/80 flex items-center gap-2"
-              >
-                <span className="animate-pulse block w-2 h-2 bg-foreground/40 rounded-full"></span>
-                <span className="text-base font-medium">
-                  {t('modelInitializing', { name: modelEntry.name })}
-                </span>
-              </div>
-            );
-          }
-          if (!modelEntry.spatialTree && modelEntry.modelID !== null) {
-            return (
-              <div
-                key={modelEntry.id}
-                className="p-2 text-sm text-foreground/80 flex items-center gap-2"
-              >
-                <span className="animate-pulse block w-2 h-2 bg-foreground/40 rounded-full"></span>
-                <span className="text-base font-medium">
-                  {t('modelLoadingStructure', { name: modelEntry.name })}
-                </span>
-              </div>
-            );
-          }
-          const treeToRender = deferredSearchQuery.trim()
-            ? modelEntry.filteredTree
-            : modelEntry.spatialTree;
-          if (treeToRender) {
-            const modelRootNodeForTree: SpatialStructureNode = {
-              expressID: -1,
-              type: "MODEL_FILE",
-              Name: modelEntry.name,
-              children: [treeToRender],
-            };
-            const modelRootKey = getNodeKey(
-              modelRootNodeForTree,
-              modelEntry.modelID,
-              true,
-            );
-            return (
-              <TreeNode
-                key={modelRootKey}
-                node={modelRootNodeForTree}
-                level={0}
-                onSelectNode={handleNodeSelection}
-                selectedElementInfo={selectedElement}
-                isRootModelNode={true}
-                modelFileInfo={{
-                  id: modelEntry.id,
-                  name: modelEntry.name,
-                  modelID: modelEntry.modelID,
-                }}
-                onAttemptRemoveModel={handleAttemptRemoveModel}
-                expandedNodeKeys={expandedNodeKeys}
-                toggleNodeExpansion={toggleNodeExpansion}
-                selectedNodeKeyForScroll={selectedNodeKeyForScroll}
-                selectedNodeActualRef={selectedNodeRef}
-                modelID={modelEntry.modelID}
-                t={t}
-                searchQuery={searchQuery}
-              />
-            );
-          }
-          return null;
-        })}
-      </div>
+
+      {/* Content Area */}
+      {viewMode === 'spatial' ? (
+        <div className="flex-1 p-0 space-y-0 overflow-y-auto text-xs">
+          {filteredModels.map((modelEntry) => {
+            if (!modelEntry.spatialTree && modelEntry.modelID === null) {
+              return (
+                <div
+                  key={modelEntry.id}
+                  className="p-2 text-sm text-foreground/80 flex items-center gap-2"
+                >
+                  <span className="animate-pulse block w-2 h-2 bg-foreground/40 rounded-full"></span>
+                  <span className="text-base font-medium">
+                    {t('modelInitializing', { name: modelEntry.name })}
+                  </span>
+                </div>
+              );
+            }
+            if (!modelEntry.spatialTree && modelEntry.modelID !== null) {
+              return (
+                <div
+                  key={modelEntry.id}
+                  className="p-2 text-sm text-foreground/80 flex items-center gap-2"
+                >
+                  <span className="animate-pulse block w-2 h-2 bg-foreground/40 rounded-full"></span>
+                  <span className="text-base font-medium">
+                    {t('modelLoadingStructure', { name: modelEntry.name })}
+                  </span>
+                </div>
+              );
+            }
+            const treeToRender = deferredSearchQuery.trim()
+              ? modelEntry.filteredTree
+              : modelEntry.spatialTree;
+            if (treeToRender) {
+              const modelRootNodeForTree: SpatialStructureNode = {
+                expressID: -1,
+                type: "MODEL_FILE",
+                Name: modelEntry.name,
+                children: [treeToRender],
+              };
+              const modelRootKey = getNodeKey(
+                modelRootNodeForTree,
+                modelEntry.modelID,
+                true,
+              );
+              return (
+                <TreeNode
+                  key={modelRootKey}
+                  node={modelRootNodeForTree}
+                  level={0}
+                  onSelectNode={handleNodeSelection}
+                  selectedElementInfo={selectedElement}
+                  isRootModelNode={true}
+                  modelFileInfo={{
+                    id: modelEntry.id,
+                    name: modelEntry.name,
+                    modelID: modelEntry.modelID,
+                  }}
+                  onAttemptRemoveModel={handleAttemptRemoveModel}
+                  expandedNodeKeys={expandedNodeKeys}
+                  toggleNodeExpansion={toggleNodeExpansion}
+                  selectedNodeKeyForScroll={selectedNodeKeyForScroll}
+                  selectedNodeActualRef={selectedNodeRef}
+                  modelID={modelEntry.modelID}
+                  t={t}
+                  searchQuery={searchQuery}
+                />
+              );
+            }
+            return null;
+          })}
+        </div>
+      ) : (
+        <TypesTreePanel
+          loadedModels={loadedModels}
+          ifcApi={ifcApi}
+          selectElement={selectElement}
+          selectedElement={selectedElement}
+          getNaturalIfcClassName={getNaturalIfcClassName}
+          hideElements={hideElements}
+          showElements={showElements}
+          searchQuery={deferredSearchQuery}
+          expandedNodeKeys={expandedNodeKeys}
+          toggleNodeExpansion={toggleNodeExpansion}
+          selectedNodeRef={selectedNodeRef}
+          selectedNodeKeyForScroll={selectedNodeKeyForScroll}
+          setSelectedNodeKeyForScroll={setSelectedNodeKeyForScroll}
+          isUserBrowsingTree={isUserBrowsingTree}
+          isNewSelection={isNewSelection}
+          lastSelectedElement={lastSelectedElement}
+          setLastSelectedElement={setLastSelectedElement}
+          t={t}
+          lang={lang}
+        />
+      )}
 
       {modelToRemove && (
         <Dialog

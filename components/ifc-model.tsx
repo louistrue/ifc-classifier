@@ -69,7 +69,7 @@ async function getElementData(
 // Helper function to validate if an element is contained in a specific storey (optimized)
 async function isElementContainedInStorey(ifcApi: IfcAPI, modelID: number, storeyID: number, elemID: number): Promise<boolean> {
   // Reuse the optimized Set-based containment function for O(1) lookup
-  const containedElements = await getContainedElementsInStorey(ifcApi, modelID, storeyID);
+  const containedElements = await getContainedElementsInSpatialStructure(ifcApi, modelID, storeyID);
   return containedElements.has(elemID);
 }
 
@@ -118,12 +118,114 @@ async function getContainedElementsInSpatialStructure(ifcApi: IfcAPI, modelID: n
   return containedElements;
 }
 
-// Function to recursively build the spatial structure tree
+// Cache for relationship data at model level
+const modelRelationshipCache = new Map<number, {
+  aggregates: Map<number, number[]>,
+  contained: Map<number, number[]>,
+}>();
+
+// Function to build relationship cache for the entire model (FAST!)
+async function buildModelRelationshipCache(ifcApi: IfcAPI, modelID: number) {
+  if (modelRelationshipCache.has(modelID)) {
+    return modelRelationshipCache.get(modelID)!;
+  }
+
+  console.log(`[buildModelRelationshipCache] Building cache for model ${modelID}`);
+
+  const aggregates = new Map<number, number[]>();
+  const contained = new Map<number, number[]>();
+
+  // Build aggregates cache
+  try {
+    const relAggregatesIDs = await ifcApi.GetLineIDsWithType(modelID, IFCRELAGGREGATES);
+    for (let i = 0; i < relAggregatesIDs.size(); i++) {
+      const relAggID = relAggregatesIDs.get(i);
+      try {
+        const relAgg = await ifcApi.GetLine(modelID, relAggID, false);
+        const relatingObj = relAgg.RelatingObject;
+        const relatingId =
+          (typeof relatingObj?.value === "number" && relatingObj.value) ||
+          (typeof relatingObj?.expressID === "number" && relatingObj.expressID) ||
+          (typeof relatingObj === "number" && relatingObj) ||
+          null;
+
+        if (relatingId && relAgg.RelatedObjects && Array.isArray(relAgg.RelatedObjects)) {
+          const children = relAgg.RelatedObjects
+            .map((obj: any) =>
+              (typeof obj?.value === "number" && obj.value) ||
+              (typeof obj?.expressID === "number" && obj.expressID) ||
+              (typeof obj === "number" && obj) ||
+              null
+            )
+            .filter((id: any) => typeof id === 'number');
+
+          if (children.length > 0) {
+            aggregates.set(relatingId, children);
+          }
+        }
+      } catch (error) {
+        console.warn(`Error processing aggregate relationship ${relAggID}:`, error);
+      }
+    }
+  } catch (error) {
+    console.warn(`Error loading aggregates for model ${modelID}:`, error);
+  }
+
+  // Build contained cache
+  try {
+    const relContainedIDs = await ifcApi.GetLineIDsWithType(modelID, IFCRELCONTAINEDINSPATIALSTRUCTURE);
+    for (let i = 0; i < relContainedIDs.size(); i++) {
+      const relContID = relContainedIDs.get(i);
+      try {
+        const relCont = await ifcApi.GetLine(modelID, relContID, false);
+        const relatingStruct = relCont.RelatingStructure;
+        const relatingId =
+          (typeof relatingStruct?.value === "number" && relatingStruct.value) ||
+          (typeof relatingStruct?.expressID === "number" && relatingStruct.expressID) ||
+          (typeof relatingStruct === "number" && relatingStruct) ||
+          null;
+
+        if (relatingId && relCont.RelatedElements && Array.isArray(relCont.RelatedElements)) {
+          const children = relCont.RelatedElements
+            .map((obj: any) =>
+              (typeof obj?.value === "number" && obj.value) ||
+              (typeof obj?.expressID === "number" && obj.expressID) ||
+              (typeof obj === "number" && obj) ||
+              null
+            )
+            .filter((id: any) => typeof id === 'number');
+
+          if (children.length > 0) {
+            contained.set(relatingId, children);
+          }
+        }
+      } catch (error) {
+        console.warn(`Error processing contained relationship ${relContID}:`, error);
+      }
+    }
+  } catch (error) {
+    console.warn(`Error loading contained relationships for model ${modelID}:`, error);
+  }
+
+  const cache = { aggregates, contained };
+  modelRelationshipCache.set(modelID, cache);
+  console.log(`[buildModelRelationshipCache] Cache built - aggregates: ${aggregates.size}, contained: ${contained.size}`);
+  return cache;
+}
+
+// Function to clear relationship cache for a model
+function clearModelRelationshipCache(modelID: number) {
+  modelRelationshipCache.delete(modelID);
+  console.log(`[clearModelRelationshipCache] Cleared cache for model ${modelID}`);
+}
+
+// Function to recursively build the spatial structure tree (OPTIMIZED!)
 async function buildSpatialTree(
   ifcApi: IfcAPI,
   modelID: number,
   elementID: number,
-  parentType?: string
+  parentType?: string,
+  cache?: { aggregates: Map<number, number[]>, contained: Map<number, number[]> }
 ): Promise<SpatialStructureNode | null> {
   const element = await getElementData(ifcApi, modelID, elementID);
   if (!element.type) return null;
@@ -140,192 +242,100 @@ async function buildSpatialTree(
     ...element,
   };
 
-  // 1. Decomposed elements (IfcRelAggregates)
-  const relAggregatesIDs = await ifcApi.GetLineIDsWithType(
-    modelID,
-    IFCRELAGGREGATES
-  );
-  for (let i = 0; i < relAggregatesIDs.size(); i++) {
-    const relAggID = relAggregatesIDs.get(i);
-    const relAgg = await ifcApi.GetLine(modelID, relAggID, false);
-    if (relAgg.RelatingObject?.value === elementID) {
-      const relatedObjects = relAgg.RelatedObjects;
-      if (relatedObjects && Array.isArray(relatedObjects)) {
-        for (const relatedObject of relatedObjects) {
-          const childNode = await buildSpatialTree(
-            ifcApi,
-            modelID,
-            relatedObject.value,
-            element.type
-          );
-          if (childNode) node.children.push(childNode);
-        }
-      }
+  // Get or build cache
+  if (!cache) {
+    cache = await buildModelRelationshipCache(ifcApi, modelID);
+  }
+
+  // 1. Decomposed elements (IfcRelAggregates) - CACHED VERSION
+  const aggregatedChildren = cache.aggregates.get(elementID);
+  if (aggregatedChildren) {
+    for (const childId of aggregatedChildren) {
+      const childNode = await buildSpatialTree(
+        ifcApi,
+        modelID,
+        childId,
+        element.type,
+        cache
+      );
+      if (childNode) node.children.push(childNode);
     }
   }
 
-  // 2. Contained elements (IfcRelContainedInSpatialStructure)
-  // Only for spatial structure elements like Storey, Space, Building, Site
+  // 2. Contained elements (IfcRelContainedInSpatialStructure) - CACHED & OPTIMIZED
   if (process.env.NODE_ENV !== "production") {
     console.log(`[buildSpatialTree] Processing element: ${element.type} (ID: ${elementID})`);
   }
 
-  if (
-    element.type === "IFCBUILDINGSTOREY" ||
-    element.type === "IFCSPACE" ||
-    element.type === "IFCBASICELEMENT" ||
-    element.type === "IFCBUILDING" ||
-    element.type === "IFCSITE" ||
-    element.type === "IFCPROJECT"  // Also check project level
-  ) {
-    const relContainedIDs = await ifcApi.GetLineIDsWithType(
-      modelID,
-      IFCRELCONTAINEDINSPATIALSTRUCTURE
-    );
+  // OPTIMIZATION: Only process contained elements for main spatial structure, not spaces
+  const shouldProcessContained =
+    element.type === "IFCBUILDINGSTOREY" || element.type === "IfcBuildingStorey" ||
+    element.type === "IFCBUILDING" || element.type === "IfcBuilding" ||
+    element.type === "IFCSITE" || element.type === "IfcSite" ||
+    element.type === "IFCPROJECT" || element.type === "IfcProject";
 
-    if (process.env.NODE_ENV !== "production") {
-      console.log(`[buildSpatialTree] Found ${relContainedIDs.size()} IFCRELCONTAINEDINSPATIALSTRUCTURE relationships`);
-    }
-
-    let foundRelationships = 0;
-    for (let i = 0; i < relContainedIDs.size(); i++) {
-      const relContID = relContainedIDs.get(i);
-      const relCont = await ifcApi.GetLine(modelID, relContID, true); // Use true to get full objects
-
-      // Debug: Log the relationship structure
-      if (process.env.NODE_ENV !== "production" && i === 0) {
-        console.log(`[buildSpatialTree] Sample relationship structure:`, {
-          RelatingStructure: relCont.RelatingStructure,
-          RelatedElements: relCont.RelatedElements ? `Array(${relCont.RelatedElements.length})` : 'undefined'
-        });
+  if (shouldProcessContained) {
+    const containedChildren = cache.contained.get(elementID);
+    if (containedChildren) {
+      if (process.env.NODE_ENV !== "production") {
+        console.log(`[buildSpatialTree] Found ${containedChildren.length} contained elements for ${element.type} (ID: ${elementID})`);
       }
 
-      // Check if this relationship relates to our current element
-      const relatingStruct = relCont.RelatingStructure;
-      const relatingId =
-        (typeof relatingStruct?.value === "number" && relatingStruct.value) ||
-        (typeof relatingStruct?.expressID === "number" && relatingStruct.expressID) ||
-        (typeof relatingStruct === "number" && relatingStruct) ||
-        null;
-      if (relatingId === elementID) {
-        foundRelationships++;
-        const relatedElements = relCont.RelatedElements;
+      for (const childExpressID of containedChildren) {
+        try {
+          // Get the full element data
+          const childData = await getElementData(ifcApi, modelID, childExpressID);
 
-        if (process.env.NODE_ENV !== "production") {
-          console.log(`[buildSpatialTree] Found relationship for ${element.type} with ${relatedElements?.length || 0} related elements`);
-        }
+          if (process.env.NODE_ENV !== "production") {
+            console.log(`[buildSpatialTree] Child element: ${childData.type} (ID: ${childExpressID})`);
+          }
 
-        if (relatedElements && Array.isArray(relatedElements)) {
-          for (const relatedElement of relatedElements) {
-            const childExpressID = relatedElement.value || relatedElement;
+          if (childData.type) {
+            // Always add the element to the tree, regardless of type
+            const childNode: SpatialStructureNode = {
+              expressID: childExpressID,
+              type: childData.type,
+              Name: childData.Name,
+              GlobalId: childData.GlobalId,
+              children: [],
+              ...childData,
+            };
 
-            // Get the full element data
-            const childData = await getElementData(
-              ifcApi,
-              modelID,
-              childExpressID
-            );
-
-            if (process.env.NODE_ENV !== "production") {
-              console.log(`[buildSpatialTree] Child element: ${childData.type} (ID: ${childExpressID})`);
-            }
-
-            if (childData.type) {
-              // Always add the element to the tree, regardless of type
-              const childNode: SpatialStructureNode = {
-                expressID: childExpressID,
-                type: childData.type,
-                Name: childData.Name,
-                GlobalId: childData.GlobalId,
-                children: [],
-                ...childData,
-              };
-
-              // If it's a spatial element, recurse to get its children
-              if (
-                childData.type === "IFCSPACE" ||
-                childData.type.includes("SPATIAL")
-              ) {
-                const recursiveNode = await buildSpatialTree(
-                  ifcApi,
-                  modelID,
-                  childExpressID,
-                  element.type
-                );
-                if (recursiveNode) {
-                  childNode.children = recursiveNode.children;
-                }
-              }
-
+            // OPTIMIZATION: Don't recurse into spaces - they're leaf nodes for performance
+            // Spaces will be shown as leaf nodes without their contained elements
+            if (
+              (childData.type === "IFCSPACE" || childData.type === "IfcSpace") &&
+              element.type !== "IFCSPACE" && element.type !== "IfcSpace"
+            ) {
+              // Spaces are leaf nodes - don't recurse
               node.children.push(childNode);
+            } else if (
+              childData.type !== "IFCSPACE" && childData.type !== "IfcSpace"
+            ) {
+              // For non-space elements, add them directly (no recursion needed)
+              node.children.push(childNode);
+            }
 
-              // Debug log to see what we're adding
-              if (process.env.NODE_ENV !== "production" &&
-                (childData.type.includes("WALL") || childData.type.includes("DOOR") ||
-                  childData.type.includes("WINDOW") || childData.type.includes("SLAB"))) {
-                console.log(`[buildSpatialTree] ✓ Added building element to spatial tree: ${childData.type} (ID: ${childExpressID})`);
-              }
+            // Debug log to see what we're adding
+            if (process.env.NODE_ENV !== "production" &&
+              (childData.type.includes("WALL") || childData.type.includes("DOOR") ||
+                childData.type.includes("WINDOW") || childData.type.includes("SLAB"))) {
+              console.log(`[buildSpatialTree] ✓ Added building element to spatial tree: ${childData.type} (ID: ${childExpressID})`);
             }
           }
+        } catch (error) {
+          console.warn(`Error processing contained element ${childExpressID}:`, error);
         }
-      }
-    }
-
-    if (process.env.NODE_ENV !== "production") {
-      console.log(`[buildSpatialTree] Found ${foundRelationships} relationships for ${element.type} (ID: ${elementID})`);
-    }
-
-    // SIMPLE & FAST: Add contained elements without recursion
-    if ((element.type === "IfcBuildingStorey" || element.type === "IfcSpace") && node.children.length < 10) {
-      try {
-        const containedElementsSet = await getContainedElementsInSpatialStructure(ifcApi, modelID, elementID);
-
-        if (containedElementsSet.size > 0) {
-          let addedCount = 0;
-
-          for (const elemID of containedElementsSet) {
-            if (node.children.some(child => child.expressID === elemID)) continue;
-
-            try {
-              const elemData = await getElementData(ifcApi, modelID, elemID);
-
-              // Add ALL contained elements (spaces and building elements)
-              if (elemData.type &&
-                elemData.type !== "IfcBuildingStorey" &&
-                elemData.type !== "IfcBuilding" &&
-                elemData.type !== "IfcSite" &&
-                elemData.type !== "IfcProject") {
-
-                node.children.push({
-                  expressID: elemID,
-                  type: elemData.type,
-                  Name: elemData.Name,
-                  GlobalId: elemData.GlobalId,
-                  children: [], // No recursion - keep it flat
-                  ...elemData,
-                });
-                addedCount++;
-              }
-            } catch (e) {
-              // Skip failed elements
-            }
-          }
-
-          if (process.env.NODE_ENV !== "production" && addedCount > 0) {
-            console.log(`[buildSpatialTree] Added ${addedCount} elements to ${element.type}`);
-          }
-        }
-      } catch (e) {
-        // Skip on error
       }
     }
   }
 
+
   // SIMPLE EMERGENCY FALLBACK: Only for completely empty first storey
-  if (element.type === "IfcBuildingStorey" && node.children.length === 0) {
+  if ((element.type === "IFCBUILDINGSTOREY" || element.type === "IfcBuildingStorey") && node.children.length === 0) {
     const cacheKey = `simple_${modelID}`;
-    if (!buildSpatialTree[cacheKey]) {
-      buildSpatialTree[cacheKey] = true;
+    if (!(buildSpatialTree as any)[cacheKey]) {
+      (buildSpatialTree as any)[cacheKey] = true;
 
       try {
         const allElementIds = await ifcApi.GetAllLines(modelID);
@@ -383,8 +393,84 @@ async function fetchFullSpatialStructure(
     console.error("IFCModel: No IFCPROJECT found in the model.");
     return null;
   }
+
+  // Build relationship cache ONCE for the entire model - HUGE PERFORMANCE BOOST!
+  const cache = await buildModelRelationshipCache(ifcApi, modelID);
+
   const projectID = projectIDs.get(0); // Assume single project
-  return buildSpatialTree(ifcApi, modelID, projectID);
+  const tree = await buildSpatialTree(ifcApi, modelID, projectID, undefined, cache);
+
+  // FALLBACK: Ensure all building storeys are discovered even if not properly linked
+  if (tree) {
+    await ensureAllStoreysIncluded(ifcApi, modelID, tree);
+  }
+
+  return tree;
+}
+
+// Helper function to ensure all building storeys are included in the tree
+async function ensureAllStoreysIncluded(
+  ifcApi: IfcAPI,
+  modelID: number,
+  tree: SpatialStructureNode
+): Promise<void> {
+  try {
+    // Get all building storeys in the model
+    const storeyIDs = await ifcApi.GetLineIDsWithType(modelID, IFCBUILDINGSTOREY);
+
+    // Find all storeys already in the tree
+    const existingStoreyIds = new Set<number>();
+    const collectStoreyIds = (node: SpatialStructureNode) => {
+      if (node.type === "IFCBUILDINGSTOREY" || node.type === "IfcBuildingStorey") {
+        existingStoreyIds.add(node.expressID);
+      }
+      node.children?.forEach(child => collectStoreyIds(child));
+    };
+    collectStoreyIds(tree);
+
+    // Find missing storeys
+    const missingStoreyIds: number[] = [];
+    for (let i = 0; i < storeyIDs.size(); i++) {
+      const storeyId = storeyIDs.get(i);
+      if (!existingStoreyIds.has(storeyId)) {
+        missingStoreyIds.push(storeyId);
+      }
+    }
+
+    if (missingStoreyIds.length > 0) {
+      console.log(`[ensureAllStoreysIncluded] Found ${missingStoreyIds.length} missing storeys, adding them to tree`);
+
+      // Find the first building in the tree to attach missing storeys
+      const findFirstBuilding = (node: SpatialStructureNode): SpatialStructureNode | null => {
+        if (process.env.NODE_ENV !== "production") {
+          console.log(`[ensureAllStoreysIncluded] Checking node type: ${node.type} (ID: ${node.expressID})`);
+        }
+        if (node.type === "IFCBUILDING" || node.type === "IfcBuilding") return node;
+        for (const child of node.children || []) {
+          const result = findFirstBuilding(child);
+          if (result) return result;
+        }
+        return null;
+      };
+
+      const firstBuilding = findFirstBuilding(tree);
+      if (firstBuilding) {
+        // Add missing storeys to the first building
+        const cache = await buildModelRelationshipCache(ifcApi, modelID);
+        for (const storeyId of missingStoreyIds) {
+          const storeyNode = await buildSpatialTree(ifcApi, modelID, storeyId, undefined, cache);
+          if (storeyNode) {
+            firstBuilding.children.push(storeyNode);
+            console.log(`[ensureAllStoreysIncluded] Added missing storey: ${storeyNode.type} (ID: ${storeyId})`);
+          }
+        }
+      } else {
+        console.warn("[ensureAllStoreysIncluded] No building found to attach missing storeys");
+      }
+    }
+  } catch (error) {
+    console.error("[ensureAllStoreysIncluded] Error ensuring storeys included:", error);
+  }
 }
 
 // New helper function to recursively extract property values, handling complex properties (Restored)
@@ -713,6 +799,7 @@ export function IFCModel({ modelData, outlineLayer }: IFCModelProps) {
             `IFCModel (${modelData.id}): Closing model ID:`,
             ownModelID.current
           );
+          clearModelRelationshipCache(ownModelID.current);
           ifcApi.CloseModel(ownModelID.current);
         } catch (error) {
           console.error(
@@ -886,6 +973,7 @@ export function IFCModel({ modelData, outlineLayer }: IFCModelProps) {
           console.log(
             `IFCModel (${modelData.id}): Closing previous internal model ID in IfcAPI: ${ownModelID.current}`
           );
+          clearModelRelationshipCache(ownModelID.current);
           ifcApi.CloseModel(ownModelID.current);
           ownModelID.current = null;
         }
