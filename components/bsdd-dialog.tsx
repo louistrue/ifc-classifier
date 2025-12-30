@@ -925,22 +925,6 @@ export function BsddDialog({ open, onOpenChange, onAdd, existingCodes, onRemove 
                     </div>
                   </ScrollArea>
                 </div>
-
-                <div className="flex items-center justify-between">
-                  <div className="text-sm text-muted-foreground">
-                    {selectedDictionaryUris.length > 0 ? `${selectedDictionaryUris.length} selected` : 'No dictionary selected'}
-                  </div>
-                  <div className="flex gap-2">
-                    {selectedDictionaryUris.length > 0 && (
-                      <Button variant="ghost" size="sm" onClick={() => setSelectedDictionaryUris([])}>
-                        <X className="h-4 w-4 mr-1" /> Clear
-                      </Button>
-                    )}
-                    <Button size="sm" disabled={selectedDictionaryUris.length === 0} onClick={() => setStep('search')}>
-                      Continue
-                    </Button>
-                  </div>
-                </div>
               </div>
             )}
 
@@ -1196,7 +1180,12 @@ export function BsddDialog({ open, onOpenChange, onAdd, existingCodes, onRemove 
         <DialogFooter>
           <div className="flex items-center justify-between w-full">
             <div className="text-sm text-muted-foreground">
-              {filteredAndSortedResults.length > 0 && (
+              {step === 'select' && (
+                <span>
+                  {selectedDictionaryUris.length > 0 ? `${selectedDictionaryUris.length} selected` : 'No dictionary selected'}
+                </span>
+              )}
+              {step === 'search' && filteredAndSortedResults.length > 0 && (
                 <span>
                   {filteredAndSortedResults.length} result{filteredAndSortedResults.length === 1 ? '' : 's'}
                   {dictionaryFilter !== 'all' && ' (filtered)'}
@@ -1209,6 +1198,18 @@ export function BsddDialog({ open, onOpenChange, onAdd, existingCodes, onRemove 
               <Button variant="outline" onClick={() => onOpenChange(false)}>
                 {t("buttons.cancel")}
               </Button>
+              {step === 'select' && (
+                <>
+                  {selectedDictionaryUris.length > 0 && (
+                    <Button variant="ghost" onClick={() => setSelectedDictionaryUris([])}>
+                      <X className="h-4 w-4 mr-1" /> Clear
+                    </Button>
+                  )}
+                  <Button disabled={selectedDictionaryUris.length === 0} onClick={() => setStep('search')}>
+                    Continue
+                  </Button>
+                </>
+              )}
             </div>
           </div>
         </DialogFooter>
