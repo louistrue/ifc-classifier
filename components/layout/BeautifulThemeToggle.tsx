@@ -7,6 +7,7 @@ import type { ThemeState } from "beautiful-theme-toggle";
 export default function BeautifulThemeToggle({ size = 80 }: { size?: number | string }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const toggleRef = useRef<import("beautiful-theme-toggle").ThemeToggle | null>(null);
+  const themeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { theme, resolvedTheme, setTheme } = useTheme();
 
   useEffect(() => {
@@ -25,7 +26,13 @@ export default function BeautifulThemeToggle({ size = 80 }: { size?: number | st
         size,
         initialState,
         onChange: (state: ThemeState) => {
-          setTheme(state);
+          // Delay the page theme change until the toggle animation finishes.
+          // next-themes' disableTransitionOnChange injects a temporary
+          // * { transition: none !important } that cancels running CSS
+          // transitions. By deferring setTheme, the toggle animates fully
+          // before the kill-style is ever injected.
+          if (themeTimeoutRef.current) clearTimeout(themeTimeoutRef.current);
+          themeTimeoutRef.current = setTimeout(() => setTheme(state), 800);
         },
       });
 
@@ -33,6 +40,7 @@ export default function BeautifulThemeToggle({ size = 80 }: { size?: number | st
     });
 
     return () => {
+      if (themeTimeoutRef.current) clearTimeout(themeTimeoutRef.current);
       instance?.destroy();
       toggleRef.current = null;
     };
