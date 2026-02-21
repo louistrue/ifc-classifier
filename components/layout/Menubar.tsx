@@ -2,14 +2,13 @@
 
 import React, { useEffect, useState, useRef } from "react";
 import Link from "next/link";
-import { useTheme } from "next-themes";
-import { Moon, Sun, Shapes, HelpCircle, ChevronDown } from "lucide-react";
+import { Shapes, HelpCircle, ChevronDown } from "lucide-react";
 import DocumentationModal from "@/components/docs/DocumentationModal";
 import { useTranslation } from "react-i18next";
+import BeautifulThemeToggle from "@/components/layout/BeautifulThemeToggle";
 
 const Menubar = () => {
   const [mounted, setMounted] = useState(false);
-  const { theme, setTheme } = useTheme();
   const [isDocsModalOpen, setIsDocsModalOpen] = useState(false);
   const { t, i18n } = useTranslation();
   const [isLangDropdownOpen, setIsLangDropdownOpen] = useState(false);
@@ -61,6 +60,7 @@ const Menubar = () => {
             </span>
           </Link>
           <div className="flex items-center space-x-2">
+            <BeautifulThemeToggle size={80} />
             <div className="relative" ref={langDropdownRef}>
               <button
                 onClick={() => setIsLangDropdownOpen(!isLangDropdownOpen)}
@@ -126,17 +126,6 @@ const Menubar = () => {
                 </div>
               )}
             </div>
-            <button
-              onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-              className="p-2 rounded-md hover:bg-accent focus:outline-none focus:ring-2 focus:ring-ring"
-              aria-label={t('toggleTheme')}
-            >
-              {theme === "dark" ? (
-                <Sun className="h-6 w-6 text-foreground" />
-              ) : (
-                <Moon className="h-6 w-6 text-foreground" />
-              )}
-            </button>
             <button
               onClick={() => setIsDocsModalOpen(!isDocsModalOpen)}
               className="p-2 rounded-md hover:bg-accent focus:outline-none focus:ring-2 focus:ring-ring"
