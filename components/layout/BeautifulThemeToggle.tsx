@@ -32,7 +32,7 @@ export default function BeautifulThemeToggle({ size = 80 }: { size?: number | st
           // transitions. By deferring setTheme, the toggle animates fully
           // before the kill-style is ever injected.
           if (themeTimeoutRef.current) clearTimeout(themeTimeoutRef.current);
-          themeTimeoutRef.current = setTimeout(() => setTheme(state), 800);
+          themeTimeoutRef.current = setTimeout(() => setTheme(state), 400);
         },
       });
 
