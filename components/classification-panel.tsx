@@ -146,7 +146,6 @@ export function ClassificationPanel() {
   const { t } = useTranslation();
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isBsddDialogOpen, setIsBsddDialogOpen] = useState(false);
-  const [bsddFeatureSeen, setBsddFeatureSeen] = useState(false);
   const [newClassification, setNewClassification] = useState({
     code: "",
     name: "",
@@ -417,13 +416,6 @@ export function ClassificationPanel() {
   }, [exportableModels, selectedModelIdForExport]);
 
   useEffect(() => {
-    // Feature highlight: show pulse on 3-dot menu until user opens it once
-    try {
-      const seen = localStorage.getItem("bsddFeatureSeen");
-      setBsddFeatureSeen(seen === "true");
-    } catch (e) {
-      // ignore
-    }
     const fetchUniclassData = async () => {
       setIsLoadingUniclass(true);
       setErrorLoadingUniclass(null);
@@ -1142,28 +1134,10 @@ export function ClassificationPanel() {
               </div>
             </TooltipProvider>
             {/* 3-dot Manage Menu */}
-            <DropdownMenu onOpenChange={(open) => {
-              if (open && !bsddFeatureSeen) {
-                try { localStorage.setItem("bsddFeatureSeen", "true"); } catch { }
-                setBsddFeatureSeen(true);
-              }
-            }}>
+            <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="sm" className={`p-1.5 h-auto relative overflow-visible`}>
-                  {" "}
-                  {/* Subtle look */}
+                <Button variant="ghost" size="sm" className="p-1.5 h-auto">
                   <MoreHorizontal className="w-5 h-5 text-muted-foreground" />
-                  {!bsddFeatureSeen && (
-                    <>
-                      {/* Glow ping dot */}
-                      <span className="pointer-events-none absolute -top-1.5 -right-1.5 w-3.5 h-3.5 rounded-full bg-primary/70 animate-ping" />
-                      <span className="pointer-events-none absolute -top-1.5 -right-1.5 w-3.5 h-3.5 rounded-full bg-primary shadow-sm" />
-                      {/* Floating label */}
-                      <span className="pointer-events-none select-none absolute right-6 top-full mt-1 bg-primary text-primary-foreground text-[10px] leading-none px-2 py-1 rounded-full shadow-md animate-bounce">
-                        bSDD search
-                      </span>
-                    </>
-                  )}
                   <span className="sr-only">{t("classifications.manageClassifications")}</span>
                 </Button>
               </DropdownMenuTrigger>
@@ -1732,47 +1706,61 @@ export function ClassificationPanel() {
             </p>
           ) : (
             <>
-              <div className="flex justify-center mb-4">
-                <Cuboid className="h-12 w-12 text-foreground/30" />
-              </div>
-              <p className="text-base font-medium text-foreground/80 mb-2">
+              <Cuboid className="h-10 w-10 text-foreground/20 mb-3" />
+              <p className="text-sm font-medium text-foreground/70 mb-1">
                 {t("noClassificationsAdded")}
               </p>
-              <p className="text-sm text-foreground/60 mb-4">
+              <p className="text-xs text-muted-foreground mb-5">
                 {t("addClassification")}
               </p>
-              <div className="flex flex-col sm:flex-row items-center justify-center gap-2">
+              <div className="flex flex-col items-stretch gap-2 w-full max-w-[220px]">
                 {isLoadingUniclass ? (
-                  <Button disabled>{t("buttons.loadingUniclass")}</Button>
+                  <Button variant="outline" size="sm" disabled>
+                    <Download className="mr-2 h-3.5 w-3.5" />
+                    {t("buttons.loadingUniclass")}
+                  </Button>
                 ) : errorLoadingUniclass ? (
-                  <Button variant="destructive" disabled>
+                  <Button variant="destructive" size="sm" disabled>
                     {t("buttons.uniclassError", { message: errorLoadingUniclass })}
                   </Button>
                 ) : defaultUniclassPr.length > 0 ? (
                   <Button
+                    variant="outline"
+                    size="sm"
                     onClick={handleAddAllUniclassPr}
                     disabled={areAllUniclassAdded()}
                   >
+                    <Download className="mr-2 h-3.5 w-3.5" />
                     {t("buttons.loadUniclass", { count: defaultUniclassPr.length })}
                   </Button>
                 ) : (
-                  <Button disabled>{t("buttons.noUniclassFound")}</Button>
+                  <Button variant="outline" size="sm" disabled>
+                    {t("buttons.noUniclassFound")}
+                  </Button>
                 )}
                 {isLoadingEBKPH ? (
-                  <Button disabled>{t("buttons.loadingEbkph")}</Button>
+                  <Button variant="outline" size="sm" disabled>
+                    <Download className="mr-2 h-3.5 w-3.5" />
+                    {t("buttons.loadingEbkph")}
+                  </Button>
                 ) : errorLoadingEBKPH ? (
-                  <Button variant="destructive" disabled>
+                  <Button variant="destructive" size="sm" disabled>
                     {t("buttons.ebkphError", { message: errorLoadingEBKPH })}
                   </Button>
                 ) : defaultEBKPH.length > 0 ? (
                   <Button
+                    variant="outline"
+                    size="sm"
                     onClick={handleAddAlleBKPH}
                     disabled={areAlleBKPHAdded()}
                   >
+                    <Download className="mr-2 h-3.5 w-3.5" />
                     {t("buttons.loadEbkph", { count: defaultEBKPH.length })}
                   </Button>
                 ) : (
-                  <Button disabled>{t("buttons.noEbkphFound")}</Button>
+                  <Button variant="outline" size="sm" disabled>
+                    {t("buttons.noEbkphFound")}
+                  </Button>
                 )}
               </div>
             </>
