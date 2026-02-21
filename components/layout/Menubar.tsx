@@ -60,7 +60,7 @@ const Menubar = () => {
             </span>
           </Link>
           <div className="flex items-center space-x-2">
-            <BeautifulThemeToggle size={32} />
+            <BeautifulThemeToggle size={80} />
             <div className="relative" ref={langDropdownRef}>
               <button
                 onClick={() => setIsLangDropdownOpen(!isLangDropdownOpen)}

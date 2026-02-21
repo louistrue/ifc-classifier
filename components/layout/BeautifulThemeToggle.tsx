@@ -4,7 +4,7 @@ import { useEffect, useRef } from "react";
 import { useTheme } from "next-themes";
 import type { ThemeState } from "beautiful-theme-toggle";
 
-export default function BeautifulThemeToggle({ size = 32 }: { size?: number | string }) {
+export default function BeautifulThemeToggle({ size = 80 }: { size?: number | string }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const toggleRef = useRef<import("beautiful-theme-toggle").ThemeToggle | null>(null);
   const { theme, resolvedTheme, setTheme } = useTheme();
@@ -25,7 +25,9 @@ export default function BeautifulThemeToggle({ size = 32 }: { size?: number | st
         size,
         initialState,
         onChange: (state: ThemeState) => {
-          setTheme(state);
+          // Delay next-themes update so the toggle's CSS transition starts
+          // before disableTransitionOnChange momentarily kills transitions.
+          requestAnimationFrame(() => setTheme(state));
         },
       });
 
