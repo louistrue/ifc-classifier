@@ -89,6 +89,45 @@ html.resizing * {
   pointer-events: auto !important;
 }
 
+/* Protect beautiful-theme-toggle animations from next-themes disableTransitionOnChange.
+   Class selectors (0,2,0) + !important beat * (0,0,0) + !important. */
+.theme-toggle-wrap .tgl-thumb {
+  transition: transform 0.78s cubic-bezier(0.34, 1.28, 0.42, 1) !important;
+}
+.theme-toggle-wrap .tgl-day-track {
+  transition: opacity 0.7s ease-in-out !important;
+}
+.theme-toggle-wrap .tgl-night-glow {
+  transition: opacity 0.85s ease-in-out !important;
+}
+.theme-toggle-wrap .tgl-track-stroke {
+  transition: stroke 0.6s ease-in-out !important;
+}
+.theme-toggle-wrap .tgl-sun {
+  transition: opacity 0.5s ease-in-out, transform 0.7s ease-in-out !important;
+}
+.theme-toggle-wrap .tgl-moon {
+  transition: opacity 0.5s ease-in-out, transform 0.7s ease-in-out !important;
+}
+.theme-toggle-wrap .tgl-sun-halo {
+  transition: opacity 0.5s ease-in-out !important;
+}
+.theme-toggle-wrap .tgl-moon-halo {
+  transition: opacity 0.5s ease-in-out !important;
+}
+.theme-toggle-wrap .tgl-thumb-ring {
+  transition: opacity 0.45s ease-in-out !important;
+}
+.theme-toggle-wrap .tgl-clouds {
+  transition: opacity 0.5s ease-in-out, transform 0.7s ease-in-out !important;
+}
+.theme-toggle-wrap .tgl-stars {
+  transition: opacity 0.6s ease-in-out 0.15s !important;
+}
+.theme-toggle-wrap .tgl-birds {
+  transition: opacity 0.4s ease-in-out, transform 0.7s ease-in-out !important;
+}
+
 /* External link icon */
 .external-link {
   display: inline-block;

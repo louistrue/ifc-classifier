@@ -25,9 +25,7 @@ export default function BeautifulThemeToggle({ size = 80 }: { size?: number | st
         size,
         initialState,
         onChange: (state: ThemeState) => {
-          // Delay next-themes update so the toggle's CSS transition starts
-          // before disableTransitionOnChange momentarily kills transitions.
-          requestAnimationFrame(() => setTheme(state));
+          setTheme(state);
         },
       });
 
@@ -52,5 +50,5 @@ export default function BeautifulThemeToggle({ size = 80 }: { size?: number | st
     }
   }, [theme, resolvedTheme]);
 
-  return <div ref={containerRef} className="flex items-center" />;
+  return <div ref={containerRef} className="theme-toggle-wrap flex items-center" />;
 }
